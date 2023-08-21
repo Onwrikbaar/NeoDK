@@ -2,14 +2,14 @@
 An electrostimulation machine development kit.
 
 ### What is it?
-This project describes the design and implementation of an innovative and powerful pulse-based electrostimulation device. Both its hardware and its firmware are open for modification and extension.
+This project describes the design and implementation of a bare-bones, yet innovative and powerful, pulse-based electrostimulation device. Both its hardware and its firmware are open for modification and extension.
 
 ### Author
 Discord: @Onwrikbaar<br/>
 E: onwrikbaar@hotmail.com
 
 ### Goals
-1. The last quarter century, innovation in the e-stim realm has been virtually nonexistent, despite massive advances in electronics. Currently available commercial devices are without exception channel-oriented and produce TENS-like waveforms. It is time to get rid of those limitations.
+1. The last quarter century, innovation in the e-stim realm has been virtually nonexistent, despite massive advances in electronics. Currently available commercial devices are without exception channel-oriented and produce TENS-like waveforms. It is time to get rid of those historical remnants.
 2. It is fairly easy for non-programmers to create, share and improve routines to be played on stereostim setups. Currently there is no way to do the same for pulse-based e-stim devices. This project aims to (eventually) bridge that gap.
 
 ### Disclaimer
@@ -27,6 +27,7 @@ The NeoDK device is designed to stay well within the IEC 60601-2-10 requirements
 ### Audience
 This project is intended for experienced electronics hobbyists who possess a keen understanding of the risks associated with electrostimulation and high-voltage circuitry, who
 - are looking for e-stim sensations unattainable through existing power boxes.
+- wish to create their own pulse-based e-stim box, based on a rock solid and well-tested design.
 - want a pulse-based device that can store and play user-created routines.
 - would like to be able to create custom routines without too much hassle.
 
@@ -84,7 +85,7 @@ The primary current is measured on the high side, by means of a 30 mΩ shunt res
 The primary voltage is measured through a ÷4 voltage divider connected to an ADC input of the microcontroller.
 
 ### Microcontroller
-The STM32G070KBT6 is a 32 bits controller with an ARM Cortex M0+ core, 128 KB flash and 36 KB RAM.
+The STM32G070KBT6 is a 32-bit controller with an ARM Cortex M0+ core, 128 KB flash and 36 KB RAM.
 
 ## Firmware
 
