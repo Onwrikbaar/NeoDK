@@ -1,0 +1,66 @@
+# Design
+## Functional design
+### Requirements
+1. Outputs galvanically isolated from the low-voltage circuitry and any communication interface.
+2. Four monopolar symmetric biphasic outputs, no 'channels'.
+3. Sufficient output power to drive even the largest internal electrodes with high intensity.
+4. Battery-powered, and very energy-efficient.
+5. Controllable by externally/remotely running software.
+
+### Electrical characteristics (preliminary)
+- NeoDK outputs rectangular pulses with a maximum voltage of 100V across a 500 Ω load. Pulses can have either of the two polarities, so Vpp is 200V.
+- Maximum pulse width is 200 µs.
+- Maximum charge per pulse is 40 µC for a 500 Ω load.
+- Maximum energy into a 500 Ω load is 4 mJ per pulse.
+- Maximum pulse repetition rate is 200 Hz.
+- Maximum output power into a 500 Ω load is 800 mW. This corresponds to a current of 40 mA RMS.
+
+### Output configurations
+The four unipolar outputs A, B, C and D can be switched under software control in the following nine ways (X-Y means current can flow from electrode X to electrode Y, or vice versa. X-YZ means current flows from electrode X to electrodes Y and Z simultaneously):
+- A-B
+- C-B
+- AC-B
+- A-D
+- C-D
+- AC-D
+- A-BD
+- C-BD
+- AC-BD
+
+Every single pulse can be directed to a different electrode configuration of 2, 3 or 4 electrodes, if so desired. This allows the creation of stimulation patterns that are perceived as moving through the body.
+
+## Electronic design
+### The output transformer
+- A supply voltage of about 10V must be stepped up by a factor of 10 to reach the desired output voltage of 100V. Since we only drive half of the (center-tapped) primary coil at a time, the ratio of the whole primary to the secondary needs to be 1:5.
+- The transformer must have a power rating of around 800 mW (see electrical characteristics above).
+- The maximum secondary current through a 500 Ω load is 100V/500 Ω = 0.2 A. The primary current is then 10 * 0.2 A = 2A. To limit the ohmic losses at this current, the DC-resistance of the primary should be at most 0.5 Ω.
+- The transformer needs to have a bandwidth of at least a few kHz in order to handle the rectangular pulses well enough.
+
+An off-the-shelf, cheap transformer that meets these criteria, is the Xicon 42TU200, which is carried by Mouser Electronics.
+
+### Switch matrix
+The output voltage of the transformer is distributed to the four electrodes through a 4-node switch matrix consisting of opto-triacs (aka photo-triacs or triac output optocouplers).
+
+### Buffer capacitor
+When the device is powered from a battery that cannot immediately deliver the required primary current, a low-ESR buffer capacitor is needed to help supply the output stage. We use two or three 220 µF 16V tantalum capacitors in parallel.
+
+### Snubber
+Stray inductance of the transformer causes inductive spikes every time the primary current is switched off. These spikes must be suppressed in order to prevent destruction of the MOSFETs switching the transformer's primary. This is accomplished by 'shorting' the spikes to the VCAP rail when they exceed a critical value. This way part of the energy stored in the transformer's inductance is dumped back into the capacitors.
+
+### Primary current sensing
+The primary current is measured on the high side, by means of a 30 mΩ shunt resistor and a x20 current sense amplifier. The output of the amplifier is fed to an ADC input of the microcontroller.
+
+### Primary voltage sensing
+The primary voltage is measured through a ÷4 voltage divider connected to an ADC input of the microcontroller.
+
+### Primary voltage control
+The primary voltage is regulated by a (switching) buck converter, which is controlled through a DAC output of the microcontroller. This method ensures very efficient use of the battery capacity as well as negligible heat generation.
+
+### Microcontroller
+The STM32G071 is an affordable 32-bit microcontroller with an ARM Cortex M0+ core, 128 KB flash and 36 KB RAM.
+- [datasheet](https://www.st.com/resource/en/datasheet/stm32g071c8.pdf)
+- [reference manual](https://www.st.com/resource/en/reference_manual/rm0444-stm32g0x1-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)
+
+## Firmware
+
+### Power-on selftest
