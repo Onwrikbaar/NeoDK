@@ -1,10 +1,10 @@
 # Design
 ## Functional design
 ### Requirements
-1. Outputs galvanically isolated from the low-voltage circuitry and any communication interface.
+1. Outputs galvanically isolated from the low-voltage circuitry and the communication interface.
 2. Four monopolar symmetric biphasic outputs, no 'channels'.
 3. Sufficient output power to drive even the largest internal electrodes with high intensity.
-4. Battery-powered, and very energy-efficient.
+4. Very energy-efficient, so optionally battery-powered.
 5. Controllable by externally/remotely running software.
 
 ### Electrical characteristics (preliminary)
@@ -13,7 +13,9 @@
 - Maximum charge per pulse is 40 µC for a 500 Ω load.
 - Maximum energy into a 500 Ω load is 4 mJ per pulse.
 - Maximum pulse repetition rate is 200 Hz.
+- Maximum dutycycle is 200 µs * 200 Hz * 100% = 4%.
 - Maximum output power into a 500 Ω load is 800 mW. This corresponds to a current of 40 mA RMS.
+- Current draw from the power supply or battery is less than 200 mA.
 
 ### Output configurations
 The four unipolar outputs A, B, C and D can be switched under software control in the following nine ways (X-Y means current can flow from electrode X to electrode Y, or vice versa. X-YZ means current flows from electrode X to electrodes Y and Z simultaneously):
@@ -42,7 +44,7 @@ An off-the-shelf, cheap transformer that meets these criteria, is the Xicon 42TU
 The output voltage of the transformer is distributed to the four electrodes through a 4-node switch matrix consisting of opto-triacs (aka photo-triacs or triac output optocouplers).
 
 ### Buffer capacitor
-When the device is powered from a battery that cannot immediately deliver the required primary current, a low-ESR buffer capacitor is needed to help supply the output stage. We use two or three 220 µF 16V tantalum capacitors in parallel.
+When the device is powered from a battery that cannot immediately deliver the required primary current, a low-ESR buffer capacitor is needed to help supply the output stage. We use three 220 µF 16V tantalum capacitors in parallel.
 
 ### Snubber
 Stray inductance of the transformer causes inductive spikes every time the primary current is switched off. These spikes must be suppressed in order to prevent destruction of the MOSFETs switching the transformer's primary. This is accomplished by 'shorting' the spikes to the VCAP rail when they exceed a critical value. This way part of the energy stored in the transformer's inductance is dumped back into the capacitors.
@@ -62,5 +64,7 @@ The STM32G071 is an affordable 32-bit microcontroller with an ARM Cortex M0+ cor
 - [reference manual](https://www.st.com/resource/en/reference_manual/rm0444-stm32g0x1-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)
 
 ## Firmware
+The device's on-board control program (aka firmware) consists of a collection of collaborating state machines. The firmware is event-driven and 100% nonblocking.
 
 ### Power-on selftest
+Before the application program is run, the system verifies that the electronics function as intended.

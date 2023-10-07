@@ -7,39 +7,40 @@ This project describes the design and implementation of a bare-bones, yet innova
 
 ### Author
 Discord: @Onwrikbaar<br/>
-E: onwrikbaar@hotmail.com
+E: <onwrikbaar@hotmail.com>
 
 ### Status
 This is a work in progress. The repo will be updated every few weeks until well into 2024.
 
 ### Goals
 1. The last quarter century, innovation in the e-stim realm has been virtually nonexistent, despite massive advances in electronics and cheap computing power. Currently available commercial devices are without exception channel-oriented and produce TENS-like waveforms. The time has come to get rid of those historical remnants.
-2. It is fairly easy for non-programmers to create, share and improve routines to be played on stereostim setups. Currently there is no way to do the same for pulse-based e-stim devices. This project aims to (eventually) bridge that gap.
+2. It is fairly easy for non-programmers to create, share and improve routines to be played on stereostim setups. Currently there is no way to achieve the same for pulse-based e-stim devices. This project aims to (eventually) bridge that gap.
 
 ### Disclaimer
-NeoDK is experimental, recreational hardware and software. It comes with absolutely no warranty of any kind. Its designs are free to use - under the conditions set forth in file LICENSE.txt.<br/><br/>
+NeoDK is experimental, recreational hardware and software. It comes with absolutely no warranty of any kind. Its designs are free to use - under the conditions set forth in its [License](LICENSE.txt).
 
-How (not) to use NeoDK:
+### How (not) to use NeoDK
 - Use it entirely at your own risk.
 - Do not use it for anything time-critical, safety-critical, medical, industrial, military, commercial, or illegal - it was not designed for any of that.
 - Do not use it on anyone without explicit and informed consent.
 - Keep any and all electrodes connected to this device placed below the waist.
+- Do not use a so-called triphase cable with this device!
 
 ### Safety
 The NeoDK device can generate potentially lethal voltages and currents on its outputs and on internal components, even when powered from a battery. The risks associated with building, testing and using this device can be reduced but not eliminated.
 
-The NeoDK device is designed to stay well within the IEC 60601-2-10 requirements. However, these limits are not necessarily maintained when the circuit, components or accompanying firmware are changed in any way.
+The NeoDK device is designed to stay well within the IEC 60601-2-10 requirements. However, these limits are not necessarily maintained when the supply voltage, circuit, components or accompanying firmware are changed in any way.
 
 ### Audience
 This project is intended for experienced electronics hobbyists and professionals, who possess a keen understanding of the risks associated with electrostimulation and high-voltage circuitry, and who desire one or more of the following:
 - a deeper understanding of advanced electronic circuitry for pulse-based electrostimulation.
+- an innovative, rock solid and well-tested design to base one's own developments on.
+- a high-intensity remotely controllable e-stim device to incorporate into a multi-toy setup.
 - e-stim sensations unattainable through conventional power boxes.
-- a rock solid and well-tested design to base one's own developments on.
-- a high-intensity e-stim circuit to incorporate into a multi-toy setup.
-- a pulse-based device that can store and play user-created routines.
+- a pulse-based device that can store and play user-created routines (planned for 2025).
 
 ### Caveat
-NeoDK is a minimal viable design (MVD) of a powerful and highly efficient electrostimulation device that is not limited by 2-pole 'channels' or strictly TENS-like waveforms. It can thus do things no commercially available e-stim box comes close to. If this appeals to you but you still would like to have more features than NeoDK offers, by all means use NeoDK as a foundation for your own design - while observing this project's License.
+NeoDK is a minimal viable design (MVD) of a powerful and highly efficient electrostimulation device that is not limited by 2-pole 'channels' or strictly TENS-like waveforms. It can thus do things no commercially available e-stim box comes close to. If this appeals to you but you still would like to have more features than NeoDK offers, by all means use NeoDK as the foundation for your own design - while observing this project's [License](LICENSE.txt). Regarding licensing for commercial / non-open source purposes, please contact the author.
 
 ### Why to start simple
 "A complex system that works is invariably found to have evolved from a simple system that worked. A complex system designed from scratch never works and cannot be patched up to make it work. You have to start over with a working simple system." -- John Gall
