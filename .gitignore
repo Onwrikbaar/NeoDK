@@ -2,7 +2,6 @@
 /build/
 /.settings/
 .DS_Store
-/toolchain/
 *.log
 
 # Prerequisites

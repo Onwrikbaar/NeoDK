@@ -405,8 +405,10 @@ static void interpretCommand(BSP *me, char ch)
 
 static void gatherInputCharacters(BSP *me, char ch)
 {
+    me->ci_buf[me->ci_len] = '\0';
     if (ch == '\n' || (me->ci_buf[me->ci_len++] = ch, me->ci_len == sizeof me->ci_buf)) {
-        BSP_logf("Console: '%.*s'\n", me->ci_buf, me->ci_len);
+        if (ch != '\n') BSP_logf("\n");
+        BSP_logf("Console: '%s'\n", me->ci_buf);
         me->ci_len = 0;
     }
 }

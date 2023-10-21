@@ -28,15 +28,24 @@ static void handleAppTimerTick(uint64_t app_timer_micros)
 }
 
 
+static void onButtonToggle(void *me, uint32_t pushed)
+{
+    BSP_logf("Button %s\n", pushed ? "pushed" : "released");
+}
+
+
 static bool maySleep()
 {
-    return false;
+    return true;
 }
 
 
 static void setupAndRunApplication(char const *app_name)
 {
     BSP_registerAppTimerHandler(&handleAppTimerTick, MICROSECONDS_PER_APP_TIMER_TICK);
+    Selector button_selector;
+    Selector_init(&button_selector, (Action)&onButtonToggle, NULL);
+    BSP_registerButtonHandler(&button_selector);
 
     BSP_logf("Starting %s on NeoDK!\n", app_name);
     while (true) {
