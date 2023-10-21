@@ -17,7 +17,7 @@ This is a work in progress. The repo will be updated every few weeks until well 
 2. It is fairly easy for non-programmers to create, share and improve routines to be played on stereostim setups. Currently there is no way to achieve the same for pulse-based e-stim devices. This project aims to (eventually) bridge that gap.
 
 ### Disclaimer
-NeoDK is experimental, recreational hardware and software. It comes with absolutely no warranty of any kind. Its designs are free to use - under the conditions set forth in its [License](LICENSE.txt).
+NeoDK is experimental, recreational, educational hardware and software. It comes with absolutely no warranty of any kind. Its designs are free to use - under the conditions set forth in its [License](LICENSE.txt). Using the designs -in original or modified form- implies acceptance of any and all associated risks and liabilities.
 
 ### How (not) to use NeoDK
 - Use it entirely at your own risk.

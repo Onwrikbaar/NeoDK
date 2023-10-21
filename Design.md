@@ -15,7 +15,7 @@
 - Maximum pulse repetition rate is 200 Hz.
 - Maximum dutycycle is 200 µs * 200 Hz * 100% = 4%.
 - Maximum output power into a 500 Ω load is 800 mW. This corresponds to a current of 40 mA RMS.
-- Current draw from the power supply or battery is less than 200 mA.
+- Average current draw from the power supply or battery is less than 200 mA.
 
 ### Output configurations
 The four unipolar outputs A, B, C and D can be switched under software control in the following nine ways (X-Y means current can flow from electrode X to electrode Y, or vice versa. X-YZ means current flows from electrode X to electrodes Y and Z simultaneously):
@@ -50,7 +50,7 @@ When the device is powered from a battery that cannot immediately deliver the re
 Stray inductance of the transformer causes inductive spikes every time the primary current is switched off. These spikes must be suppressed in order to prevent destruction of the MOSFETs switching the transformer's primary. This is accomplished by 'shorting' the spikes to the VCAP rail when they exceed a critical value. This way part of the energy stored in the transformer's inductance is dumped back into the capacitors.
 
 ### Primary current sensing
-The primary current is measured on the high side, by means of a 30 mΩ shunt resistor and a x20 current sense amplifier. The output of the amplifier is fed to an ADC input of the microcontroller.
+The primary current is measured on the high side, by means of a 20 mΩ shunt resistor and a x20 current sense amplifier. The output of the amplifier is fed to an ADC input of the microcontroller.
 
 ### Primary voltage sensing
 The primary voltage is measured through a ÷4 voltage divider connected to an ADC input of the microcontroller.
