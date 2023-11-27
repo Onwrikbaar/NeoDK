@@ -1,5 +1,5 @@
 # Various
-/build/
+/firmware/build/
 /.settings/
 .DS_Store
 *.log

@@ -1,7 +1,7 @@
 PROJECT_NAME     := neodk
 OUTPUT_DIRECTORY := build
 
-STM32REPO := $(HOME)/ST/STM32Cube/Repository
+STM32REPO := $(HOME)/STM32Cube/Repository
 STM32CUBE_G0 := $(STM32REPO)/STM32Cube_FW_G0_V1.6.0
 SEGGER := $(HOME)/SEGGER_RTT
 PROJ_DIR_SRC := src
@@ -50,7 +50,7 @@ LIB_FILES += \
 # OPT = -O3 -g3
 OPT = -O2
 # Uncomment the line below to enable link time optimization
-# neodk_g071: OPT += -flto=auto
+neodk_g071: OPT += -flto=auto
 # Use newlib in nano version
 neodk_g071: OPT += --specs=nano.specs -u _printf_float
 
@@ -63,7 +63,6 @@ CFLAGS += -fno-builtin # -fshort-enums
 
 # Target-specific C flags.
 neodk_g071: CFLAGS += -DSTM32G071xx
-neodk_g0b1: CFLAGS += -DSTM32G0B1xx
 neodk_g071: CFLAGS += -mcpu=cortex-m0plus
 neodk_g071: CFLAGS += -mfloat-abi=softfp
 neodk_g071: CFLAGS += -DUSE_FULL_LL_DRIVER
@@ -91,8 +90,8 @@ neodk_g071: LDFLAGS += -mfloat-abi=softfp
 neodk_g071: LDFLAGS += -mcpu=cortex-m0plus
 neodk_g071: LDFLAGS += -mthumb -mabi=aapcs
 neodk_g071: LDFLAGS += -mfloat-abi=softfp
-neodk_g071: ASMFLAGS += -D__HEAP_SIZE=8192
-neodk_g071: ASMFLAGS += -D__STACK_SIZE=16384
+neodk_g071: ASMFLAGS += -D__HEAP_SIZE=4096
+neodk_g071: ASMFLAGS += -D__STACK_SIZE=4096
 
 # Add standard libraries at the very end of the linker input,
 # after all objects that may need symbols provided by these libraries.

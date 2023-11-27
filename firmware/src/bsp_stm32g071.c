@@ -55,7 +55,7 @@
 
 
 #define ADC_TIMER_FREQ_Hz            100000UL
-#define PWM_TIMER_FREQ_Hz           8000000UL
+#define PULSE_TIMER_FREQ_Hz         1000000UL
 #define APP_TIMER_FREQ_Hz           4000000UL
 #define TICKS_PER_MICROSECOND       (APP_TIMER_FREQ_Hz / 1000000UL)
 
@@ -64,7 +64,6 @@ typedef struct {
     // The following members get set only once.
     void (*app_timer_handler)(uint64_t);
     uint32_t clock_ticks_per_app_timer_tick;
-    Selector idle_selector;
     Selector button_selector;
     Selector rx_sel;
     Selector rx_err_sel;
@@ -72,10 +71,11 @@ typedef struct {
     void *tx_target;
     Selector tx_err_sel;
     // The following members get updated regularly.
-    uint64_t last_timestamp_ticks;
     uint8_t critical_section_level;
     uint8_t nr_of_serial_devices;
     uint16_t volatile adc_1_samples[3];         // Must match the number of ADC1 ranks.
+    uint16_t pulse_seqnr;
+    uint8_t pulse_phase;
     uint8_t ci_buf[22];
     uint8_t ci_state;
     uint8_t ci_len;
@@ -83,13 +83,18 @@ typedef struct {
 
 // The interrupt request priorities, from high to low.
 enum {  // The STM32G0xx has only four interrupt priority levels.
-    IRQ_PRIO_SYSTICK,
+    IRQ_PRIO_SYSTICK, IRQ_PRIO_PULSE = IRQ_PRIO_SYSTICK,
     IRQ_PRIO_ADC_DMA,
     IRQ_PRIO_USART, IRQ_PRIO_APP_TIMER = IRQ_PRIO_USART,
     IRQ_PRIO_ADC1, IRQ_PRIO_EXTI = IRQ_PRIO_ADC1
 };
 
-// Ensure the following two variables refer to the same timer.
+// Ensure the following consts refer to the same timer.
+static TIM_TypeDef *const pulse_timer = TIM1;   // Advanced 16-bit timer.
+static IRQn_Type const pulse_timer_upd_irq = TIM1_BRK_UP_TRG_COM_IRQn;
+static IRQn_Type const pulse_timer_cc_irq  = TIM1_CC_IRQn;
+
+// Ensure the following two consts refer to the same timer.
 static TIM_TypeDef *const app_timer = TIM2;
 static IRQn_Type const app_timer_irq = TIM2_IRQn;
 
@@ -102,7 +107,7 @@ static void SystemClock_Config(void)
     PWR->CR1 |= PWR_CR1_DBP;
     while ((PWR->CR1 & PWR_CR1_DBP) == RESET) { /* Wait for write protection to be removed. */ }
     RCC->BDCR = RCC_BDCR_LSEON | RCC_BDCR_LSEDRV_0 | RCC_BDCR_RTCEN;
-    // while ((RCC->BDCR & RCC_BDCR_LSERDY) == RESET) { /* Wait for LSE to stabilise. */ }
+    while ((RCC->BDCR & RCC_BDCR_LSERDY) == RESET) { /* Wait for LSE to stabilise. */ }
     // TODO Calibrate HSI using LSE and TIM16?
     // RCC->CR = RCC_CR_HSI48ON;
     // while ((RCC->CR & RCC_CR_HSI48RDY) == RESET) { /* Wait for HSI48 to stabilise. */ }
@@ -150,7 +155,7 @@ static void spuriousIRQ(BSP *me)
 }
 
 
-static void powerOnSelfTest()
+/*static*/ void powerOnSelfTest()
 {
     // Configure all used pins as inputs.
     GPIOA->MODER = 0x28000000U;
@@ -175,7 +180,7 @@ static void initGPIO()
 
     GPIO_InitStruct.Mode  = LL_GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull  = LL_GPIO_PULL_NO;
-    GPIO_InitStruct.Pin   = TRF_CURR_SENSE_PIN | CAP_VOLT_SENSE_PIN;
+    GPIO_InitStruct.Pin   = TRF_CURR_SENSE_PIN | CAP_VOLT_SENSE_PIN | BAT_VOLT_SENSE_PIN;
     LL_GPIO_Init(ADC_GPIO_PORT, &GPIO_InitStruct);
 
     GPIO_InitStruct.Mode  = LL_GPIO_MODE_ALTERNATE;
@@ -195,22 +200,20 @@ static void initGPIO()
     GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
     GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
     GPIO_InitStruct.Pin   = TRIAC_1_PIN | TRIAC_2_PIN | TRIAC_3_PIN | TRIAC_4_PIN;
-    LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, GPIO_InitStruct.Pin);
+    // LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, GPIO_InitStruct.Pin);
     LL_GPIO_Init(TRIAC_GPIO_PORT, &GPIO_InitStruct);
 }
 
 
-static void initLEDandButton(BSP *me)
+static void initLEDandButton()
 {
     LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    GPIO_InitStruct.Pin   = LED_1_PIN;
-    GPIO_InitStruct.Mode  = LL_GPIO_MODE_INPUT;
-    LL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
     GPIO_InitStruct.Pin  = LED_1_PIN;
     GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
     GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
     GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_MEDIUM;
+    LL_GPIO_SetOutputPin(LED_GPIO_PORT, GPIO_InitStruct.Pin);
     LL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
 
     GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
@@ -313,8 +316,8 @@ static void initDMAforADC(uint16_t volatile samples[], size_t nr_of_samples)
 
 static void initUSART2(uint32_t serial_speed_bps)
 {
-    RCC->CCIPR |= RCC_USART2CLKSOURCE_HSI;
-    USART2->BRR = (16000000UL + serial_speed_bps / 2) / serial_speed_bps;
+    RCC->CCIPR |= RCC_USART2CLKSOURCE_HSI;      // 16 MHz clock.
+    USART2->BRR = (uint16_t)((16000000UL + serial_speed_bps / 2) / serial_speed_bps);
     USART2->CR1 |= USART_CR1_UE | USART_CR1_FIFOEN;
 }
 
@@ -368,10 +371,8 @@ static void doUartAction(USART_TypeDef *uart, ChannelAction action)
             uart->CR1 &= ~USART_CR1_TXEIE_TXFNFIE;
             break;
         case CA_OVERRUN_CB_ENABLE:
-            // uart->INTENSET = (1 << 8);
             break;
         case CA_OVERRUN_CB_DISABLE:
-            // uart->INTENCLR = (1 << 8);
             break;
         case CA_FRAMING_CB_ENABLE:
             break;
@@ -434,7 +435,7 @@ void HardFault_Handler(void)
 {
     static volatile bool stay_here;
 
-    disableOutputStage();                       // TODO Handle more elegantly.
+    // disableOutputStage();
     BSP_logf("%s, ICSR=0x%x\n", __func__, SCB->ICSR);
     stay_here = true;
     BSP_logf("  Tip: halt CPU, change guard @ %p to 0, then step.\n", &stay_here);
@@ -452,6 +453,44 @@ void RCC_IRQHandler(void)
 {
     // TODO Catch LSE ready interrupt?
     spuriousIRQ(&bsp);
+}
+
+
+void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
+{
+    if (pulse_timer->SR & TIM_SR_UIF) {         // An update event.
+        pulse_timer->CR1 &= ~TIM_CR1_CEN;       // Stop the counter.
+        pulse_timer->DIER &= ~(TIM_DIER_CC1IE | TIM_DIER_CC2IE);
+        pulse_timer->SR &= ~(TIM_SR_UIF | TIM_SR_CC1IF | TIM_SR_CC2IF);
+        BSP_setSwitches(0);                     // Disconnect from load.
+        BSP_logf("Pulse timer update\n");
+        // handlePulseUpdateEvent(&bsp);
+    } else {
+        BSP_logf("Pt SR=0x%x\n", __func__, pulse_timer->SR);
+        // spuriousIRQ(&bsp);
+    }
+}
+
+
+void TIM1_CC_IRQHandler(void)
+{
+    bsp.pulse_seqnr += 1;
+    if ((pulse_timer->DIER & TIM_DIER_CC1IE) && (pulse_timer->SR & TIM_SR_CC1IF)) {
+        pulse_timer->SR &= ~TIM_SR_CC1IF;
+        BSP_logf("CC1 %hu\n", bsp.pulse_seqnr);
+    }
+    if ((pulse_timer->DIER & TIM_DIER_CC2IE) && (pulse_timer->SR & TIM_SR_CC2IF)) {
+        pulse_timer->SR &= ~TIM_SR_CC2IF;
+        BSP_logf("CC2 %hu\n", bsp.pulse_seqnr);
+    }
+    if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
+        BSP_logf("Last pulse done\n");
+        LL_GPIO_ResetOutputPin(LED_GPIO_PORT, LED_1_PIN);
+    }
+    if (pulse_timer->SR & 0xcffe0) {
+        BSP_logf("Pt SR=0x%x\n", pulse_timer->SR & 0xcffe0);
+        // spuriousIRQ(&bsp);
+    }
 }
 
 
@@ -474,12 +513,11 @@ void TIM2_IRQHandler(void)
 
 void EXTI4_15_IRQHandler(void)
 {
-    uint32_t const pins = PUSHBUTTON_PIN;
-    if (EXTI->RPR1 & pins) {
-        EXTI->RPR1 = pins;                      // Rising.
+    if (EXTI->RPR1 & PUSHBUTTON_PIN) {
+        EXTI->RPR1 = PUSHBUTTON_PIN;            // Rising.
         invokeSelector(&bsp.button_selector, 1);
-    } else if (EXTI->FPR1 & pins) {
-        EXTI->FPR1 = pins;                      // Falling.
+    } else if (EXTI->FPR1 & PUSHBUTTON_PIN) {
+        EXTI->FPR1 = PUSHBUTTON_PIN;            // Falling.
         invokeSelector(&bsp.button_selector, 0);
     } else {
         spuriousIRQ(&bsp);
@@ -489,6 +527,7 @@ void EXTI4_15_IRQHandler(void)
 
 void TIM6_DAC_LPTIM1_IRQHandler(void)
 {
+    // TODO Check for DAC interrupt.
     spuriousIRQ(&bsp);
 }
 
@@ -521,7 +560,7 @@ void DMA1_Channel1_IRQHandler(void)
 {
     if (DMA1->ISR & DMA_ISR_TCIF1) {
         DMA1->IFCR = DMA_IFCR_CTCIF1;           // Clear transfer complete flag.
-        // TODO Use ADC values.
+        // TODO Process the ADC values.
     } else if (DMA1->ISR & DMA_ISR_TEIF1) {
         DMA1->IFCR = DMA_IFCR_CTEIF1;           // Clear transfer error flag.
         BSP_logf("%s, TEIF1\n", __func__);
@@ -569,7 +608,7 @@ void BSP_init()
     RCC->APBENR2 = RCC_APBENR2_TIM1EN | RCC_APBENR2_TIM16EN | RCC_APBENR2_ADCEN | RCC_APBENR2_SYSCFGEN;
     RCC->AHBENR |= RCC_AHBENR_DMA1EN;
     RCC->IOPENR |= RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN;
-    powerOnSelfTest();                          // Make sure the electronics are correct.
+    // powerOnSelfTest();                          // Make sure the electronics are correct.
     // Enable instruction cache and prefetch buffer.
     FLASH->ACR |= FLASH_ACR_ICEN | FLASH_ACR_PRFTEN;
 
@@ -577,7 +616,7 @@ void BSP_init()
     SystemClock_Config();
     BSP_logf("DevId=0x%x, SystemCoreClock=%u, NVIC_PRIO_BITS=%u\n", LL_DBGMCU_GetDeviceID(), SystemCoreClock, __NVIC_PRIO_BITS);
     initGPIO();
-    initLEDandButton(&bsp);
+    initLEDandButton();
     initEXTI();
     initDMAforADC(bsp.adc_1_samples, M_DIM(bsp.adc_1_samples));
     initADC();
@@ -587,7 +626,7 @@ void BSP_init()
 }
 
 
-void BSP_initComms()
+void BSP_initComms(void)
 {
     initUSART2(57600UL);
 }
@@ -651,6 +690,24 @@ void BSP_registerAppTimerHandler(void (*handler)(uint64_t), uint32_t microsecond
 }
 
 
+void BSP_registerPulseHandler(void *pulse_ao)
+{
+    pulse_timer->PSC = SystemCoreClock / PULSE_TIMER_FREQ_Hz - 1;
+    BSP_logf("%s: PSC=%u, ARR=%u\n", __func__, pulse_timer->PSC, pulse_timer->ARR);
+    // PWM mode 1 for both channels, enable preload.
+    pulse_timer->CCMR1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1PE
+                       | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2PE;
+    // Enable both outputs.
+    pulse_timer->CCER = TIM_CCER_CC1E | TIM_CCER_CC2E;
+    pulse_timer->CR2 = TIM_CR2_CCPC;            // Compare control signals are preloaded.
+    enableInterruptWithPrio(pulse_timer_upd_irq, IRQ_PRIO_PULSE);
+    enableInterruptWithPrio(pulse_timer_cc_irq,  IRQ_PRIO_PULSE);
+    pulse_timer->CR1 = TIM_CR1_ARPE | TIM_CR1_URS;
+    pulse_timer->DIER = TIM_DIER_UIE;           // Enable update interrupt.
+    pulse_timer->BDTR = TIM_BDTR_OSSR | TIM_BDTR_MOE;
+}
+
+
 void BSP_registerButtonHandler(Selector *sel)
 {
     bsp.button_selector = *sel;
@@ -658,22 +715,13 @@ void BSP_registerButtonHandler(Selector *sel)
 }
 
 
-void BSP_registerIdleHandler(Selector *sel)
-{
-    bsp.idle_selector = *sel;
-}
-
-
 void BSP_idle(bool (*maySleep)(void))
 {
-    if (maySleep()) {                           // All pending events have been handled.
+    if (maySleep == NULL || maySleep()) {       // All pending events have been handled.
         char ch;
         if (BSP_readConsole(&ch, 1)) {
             handleConsoleInput(&bsp, ch);
         }
-        uint64_t microseconds_since_boot = BSP_microsecondsSinceBoot();
-        invokeSelector(&bsp.idle_selector, (uint32_t)(microseconds_since_boot - bsp.last_timestamp_ticks));
-        bsp.last_timestamp_ticks = microseconds_since_boot;
         // TODO Put the processor to sleep?
     }
 }
@@ -754,6 +802,20 @@ void BSP_setSwitches(uint16_t pattern)
     setPinVal(TRIAC_GPIO_PORT, TRIAC_2_PIN, pattern & 2);
     setPinVal(TRIAC_GPIO_PORT, TRIAC_3_PIN, pattern & 4);
     setPinVal(TRIAC_GPIO_PORT, TRIAC_4_PIN, pattern & 8);
+}
+
+
+bool BSP_startPulseTrain(uint8_t phase, uint8_t pace_ms, uint8_t pulse_width_micros, uint16_t nr_of_pulses)
+{
+    M_ASSERT(phase <= 1);
+    M_ASSERT(pace_ms >= 4);                     // Repetition rate <= 250 Hz.
+    M_ASSERT(pulse_width_micros != 0);
+    M_ASSERT(nr_of_pulses != 0);
+    uint32_t const pace_ticks = (PULSE_TIMER_FREQ_Hz * pace_ms) / 1000;
+    M_ASSERT(pace_ticks <= USHRT_MAX);
+    BSP_logf("%s(%hhu, %hhu, %hhu, %hu)\n", __func__, phase, pace_ms, pulse_width_micros, nr_of_pulses);
+    // TODO Activate.
+    return true;
 }
 
 
