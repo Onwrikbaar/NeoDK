@@ -1,5 +1,4 @@
 # Various
-/firmware/build/
 /.settings/
 .DS_Store
 *.log
@@ -15,6 +14,8 @@
 
 # Linker output
 *.ilk
+*.in
+*.bin
 *.map
 *.exp
 
@@ -40,7 +41,6 @@
 *.app
 *.i*86
 *.x86_64
-*.hex
 
 # Debug files
 *.dSYM/

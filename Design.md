@@ -29,7 +29,7 @@ The four unipolar outputs A, B, C and D can be switched under software control i
 - C-BD
 - AC-BD
 
-Every single pulse can be directed to a different electrode configuration of 2, 3 or 4 electrodes, if so desired. This allows the creation of stimulation patterns that are perceived as moving through the body.
+Every single pulse can be directed to a different electrode configuration of 2, 3 or 4 electrodes, if so desired. This allows the creation of stimulation patterns that are perceived as moving across the skin or through the body.
 
 ## Electronic design
 ### The output transformer
@@ -50,21 +50,32 @@ When the device is powered from a battery that cannot immediately deliver the re
 Stray inductance of the transformer causes inductive spikes every time the primary current is switched off. These spikes must be suppressed in order to prevent destruction of the MOSFETs switching the transformer's primary. This is accomplished by 'shorting' the spikes to the VCAP rail when they exceed a critical value. This way part of the energy stored in the transformer's inductance is dumped back into the capacitors.
 
 ### Primary current sensing
-The primary current is measured on the high side, by means of a 20 mΩ shunt resistor and a x20 current sense amplifier. The output of the amplifier is fed to an ADC input of the microcontroller.
+The primary current is measured on the high side, by means of a 20 mΩ shunt resistor and a x20 current sense amplifier. The output of the current sense amplifier is fed to an ADC input of the microcontroller. This way, the maximum primary current that can be reliably measured is 3.3V / (20 * 20 mΩ) = 8.25 A.
 
 ### Primary voltage sensing
-The primary voltage is measured through a ÷4 voltage divider connected to an ADC input of the microcontroller.
+The primary voltage is measured through a ÷4 voltage divider connected to an ADC input of the microcontroller. This way, the maximum primary voltage that can be reliably measured is 4 * 3.3V = 13.2V.
 
 ### Primary voltage control
-The primary voltage is regulated by a (switching) buck converter, which is controlled through a DAC output of the microcontroller. This method ensures very efficient use of the battery capacity as well as negligible heat generation.
+The primary voltage is regulated by a (switching) buck converter, which is controlled through a DAC output of the microcontroller. This method ensures very efficient use of the battery capacity as well as negligible heat generation. The buck's maximum under-voltage lockout threshold is 4.95V, so the device requires a supply voltage of at least 5V for correct operation.
 
 ### Microcontroller
-The STM32G071 is an affordable 32-bit microcontroller with an ARM Cortex M0+ core, 128 KB flash and 36 KB RAM.
+The STM32G071 is an affordable 32-bit microcontroller with an ARM Cortex M0+ core, 128 KB flash and 36 KB RAM. Its maximum clock speed is 64 MHz, which is considerably more than required to run the application.
 - [datasheet](https://www.st.com/resource/en/datasheet/stm32g071c8.pdf)
 - [reference manual](https://www.st.com/resource/en/reference_manual/rm0444-stm32g0x1-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)
 
+### Recommended power source
+For safety, it is best to power NeoDK from a battery, like a 3S (nominally about 11V) Li-ion battery pack. When using a mains voltage adapter ('wall wart') instead, make sure it is doubly insulated and meets all applicable safety standards for your region. If you happen to own an Estim Systems 2B power box, you can use its adapter for NeoDK too.
+
+### Serial communications interface
+The device is controlled through a standard serial UART interface using 3.3V TTL signal levels. Suitable USB-to-serial cables are readily available from several sources.
+
 ## Firmware
 The device's on-board control program (aka firmware) consists of a collection of collaborating state machines. The firmware is event-driven and 100% nonblocking.
+
+### Structure
+Conceptually, the firmware consists of two layers:
+1. The hardware-dependent part, called the Board Support Package (BSP).
+2. The hardware-independent application logic.
 
 ### Power-on selftest
 Before the application program is run, the system verifies that the electronics function as intended.

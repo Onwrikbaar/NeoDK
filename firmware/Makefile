@@ -28,7 +28,7 @@ STM32G0xx_SRC := \
 
 # Source files common to all targets.
 PROJ_COMMON_SRC += \
-  $(PROJ_DIR_SRC)/neomain.c \
+  $(PROJ_DIR_SRC)/neodk_main.c \
   $(PROJ_DIR_SRC)/convenience.c \
 
 # Target-dependent include folders.
