@@ -59,7 +59,7 @@ The primary voltage is measured through a ÷4 voltage divider connected to an AD
 The primary voltage is regulated by a (switching) buck converter, which is controlled through a DAC output of the microcontroller. This method ensures very efficient use of the battery capacity as well as negligible heat generation. The buck's maximum under-voltage lockout threshold is 4.95V, so the device requires a supply voltage of at least 5V for correct operation.
 
 ### Microcontroller
-The STM32G071 is an affordable 32-bit microcontroller with an ARM Cortex M0+ core, 128 KB flash and 36 KB RAM. Its maximum clock speed is 64 MHz, which is considerably more than required to run the application.
+The STM32G071 is an affordable 32-bit microcontroller with an ARM Cortex M0+ core, 128 KB flash and 36 KB RAM. Its maximum clock speed is 64 MHz, which yields considerably more processing power than required to run the application.
 - [datasheet](https://www.st.com/resource/en/datasheet/stm32g071c8.pdf)
 - [reference manual](https://www.st.com/resource/en/reference_manual/rm0444-stm32g0x1-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)
 

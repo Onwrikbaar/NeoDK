@@ -22,9 +22,6 @@ void BSP_registerAppTimerHandler(void (*)(uint64_t), uint32_t microseconds_per_a
 void BSP_registerIdleHandler(Selector *);
 void BSP_registerButtonHandler(Selector *);
 
-// Miscellaneous.
-void BSP_toggleLED(void);
-
 // Serial comms related functions.
 void BSP_initComms(void);
 DeviceId BSP_openSerialPort(char const *name);
@@ -32,8 +29,9 @@ int BSP_closeSerialPort(int fd);
 
 // Pulse generation related functions.
 void BSP_registerPulseHandler(void *);
-bool BSP_selectElectrodeConfiguration(uint16_t config_seqnr);
-bool BSP_startPulseTrain(uint8_t phase, uint8_t pace_ms, uint8_t pulse_width_micros, uint16_t nr_of_pulses);
+bool BSP_selectElectrodeConfiguration(uint8_t phase0, uint8_t phase1);
+void BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV);
+bool BSP_startPulseTrain(uint8_t polarity, uint8_t pace_ms, uint8_t pulse_width_micros, uint16_t nr_of_pulses);
 
 // Firmware update.
 void BSP_gotoDfuMode(void);

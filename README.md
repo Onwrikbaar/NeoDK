@@ -12,6 +12,9 @@ E: <onwrikbaar@hotmail.com>
 ### Status
 This is a work in progress. The repo will be updated every few weeks until well into 2024.
 
+### Request
+Please send me an e-mail in case you are building this design and let me know whether you run into any questions or problems. It will help me decide how I can best lower the threshold to replicating NeoDK. Thanks!
+
 ### Goals
 1. The last quarter century, innovation in the e-stim realm has been virtually nonexistent, despite massive advances in electronics and cheap computing power. Currently available commercial devices are without exception channel-oriented and produce TENS-like waveforms. The time has come to get rid of those historical remnants.
 2. It is fairly easy for non-programmers to create, share and improve routines to be played on stereostim setups. Currently there is no way to achieve the same for pulse-based e-stim devices. This project aims to (eventually) bridge that gap.
@@ -35,7 +38,7 @@ The NeoDK device is designed to stay well within the IEC 60601-2-10 requirements
 This project is intended for experienced electronics hobbyists and professionals, who possess a keen understanding of the risks associated with electrostimulation and high-voltage circuitry, and who desire one or more of the following:
 - a deeper understanding of advanced electronic circuitry for pulse-based electrostimulation.
 - an innovative, rock solid and well-tested design to base one's own developments on.
-- a high-intensity remotely controllable e-stim device to incorporate into a multi-toy setup.
+- a high-intensity remotely controllable e-stim device to incorporate into a multi-toy setup or home control system.
 - e-stim sensations unattainable through conventional power boxes.
 - a pulse-based device that can store and play user-created routines (planned for 2025).
 

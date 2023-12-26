@@ -60,10 +60,10 @@
 #define LED_1_PIN               LL_GPIO_PIN_6   // The on-board LED.
 
 
-#define ADC_TIMER_FREQ_Hz            100000UL
-#define PULSE_TIMER_FREQ_Hz         1000000UL
-#define APP_TIMER_FREQ_Hz           4000000UL
-#define TICKS_PER_MICROSECOND       (APP_TIMER_FREQ_Hz / 1000000UL)
+#define ADC_TIMER_FREQ_Hz        100000UL
+#define PULSE_TIMER_FREQ_Hz     1000000UL
+#define APP_TIMER_FREQ_Hz       4000000UL
+#define TICKS_PER_MICROSECOND   (APP_TIMER_FREQ_Hz / 1000000UL)
 
 
 typedef struct {
@@ -159,28 +159,14 @@ static void spuriousIRQ(BSP *me)
 }
 
 
-/*static*/ void powerOnSelfTest()
-{
-    // Configure all used pins as inputs.
-    GPIOA->MODER = 0x28000000U;
-    GPIOB->MODER = 0xfff00000U;
-    GPIOC->MODER &= ~((3 << GPIO_MODER_MODE6_Pos) | (3 << GPIO_MODER_MODE14_Pos) | (3 << GPIO_MODER_MODE15_Pos));
-    // Add pullups or pulldowns.
-    GPIOA->PUPDR = (2 << GPIO_PUPDR_PUPD5_Pos) | (2 << GPIO_PUPDR_PUPD6_Pos) | (2 << GPIO_PUPDR_PUPD7_Pos)
-                 | (2 << GPIO_PUPDR_PUPD10_Pos) | (2 << GPIO_PUPDR_PUPD12_Pos) | (2 << GPIO_PUPDR_PUPD15_Pos);
-    GPIOB->PUPDR = (1 << GPIO_PUPDR_PUPD8_Pos) | (2 << GPIO_PUPDR_PUPD9_Pos);
-    GPIOC->PUPDR = (2 << GPIO_PUPDR_PUPD2_Pos) | (1 << GPIO_PUPDR_PUPD6_Pos) | (1 << GPIO_PUPDR_PUPD14_Pos)
-                 | (2 << GPIO_PUPDR_PUPD15_Pos);
-    BSP_logf("%s:\n", __func__);
-    BSP_logf("  Port A: 0x%04x\n", GPIOA->IDR);
-    BSP_logf("  Port B: 0x%04x\n", GPIOB->IDR);
-    BSP_logf("  Port C: 0x%04x\n", GPIOC->IDR);
-}
-
-
 static void initGPIO()
 {
     LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_DOWN;
+    GPIO_InitStruct.Pin  = PUSHBUTTON_PIN;
+    LL_GPIO_Init(PUSHBUTTON_PORT, &GPIO_InitStruct);
 
     GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
@@ -189,17 +175,32 @@ static void initGPIO()
     GPIO_InitStruct.Pin = VCAP_BUCK_CTRL_PIN;
     LL_GPIO_Init(DAC_GPIO_PORT, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-    GPIO_InitStruct.Alternate = LL_GPIO_AF_1;
-    GPIO_InitStruct.Pin = USART2_TX_PIN | USART2_RX_PIN;
-    LL_GPIO_Init(USART_GPIO_PORT, &GPIO_InitStruct);
-
     GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
     GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
     GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_MEDIUM;
     GPIO_InitStruct.Pin = BUCK_ENABLE_PIN;
     LL_GPIO_ResetOutputPin(BUCK_GPIO_PORT, GPIO_InitStruct.Pin);
     LL_GPIO_Init(BUCK_GPIO_PORT, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin  = LED_1_PIN;
+    // GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    // GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    // GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_MEDIUM;
+    LL_GPIO_SetOutputPin(LED_GPIO_PORT, GPIO_InitStruct.Pin);
+    LL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
+
+    // GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Pin   = MOSFET_1_PIN | MOSFET_2_PIN;
+    LL_GPIO_ResetOutputPin(MOSFET_GPIO_PORT, GPIO_InitStruct.Pin);
+    LL_GPIO_Init(MOSFET_GPIO_PORT, &GPIO_InitStruct);
+
+    // GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
+    // GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Pin = TRIAC_1_PIN | TRIAC_2_PIN | TRIAC_3_PIN | TRIAC_4_PIN;
+    LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, GPIO_InitStruct.Pin);
+    LL_GPIO_Init(TRIAC_GPIO_PORT, &GPIO_InitStruct);
 
     GPIO_InitStruct.Mode  = LL_GPIO_MODE_ALTERNATE;
     GPIO_InitStruct.Alternate = LL_GPIO_AF_2;   // TIM1_CH1 and TIM1_CH2.
@@ -209,30 +210,10 @@ static void initGPIO()
     LL_GPIO_ResetOutputPin(MOSFET_GPIO_PORT, GPIO_InitStruct.Pin);
     LL_GPIO_Init(MOSFET_GPIO_PORT, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
-    GPIO_InitStruct.Pin = TRIAC_1_PIN | TRIAC_2_PIN | TRIAC_3_PIN | TRIAC_4_PIN;
-    LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, GPIO_InitStruct.Pin);
-    LL_GPIO_Init(TRIAC_GPIO_PORT, &GPIO_InitStruct);
-}
-
-
-static void initLEDandButton()
-{
-    LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-    GPIO_InitStruct.Pin  = LED_1_PIN;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_MEDIUM;
-    LL_GPIO_SetOutputPin(LED_GPIO_PORT, GPIO_InitStruct.Pin);
-    LL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_DOWN;
-    GPIO_InitStruct.Pin  = PUSHBUTTON_PIN;
-    LL_GPIO_Init(PUSHBUTTON_PORT, &GPIO_InitStruct);
+    // GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+    GPIO_InitStruct.Alternate = LL_GPIO_AF_1;
+    GPIO_InitStruct.Pin = USART2_TX_PIN | USART2_RX_PIN;
+    LL_GPIO_Init(USART_GPIO_PORT, &GPIO_InitStruct);
 }
 
 
@@ -248,16 +229,6 @@ static void initEXTI()
     LL_EXTI_Init(&EXTI_InitStruct);
 }
 
-/**
- * @brief Calculate the 12-bit value for the DAC to set the desired primary voltage [mV].
- */
-static uint16_t Vcap_mV_ToDacVal(uint16_t Vcap_mV)
-{
-    if (Vcap_mV < 1065) Vcap_mV = 1065;
-    else if (Vcap_mV > 10057) Vcap_mV = 10057;
-    return (uint16_t)((233 * (uint32_t)(10057 - Vcap_mV)) / 512);
-}
-
 
 static void initDAC()
 {
@@ -269,10 +240,9 @@ static void initDAC()
         .OutputMode = LL_DAC_OUTPUT_MODE_NORMAL
     };
     LL_DAC_Init(DAC1, LL_DAC_CHANNEL_2, &DAC_InitStruct);
-    // TODO Wait for DAC to settle?
+    // TODO Wait for the DAC to settle?
     LL_DAC_Enable(DAC1, LL_DAC_CHANNEL_2);
     // LL_DAC_EnableTrigger(DAC1, LL_DAC_CHANNEL_2);
-    DAC1->DHR12R2 = Vcap_mV_ToDacVal(2000);     // Fixed voltage, for now.
 }
 
 
@@ -387,24 +357,6 @@ static void setSwitches(uint16_t pattern)
 }
 
 
-static uint8_t switchesForConfig(uint16_t config_seqnr)
-{
-    static uint8_t sw_pat[] = {
-        0x00,
-        // 1: A - B | 2: A - C | 3: B - C | 4: AB - C | 5: B - AC
-        0x03, 0x00, 0x09, 0x00, 0x0b,
-        // 6: A - BC | 7: A - D | 8: B - D | 9: AB - D | 10: C - D
-        0x00, 0x06, 0x00, 0x00, 0x0c,
-        // 11: AC - D | 12: BC - D | 13: ABC - D | 14: B - AD | 15: C - AD
-        0x0e, 0x00, 0x00, 0x00, 0x00,
-        // 16: BC - AD | 17: A - BD | 18: C - BD | 19: AC - BD
-        0x00, 0x07, 0x0d, 0x0f
-    };
-
-    return sw_pat[config_seqnr < M_DIM(sw_pat) ? config_seqnr : 0];
-}
-
-
 static void disableOutputStage()
 {
     pulse_timer->CCER &= ~(TIM_CCER_CC1E | TIM_CCER_CC2E);
@@ -429,8 +381,18 @@ static uint64_t ticksSinceBoot()
 
 static uint16_t pulsePaceMillisecondsToTicks(uint8_t pace_ms)
 {
-    uint32_t pace_ticks = (PULSE_TIMER_FREQ_Hz * pace_ms) / 1000;
+    uint32_t const pace_ticks = (PULSE_TIMER_FREQ_Hz * pace_ms) / 1000;
     return pace_ticks <= 0xffff ? (uint16_t)pace_ticks : 0xffff;
+}
+
+/**
+ * @brief Calculate the 12-bit value for the DAC to set the desired primary voltage [mV].
+ */
+static uint16_t Vcap_mV_ToDacVal(uint16_t Vcap_mV)
+{
+    if (Vcap_mV < 1064) Vcap_mV = 1064;
+    else if (Vcap_mV > 10057) Vcap_mV = 10057;
+    return (uint16_t)(((1865 * (uint32_t)(10057 - Vcap_mV)) + 2048) / 4096);
 }
 
 
@@ -471,11 +433,21 @@ static void interpretCommand(BSP *me, char ch)
     switch (ch)
     {
         case '?':
-            BSP_logf("Commands: /? /c /t\n");
+            BSP_logf("Commands: /? /t /0 /1../9\n");
             break;
-        case 'c':
-            BSP_logf("Turning on the Vcap buck\n");
-            LL_GPIO_SetOutputPin(BUCK_GPIO_PORT, BUCK_ENABLE_PIN);
+        case '0':
+            if ((BUCK_GPIO_PORT->ODR & BUCK_ENABLE_PIN) != 0) {
+                BSP_logf("Turning Vcap OFF\n");
+                LL_GPIO_ResetOutputPin(BUCK_GPIO_PORT, BUCK_ENABLE_PIN);
+            }
+            BSP_setPrimaryVoltage_mV(0);
+            break;
+        case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+            if ((BUCK_GPIO_PORT->ODR & BUCK_ENABLE_PIN) == 0) {
+                BSP_logf("Turning Vcap ON\n");
+                LL_GPIO_SetOutputPin(BUCK_GPIO_PORT, BUCK_ENABLE_PIN);
+            }
+            BSP_setPrimaryVoltage_mV((ch - '0') * 1000);
             break;
         case 't':                               // Toggle the LED.
             LL_GPIO_TogglePin(LED_GPIO_PORT, LED_1_PIN);
@@ -596,11 +568,11 @@ void TIM2_IRQHandler(void)
 
 void EXTI4_15_IRQHandler(void)
 {
-    if (EXTI->RPR1 & PUSHBUTTON_PIN) {
-        EXTI->RPR1 = PUSHBUTTON_PIN;            // Rising.
+    if (EXTI->RPR1 & PUSHBUTTON_PIN) {          // Rising?
+        EXTI->RPR1 = PUSHBUTTON_PIN;
         invokeSelector(&bsp.button_selector, 1);
-    } else if (EXTI->FPR1 & PUSHBUTTON_PIN) {
-        EXTI->FPR1 = PUSHBUTTON_PIN;            // Falling.
+    } else if (EXTI->FPR1 & PUSHBUTTON_PIN) {   // Falling?
+        EXTI->FPR1 = PUSHBUTTON_PIN;
         invokeSelector(&bsp.button_selector, 0);
     } else {
         spuriousIRQ(&bsp);
@@ -660,9 +632,8 @@ void USART2_IRQHandler(void)
     if (USART2->ISR & USART_ISR_RXNE_RXFNE) {   // Byte received.
         invokeSelector(&bsp.rx_sel, USART2->RDR);
     } else if (USART2->ISR & USART_ISR_TXE_TXFNF) {
-        uint8_t b;
-        bsp.tx_callback(bsp.tx_target, &b);     // Get one byte from the source,
-        USART2->TDR = b;                        // and write it to the serial port.
+        // Transmit a byte.
+        bsp.tx_callback(bsp.tx_target, (uint8_t *)&USART2->TDR);
     } else {
         spuriousIRQ(&bsp);
     }
@@ -691,7 +662,6 @@ void BSP_init()
     RCC->APBENR2 = RCC_APBENR2_TIM1EN | RCC_APBENR2_TIM16EN | RCC_APBENR2_ADCEN | RCC_APBENR2_SYSCFGEN;
     RCC->AHBENR |= RCC_AHBENR_DMA1EN;
     RCC->IOPENR |= RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN;
-    // powerOnSelfTest();                          // Check whether the electronics are correct.
     // Enable instruction cache and prefetch buffer.
     FLASH->ACR |= FLASH_ACR_ICEN | FLASH_ACR_PRFTEN;
 
@@ -699,7 +669,6 @@ void BSP_init()
     SystemClock_Config();
     BSP_logf("DevId=0x%x, SystemCoreClock=%u, NVIC_PRIO_BITS=%u\n", LL_DBGMCU_GetDeviceID(), SystemCoreClock, __NVIC_PRIO_BITS);
     initGPIO();
-    initLEDandButton();
     initEXTI();
     initDAC();
     initDMAforADC(bsp.adc_1_samples, M_DIM(bsp.adc_1_samples));
@@ -846,12 +815,6 @@ void BSP_registerTxCallback(DeviceId device_id, void (*cb)(void *, uint8_t *), v
 }
 
 
-void BSP_toggleLED()
-{
-    LL_GPIO_TogglePin(LED_GPIO_PORT, LED_1_PIN);
-}
-
-
 void BSP_doChannelAction(DeviceId device_id, ChannelAction action)
 {
     // BSP_logf("%s(%u, %u)\n", __func__, device_id, action);
@@ -875,19 +838,25 @@ int BSP_closeSerialPort(int device_id)
 }
 
 
-bool BSP_selectElectrodeConfiguration(uint16_t config_seqnr)
+bool BSP_selectElectrodeConfiguration(uint8_t phase0, uint8_t phase1)
 {
-    uint8_t sw_pat = switchesForConfig(config_seqnr);
-    if (sw_pat == 0x00) return false;
-
-    setSwitches(sw_pat);
+    M_ASSERT((phase0 & phase1) == 0);
+    setSwitches(phase0 | phase1);
     return true;
 }
 
 
-bool BSP_startPulseTrain(uint8_t phase, uint8_t pace_ms, uint8_t pulse_width_micros, uint16_t nr_of_pulses)
+void BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 {
-    M_ASSERT(phase <= 1);
+    BSP_logf("Setting Vcap to %hu mV\n", V_prim_mV);
+    // TODO Ensure a rising step on the buck regulator's feedback pin does not exceed 80 mV.
+    DAC1->DHR12R2 = Vcap_mV_ToDacVal(V_prim_mV);
+}
+
+
+bool BSP_startPulseTrain(uint8_t polarity, uint8_t pace_ms, uint8_t pulse_width_micros, uint16_t nr_of_pulses)
+{
+    M_ASSERT(polarity <= 1);
     M_ASSERT(pace_ms >= 4);                     // Repetition rate <= 250 Hz.
     M_ASSERT(pulse_width_micros != 0);
     M_ASSERT(nr_of_pulses != 0);
@@ -896,7 +865,7 @@ bool BSP_startPulseTrain(uint8_t phase, uint8_t pace_ms, uint8_t pulse_width_mic
     pulse_timer->RCR = nr_of_pulses - 1;
     pulse_timer->CNT = 0;
     pulse_timer->SR &= ~(TIM_SR_CC1IF | TIM_SR_CC2IF);
-    if (phase == 0) {
+    if (polarity == 0) {
         pulse_timer->CCR1 = pulse_width_micros - 1;
         pulse_timer->DIER |= TIM_DIER_CC1IE;
     } else {
@@ -906,7 +875,7 @@ bool BSP_startPulseTrain(uint8_t phase, uint8_t pace_ms, uint8_t pulse_width_mic
     bsp.pulse_seqnr = 0;
     pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
     pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
-    // Insert a tiny delay here if the CCRs get cleared before the update takes effect.
+    // Insert a tiny delay here in case the CCRs get cleared before the update takes effect.
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
     return true;
@@ -921,6 +890,7 @@ void BSP_close()
 
 void BSP_shutDown()
 {
+    disableOutputStage();
     // TODO Turn off the processor.
     while (1) {}
 }

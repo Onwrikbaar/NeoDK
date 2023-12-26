@@ -22216,6 +22216,10 @@ this transformer.</text>
 on LED's Vf.</text>
 <text x="88.9" y="-25.4" size="1.778" layer="91">TX</text>
 <text x="88.9" y="-27.94" size="1.778" layer="91">RX</text>
+<text x="228.6" y="-25.4" size="1.778" layer="91">A</text>
+<text x="228.6" y="-22.86" size="1.778" layer="91">B</text>
+<text x="228.6" y="-40.64" size="1.778" layer="91">C</text>
+<text x="228.6" y="-38.1" size="1.778" layer="91">D</text>
 </plain>
 <instances>
 <instance part="Q1" gate="G$1" x="175.26" y="43.18" smashed="yes">
@@ -22575,11 +22579,11 @@ on LED's Vf.</text>
 </instance>
 <instance part="J4" gate="G$1" x="223.52" y="-22.86" smashed="yes">
 <attribute name="NAME" x="223.52" y="-19.05" size="1.778" layer="95"/>
-<attribute name="VALUE" x="218.44" y="-30.48" size="1.778" layer="96"/>
+<attribute name="VALUE" x="215.9" y="-30.48" size="1.778" layer="96"/>
 </instance>
 <instance part="J5" gate="G$1" x="223.52" y="-38.1" smashed="yes">
 <attribute name="NAME" x="223.52" y="-34.29" size="1.778" layer="95"/>
-<attribute name="VALUE" x="218.44" y="-45.72" size="1.778" layer="96"/>
+<attribute name="VALUE" x="215.9" y="-45.72" size="1.778" layer="96"/>
 </instance>
 <instance part="D3" gate="G$1" x="25.4" y="-30.48" smashed="yes" rot="R90">
 <attribute name="NAME" x="16.930209375" y="-40.6447" size="1.78126875" layer="95" rot="R90"/>

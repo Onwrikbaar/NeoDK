@@ -85,7 +85,6 @@ static bool setupComms(Comms *me)
     BSP_initComms();
     if (me->serial_fd >= 0 || (me->serial_fd = BSP_openSerialPort("serial_1")) < 0) return false;
 
-    BSP_logf("Serial device id=%d\n", me->serial_fd);
     Selector rx_sel, rx_err_sel, tx_err_sel;
     Selector_init(&rx_sel, (Action)&rxCallback, me);
     Selector_init(&rx_err_sel, (Action)&rxErrorCallback, me);
@@ -102,7 +101,7 @@ static bool setupComms(Comms *me)
 
 static void onButtonToggle(PulseTrain *pt, uint32_t pushed)
 {
-    BSP_selectElectrodeConfiguration(EC_AC_BD); // Turn all four electrodes on, for now.
+    BSP_selectElectrodeConfiguration(0x5, 0xa); // Turn all four electrodes on, for now.
     BSP_logf("Pulse width is %hhu µs\n", pt->pulse_width_micros);
     BSP_startPulseTrain(!pushed, pt->pace_millis, pt->pulse_width_micros, pt->nr_of_pulses);
     if (!pushed && pt->pulse_width_micros < MAX_PULSE_WIDTH_MICROS) {
@@ -128,6 +127,7 @@ static void setupAndRunApplication(char const *app_name)
 
     BSP_logf("Starting %s on NeoDK!\n", app_name);
     BSP_logf("Push the button! :-)\n");
+    BSP_setPrimaryVoltage_mV(2000);
     while (true) {
         BSP_idle(NULL);
     }
