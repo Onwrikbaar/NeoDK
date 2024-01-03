@@ -16,7 +16,7 @@ This is a work in progress. The repo will be updated every few weeks until well 
 Please send me an e-mail in case you are building this design and let me know whether you run into any questions or problems. It will help me decide how I can best lower the threshold to replicating NeoDK. Thanks!
 
 ### Goals
-1. The last quarter century, innovation in the e-stim realm has been virtually nonexistent, despite massive advances in electronics and cheap computing power. Currently available commercial devices are without exception channel-oriented and produce TENS-like waveforms. The time has come to get rid of those historical remnants.
+1. The last quarter century, innovation in the e-stim realm has been virtually nonexistent, despite massive advances in electronics and cheap computing power. Currently available commercial devices are without exception channel-oriented and produce TENS-like waveforms. The time has come to unlock the potential of a more flexible architecture.
 2. It is fairly easy for non-programmers to create, share and improve routines to be played on stereostim setups. Currently there is no way to achieve the same for pulse-based e-stim devices. This project aims to (eventually) bridge that gap.
 
 ### Disclaimer

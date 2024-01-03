@@ -67,7 +67,7 @@ The STM32G071 is an affordable 32-bit microcontroller with an ARM Cortex M0+ cor
 For safety, it is best to power NeoDK from a battery, like a 3S (nominally about 11V) Li-ion battery pack. When using a mains voltage adapter ('wall wart') instead, make sure it is doubly insulated and meets all applicable safety standards for your region. If you happen to own an Estim Systems 2B power box, you can use its adapter for NeoDK too.
 
 ### Serial communications interface
-The device is controlled through a standard serial UART interface using 3.3V TTL signal levels. Suitable USB-to-serial cables are readily available from several sources.
+The device is controlled through a standard serial UART interface using 3.3V TTL signal levels. Suitable USB-to-serial cables are readily available from several sources. If you happen to own an Estim Systems 2B digital link interface, you can use its USB-to-serial cable for NeoDK too.
 
 ## Firmware
 The device's on-board control program (aka firmware) consists of a collection of collaborating state machines. The firmware is event-driven and 100% nonblocking.
@@ -76,6 +76,3 @@ The device's on-board control program (aka firmware) consists of a collection of
 Conceptually, the firmware consists of two layers:
 1. The hardware-dependent part, called the Board Support Package (BSP).
 2. The hardware-independent application logic.
-
-### Power-on selftest
-Before the application program is run, the system verifies that the electronics function as intended.

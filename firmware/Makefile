@@ -1,9 +1,14 @@
+#
+#      Author  mark
+#   Copyright  2023, 2024 Neostim
+#
+
 PROJECT_NAME     := neodk
 OUTPUT_DIRECTORY := build
 
 STM32REPO := $(HOME)/STM32Cube/Repository
 STM32CUBE_G0 := $(STM32REPO)/STM32Cube_FW_G0_V1.6.0
-SEGGER := $(HOME)/SEGGER_RTT
+SEGGER := /opt/arm/SEGGER/RTT
 PROJ_DIR_SRC := src
 PROJ_DIR_INC := inc
 

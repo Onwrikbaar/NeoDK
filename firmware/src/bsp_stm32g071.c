@@ -3,7 +3,7 @@
  *
  *  Created on: 20 Oct 2023
  *      Author: mark
- *   Copyright  2023 Neostim
+ *   Copyright  2023, 2024 Neostim
  */
 
 #include <limits.h>
@@ -181,30 +181,20 @@ static void initGPIO()
     GPIO_InitStruct.Pin = BUCK_ENABLE_PIN;
     LL_GPIO_ResetOutputPin(BUCK_GPIO_PORT, GPIO_InitStruct.Pin);
     LL_GPIO_Init(BUCK_GPIO_PORT, &GPIO_InitStruct);
-
     GPIO_InitStruct.Pin  = LED_1_PIN;
-    // GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-    // GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    // GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_MEDIUM;
     LL_GPIO_SetOutputPin(LED_GPIO_PORT, GPIO_InitStruct.Pin);
     LL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
 
     // GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Pin   = MOSFET_1_PIN | MOSFET_2_PIN;
-    LL_GPIO_ResetOutputPin(MOSFET_GPIO_PORT, GPIO_InitStruct.Pin);
-    LL_GPIO_Init(MOSFET_GPIO_PORT, &GPIO_InitStruct);
-
-    // GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
     GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
-    // GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
     GPIO_InitStruct.Pin = TRIAC_1_PIN | TRIAC_2_PIN | TRIAC_3_PIN | TRIAC_4_PIN;
     LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, GPIO_InitStruct.Pin);
     LL_GPIO_Init(TRIAC_GPIO_PORT, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Mode  = LL_GPIO_MODE_ALTERNATE;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
     GPIO_InitStruct.Alternate = LL_GPIO_AF_2;   // TIM1_CH1 and TIM1_CH2.
-    // GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
     GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Pin = MOSFET_1_PIN | MOSFET_2_PIN;
     LL_GPIO_ResetOutputPin(MOSFET_GPIO_PORT, GPIO_InitStruct.Pin);
@@ -447,7 +437,7 @@ static void interpretCommand(BSP *me, char ch)
                 BSP_logf("Turning Vcap ON\n");
                 LL_GPIO_SetOutputPin(BUCK_GPIO_PORT, BUCK_ENABLE_PIN);
             }
-            BSP_setPrimaryVoltage_mV((ch - '0') * 1000);
+            BSP_setPrimaryVoltage_mV((ch - '0') * 1000U);
             break;
         case 't':                               // Toggle the LED.
             LL_GPIO_TogglePin(LED_GPIO_PORT, LED_1_PIN);
@@ -775,7 +765,7 @@ void BSP_idle(bool (*maySleep)(void))
         if (BSP_readConsole(&ch, 1)) {
             handleConsoleInput(&bsp, ch);
         }
-        // TODO Put the processor to sleep?
+        // TODO Put the processor to sleep to save power?
     }
 }
 

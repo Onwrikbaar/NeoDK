@@ -1,9 +1,9 @@
 /*
- * neodk_main.c -- Main program of the Neostim Development Kit basic firmware.
+ * neodk_main.c -- Main program of the Neostim Development Kit demo firmware.
  *
  *  Created on: Oct 20, 2023
  *      Author: mark
- *   Copyright  2023 Neostim
+ *   Copyright  2023, 2024 Neostim
  */
 
 #include <stdlib.h>
@@ -11,7 +11,6 @@
 #include "bsp_dbg.h"
 #include "bsp_mao.h"
 #include "bsp_app.h"
-#include "elec_conf.h"
 
 
 #ifndef MICROSECONDS_PER_APP_TIMER_TICK

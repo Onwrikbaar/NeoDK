@@ -3,7 +3,7 @@
  *
  *  Created on: 23 May 2021
  *      Author: mark
- *   Copyright  2021..2023 Neostim
+ *   Copyright  2021..2024 Neostim
  */
 
 #ifndef INC_BSP_MAO_H_
