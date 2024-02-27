@@ -52,6 +52,7 @@
 #define TRIAC_4_PIN             LL_GPIO_PIN_5   // Digital out, open drain.
 #define TRIAC_5_PIN             LL_GPIO_PIN_7   // Digital out, open drain.
 #define TRIAC_6_PIN             LL_GPIO_PIN_8   // Digital out, open drain.
+#define ALL_TRIAC_PINS          (TRIAC_1_PIN | TRIAC_2_PIN | TRIAC_3_PIN | TRIAC_4_PIN)
 
 #define BUCK_GPIO_PORT          GPIOB
 #define BUCK_ENABLE_PIN         LL_GPIO_PIN_9   // Digital out, push-pull.
@@ -71,6 +72,7 @@ typedef struct {
     void (*app_timer_handler)(uint64_t);
     uint32_t clock_ticks_per_app_timer_tick;
     Selector button_selector;
+    Selector sequencer_sel;
     Selector rx_sel;
     Selector rx_err_sel;
     void (*tx_callback)(void *, uint8_t *);
@@ -88,7 +90,7 @@ typedef struct {
 } BSP;
 
 // The interrupt request priorities, from high to low.
-enum {  // The STM32G0xx has only four interrupt priority levels.
+enum {  // The STM32G0xx MPUs have 4 interrupt priority levels.
     IRQ_PRIO_SYSTICK, IRQ_PRIO_PULSE = IRQ_PRIO_SYSTICK,
     IRQ_PRIO_ADC_DMA,
     IRQ_PRIO_USART, IRQ_PRIO_APP_TIMER = IRQ_PRIO_USART,
@@ -177,18 +179,16 @@ static void initGPIO()
 
     GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
     GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_MEDIUM;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
     GPIO_InitStruct.Pin = BUCK_ENABLE_PIN;
     LL_GPIO_ResetOutputPin(BUCK_GPIO_PORT, GPIO_InitStruct.Pin);
     LL_GPIO_Init(BUCK_GPIO_PORT, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin  = LED_1_PIN;
+    GPIO_InitStruct.Pin = LED_1_PIN;
     LL_GPIO_SetOutputPin(LED_GPIO_PORT, GPIO_InitStruct.Pin);
     LL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
 
-    // GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
     GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
-    GPIO_InitStruct.Pin = TRIAC_1_PIN | TRIAC_2_PIN | TRIAC_3_PIN | TRIAC_4_PIN;
+    GPIO_InitStruct.Pin = ALL_TRIAC_PINS;
     LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, GPIO_InitStruct.Pin);
     LL_GPIO_Init(TRIAC_GPIO_PORT, &GPIO_InitStruct);
 
@@ -316,9 +316,9 @@ static void initDMAforADC(uint16_t volatile samples[], size_t nr_of_samples)
 
 static void initUSART2(uint32_t serial_speed_bps)
 {
-    RCC->CCIPR |= RCC_USART2CLKSOURCE_HSI;      // 16 MHz clock.
-    USART2->BRR = (uint16_t)((16000000UL + serial_speed_bps / 2) / serial_speed_bps);
-    // USART2->CR2 |= USART_CR2_SWAP;              // Temporary!
+    RCC->CCIPR  |= RCC_USART2CLKSOURCE_HSI;     // 16 MHz clock.
+    USART2->BRR  = (uint16_t)((16000000UL + serial_speed_bps / 2) / serial_speed_bps);
+    USART2->CR2 |= USART_CR2_SWAP;              // Only for old proto board!
     USART2->CR1 |= USART_CR1_UE | USART_CR1_FIFOEN;
 }
 
@@ -351,7 +351,7 @@ static void disableOutputStage()
 {
     pulse_timer->CCER &= ~(TIM_CCER_CC1E | TIM_CCER_CC2E);
     LL_GPIO_ResetOutputPin(BUCK_GPIO_PORT, BUCK_ENABLE_PIN);
-    LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, TRIAC_1_PIN | TRIAC_2_PIN | TRIAC_3_PIN | TRIAC_4_PIN);
+    LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
 }
 
 
@@ -376,7 +376,8 @@ static uint16_t pulsePaceMillisecondsToTicks(uint8_t pace_ms)
 }
 
 /**
- * @brief Calculate the 12-bit value for the DAC to set the desired primary voltage [mV].
+ * @brief   Calculate the value (0..4095) for the 12-bit DAC to set the desired primary voltage [mV].
+ * @note    Assuming R15 = 115 kΩ, R18 = 13 kΩ and R19 = 42.2 kΩ (Refer to the schematic).
  */
 static uint16_t Vcap_mV_ToDacVal(uint16_t Vcap_mV)
 {
@@ -417,7 +418,9 @@ static void doUartAction(USART_TypeDef *uart, ChannelAction action)
     }
 }
 
-
+/**
+ * @brief   Debugger console commands for interactive testing.
+ */
 static void interpretCommand(BSP *me, char ch)
 {
     switch (ch)
@@ -452,7 +455,7 @@ static void gatherInputCharacters(BSP *me, char ch)
 {
     me->ci_buf[me->ci_len] = '\0';
     if (ch == '\n' || (me->ci_buf[me->ci_len++] = ch, me->ci_len == sizeof me->ci_buf)) {
-        if (ch != '\n') BSP_logf("\n");
+        if (ch != '\n') BSP_logf("\n");         // Buffer is full, no newline seen.
         BSP_logf("Console: '%s'\n", me->ci_buf);
         me->ci_len = 0;
     }
@@ -464,9 +467,14 @@ static void handleConsoleInput(BSP *me, char ch)
     if (me->ci_state == 0) {
         if (ch == '/') me->ci_state = 1;
         else gatherInputCharacters(me, ch);
-    } else {
-        if (ch != '\n') BSP_logf("\n");
-        interpretCommand(me, ch);
+    } else {                                    // '/' seen.
+        if (ch == '\n') {                       // Not a command.
+            gatherInputCharacters(me, '/');
+            gatherInputCharacters(me, ch);
+        } else {
+            BSP_logf("\n");
+            interpretCommand(me, ch);
+        }
         me->ci_state = 0;
     }
 }
@@ -528,9 +536,8 @@ void TIM1_CC_IRQHandler(void)
         BSP_logf("CC2 %hu\n", bsp.pulse_seqnr);
     }
     if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-        BSP_logf("Last pulse done\n");
         LL_GPIO_ResetOutputPin(LED_GPIO_PORT, LED_1_PIN);
-        // TODO Signal the Sequencer.
+        invokeSelector(&bsp.sequencer_sel, 1);
     }
     if (pulse_timer->SR & 0xcffe0) {
         BSP_logf("Pt SR=0x%x\n", pulse_timer->SR & 0xcffe0);
@@ -733,8 +740,9 @@ void BSP_registerAppTimerHandler(void (*handler)(uint64_t), uint32_t microsecond
 }
 
 
-void BSP_registerPulseHandler(void *pulse_ao)
+void BSP_registerPulseHandler(Selector *sequencer_sel)
 {
+    bsp.sequencer_sel = *sequencer_sel;
     pulse_timer->PSC = SystemCoreClock / PULSE_TIMER_FREQ_Hz - 1;
     BSP_logf("%s: PSC=%u, ARR=%u\n", __func__, pulse_timer->PSC, pulse_timer->ARR);
     // PWM mode 1 for both channels, enable preload.
@@ -760,11 +768,12 @@ void BSP_registerButtonHandler(Selector *sel)
 
 void BSP_idle(bool (*maySleep)(void))
 {
+    char ch;
+    if (BSP_readConsole(&ch, 1)) {
+        handleConsoleInput(&bsp, ch);
+    }
+
     if (maySleep == NULL || maySleep()) {       // All pending events have been handled.
-        char ch;
-        if (BSP_readConsole(&ch, 1)) {
-            handleConsoleInput(&bsp, ch);
-        }
         // TODO Put the processor to sleep to save power?
     }
 }
@@ -772,7 +781,7 @@ void BSP_idle(bool (*maySleep)(void))
 
 DeviceId BSP_openSerialPort(char const *name)
 {
-    if (bsp.nr_of_serial_devices >= 2) {
+    if (bsp.nr_of_serial_devices > 1) {
         BSP_logf("Can only use one serial port at a time, for now\n");
         return -1;
     }
@@ -822,7 +831,7 @@ void BSP_doChannelAction(DeviceId device_id, ChannelAction action)
 int BSP_closeSerialPort(int device_id)
 {
     M_ASSERT(device_id == bsp.nr_of_serial_devices - 1);
-    // TODO De-initialise USART2.
+    // TODO De-initialise USART2?
     NVIC_DisableIRQ(USART2_IRQn);
     return 0;
 }
@@ -846,7 +855,7 @@ void BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 
 bool BSP_startPulseTrain(uint8_t polarity, uint8_t pace_ms, uint8_t pulse_width_micros, uint16_t nr_of_pulses)
 {
-    M_ASSERT(polarity <= 1);
+    M_ASSERT(polarity <= 1);                    // For a single biphasic output stage.
     M_ASSERT(pace_ms >= 4);                     // Repetition rate <= 250 Hz.
     M_ASSERT(pulse_width_micros != 0);
     M_ASSERT(nr_of_pulses != 0);

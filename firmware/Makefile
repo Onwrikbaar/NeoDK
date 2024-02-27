@@ -6,9 +6,11 @@
 PROJECT_NAME     := neodk
 OUTPUT_DIRECTORY := build
 
+MAO_LIB_INC := maolib/inc
+MAO_LIB_SRC := maolib/src
 STM32REPO := $(HOME)/STM32Cube/Repository
 STM32CUBE_G0 := $(STM32REPO)/STM32Cube_FW_G0_V1.6.0
-SEGGER := /opt/arm/SEGGER/RTT
+SEGGER := $(HOME)/SEGGER_RTT
 PROJ_DIR_SRC := src
 PROJ_DIR_INC := inc
 
@@ -27,14 +29,15 @@ STM32G0xx_SRC := \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_ll_exti.c \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_ll_dac.c \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_ll_adc.c \
-  $(PROJ_DIR_SRC)/bsp_dbg_emb.c \
+  $(MAO_LIB_SRC)/bsp_dbg_emb.c \
   $(SEGGER)/SEGGER_RTT.c \
   $(SEGGER)/SEGGER_RTT_printf.c \
 
 # Source files common to all targets.
 PROJ_COMMON_SRC += \
   $(PROJ_DIR_SRC)/neodk_main.c \
-  $(PROJ_DIR_SRC)/convenience.c \
+  $(PROJ_DIR_SRC)/comms.c \
+  $(MAO_LIB_SRC)/convenience.c \
 
 # Target-dependent include folders.
 STM32G0xx_INC += \
@@ -43,10 +46,6 @@ STM32G0xx_INC += \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Inc \
   $(HOME)/gcc-arm/arm-none-eabi/include \
   $(SEGGER) \
-
-# Include folders common to all targets
-PROJ_COMMON_INC += \
-  $(PROJ_DIR_INC) \
 
 # Libraries common to all targets
 LIB_FILES += \
@@ -82,6 +81,7 @@ ASMFLAGS += -g3
 # Linker flags.
 # Let linker dump unused sections
 LDFLAGS += -Wl,--gc-sections
+# LDFLAGS += --no-warn-rwx-segment
 # Use newlib in nano version
 neodk_g071: LDFLAGS += -u _printf_float
 
@@ -121,7 +121,7 @@ neodk_g071:
   INC_FOLDERS := \
   $(STM32G0xx_INC) \
   $(PROJ_DIR_INC) \
-  $(PROJ_COMMON_INC)
+  $(MAO_LIB_INC)
   SRC_FILES := \
   $(PROJ_DIR_SRC)/startup_stm32g071xx.s \
   $(PROJ_DIR_SRC)/bsp_stm32g071.c \

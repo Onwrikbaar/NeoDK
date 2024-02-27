@@ -36,14 +36,17 @@ The NeoDK device is designed to stay well within the IEC 60601-2-10 requirements
 
 ### Audience
 This project is intended for experienced electronics hobbyists and professionals, who possess a keen understanding of the risks associated with electrostimulation and high-voltage circuitry, and who desire one or more of the following:
-- a deeper understanding of advanced electronic circuitry for pulse-based electrostimulation.
-- an innovative, rock solid and well-tested design to base one's own developments on.
-- a high-intensity remotely controllable e-stim device to incorporate into a multi-toy setup or home control system.
 - e-stim sensations unattainable through conventional power boxes.
+- a high-intensity remotely controllable e-stim device to incorporate into a multi-toy setup or home control system.
+- a deeper understanding of advanced, energy-efficient electronic circuitry for pulse-based electrostimulation.
+- an innovative yet compact, proven design to base one's own developments on.
 - a pulse-based device that can store and play user-created routines (planned for 2025).
 
 ### Caveat
-NeoDK is a minimal viable design (MVD) of a powerful and highly efficient electrostimulation device that is not limited by 2-pole 'channels' or strictly TENS-like waveforms. It can thus do things no commercially available e-stim box comes close to. If this appeals to you but you still would like to have more features than NeoDK offers, by all means use NeoDK as the foundation for your own design - while observing this project's [Licence](LICENSE.txt). Regarding licensing for commercial / non-open source purposes, please contact the author.
+NeoDK is not a production-ready set of blueprints. It is a minimal viable design (MVD) of a powerful and highly efficient electrostimulation device that is not limited by 2-pole 'channels' or strictly TENS-like waveforms. It can do things no commercially available e-stim box comes close to. If this appeals to you but you still would like to have more features than NeoDK offers, by all means use NeoDK as the foundation for your own design - while observing this project's [Licence](LICENSE.txt). Regarding licensing for commercial / non-open source purposes, please contact the author.
 
 ### Why to start simple
 "A complex system that works is invariably found to have evolved from a simple system that worked. A complex system designed from scratch never works and cannot be patched up to make it work. You have to start over with a working simple system." -- John Gall
+
+## Kindly support my work
+[Buy Me a Coffee](https://www.buymeacoffee.com/onwrikbaar)

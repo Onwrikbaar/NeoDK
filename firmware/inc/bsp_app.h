@@ -28,7 +28,7 @@ DeviceId BSP_openSerialPort(char const *name);
 int BSP_closeSerialPort(int fd);
 
 // Pulse generation related functions.
-void BSP_registerPulseHandler(void *);
+void BSP_registerPulseHandler(Selector *);
 bool BSP_selectElectrodeConfiguration(uint8_t phase0, uint8_t phase1);
 void BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV);
 bool BSP_startPulseTrain(uint8_t polarity, uint8_t pace_ms, uint8_t pulse_width_micros, uint16_t nr_of_pulses);

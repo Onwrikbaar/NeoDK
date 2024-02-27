@@ -2946,7 +2946,7 @@ design rules under a new name.</description>
 <contactref element="TR1" pad="2"/>
 <contactref element="R4" pad="1"/>
 <wire x1="47.1176" y1="14.85" x2="47.812" y2="14.1856" width="0.254" layer="1"/>
-<wire x1="47.812" y1="14.1856" x2="47.822" y2="12.5" width="0.254" layer="1"/>
+<wire x1="47.812" y1="14.1856" x2="47.822" y2="12.5" width="1.27" layer="1"/>
 <wire x1="47.1176" y1="14.85" x2="49.35" y2="14.85" width="1.016" layer="1"/>
 <wire x1="49.35" y1="14.85" x2="54.5" y2="20.5" width="1.016" layer="1"/>
 <contactref element="TP3" pad="P$1"/>

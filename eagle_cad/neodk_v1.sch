@@ -22207,8 +22207,8 @@ conversion&lt;/p&gt;  &lt;a href="https://pricing.snapeda.com/parts/AP63203/Diod
 <text x="177.8" y="96.52" size="1.778" layer="91">Snubber</text>
 <text x="195.58" y="53.34" size="2.286" layer="91" ratio="12">Use ONLY
 this transformer.</text>
-<text x="213.36" y="-73.66" size="2.286" layer="91" ratio="10">NeoDK v1.0
-© 2023 Neostim</text>
+<text x="132.08" y="48.26" size="2.286" layer="91" ratio="10">NeoDK v1.0
+© 2023, 2024 Neostim</text>
 <text x="91.44" y="-20.32" size="1.778" layer="91">ADC</text>
 <text x="88.9" y="-22.86" size="1.778" layer="91">ADC</text>
 <text x="88.9" y="-35.56" size="1.778" layer="91">ADC</text>
