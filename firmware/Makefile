@@ -29,15 +29,14 @@ STM32G0xx_SRC := \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_ll_exti.c \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_ll_dac.c \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_ll_adc.c \
-  $(MAO_LIB_SRC)/bsp_dbg_emb.c \
   $(SEGGER)/SEGGER_RTT.c \
   $(SEGGER)/SEGGER_RTT_printf.c \
 
 # Source files common to all targets.
 PROJ_COMMON_SRC += \
   $(PROJ_DIR_SRC)/neodk_main.c \
+  $(PROJ_DIR_SRC)/sequencer.c \
   $(PROJ_DIR_SRC)/comms.c \
-  $(MAO_LIB_SRC)/convenience.c \
 
 # Target-dependent include folders.
 STM32G0xx_INC += \
@@ -66,11 +65,11 @@ CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin # -fshort-enums
 
 # Target-specific C flags.
-neodk_g071: CFLAGS += -DSTM32G071xx
-neodk_g071: CFLAGS += -mcpu=cortex-m0plus
-neodk_g071: CFLAGS += -mfloat-abi=softfp
+neodk_g071 libmao.a: CFLAGS += -DSTM32G071xx
+neodk_g071 libmao.a: CFLAGS += -mcpu=cortex-m0plus
+neodk_g071 libmao.a: CFLAGS += -mfloat-abi=softfp
+neodk_g071 libmao.a: CFLAGS += -mthumb -mabi=aapcs
 neodk_g071: CFLAGS += -DUSE_FULL_LL_DRIVER
-neodk_g071: CFLAGS += -mthumb -mabi=aapcs
 
 # C++ flags common to all targets
 CXXFLAGS += $(OPT)
@@ -90,6 +89,7 @@ neodk_g071: LDFLAGS += $(OPT)
 neodk_g071: LDFLAGS += -mthumb -mabi=aapcs -T$(LINKER_SCRIPT)
 neodk_g071: LDFLAGS += -mcpu=cortex-m0plus
 neodk_g071: LDFLAGS += -mfloat-abi=softfp
+neodk_g071: LDFLAGS += -Lmaolib
 
 # Target-specific assembler flags.
 neodk_g071: LDFLAGS += -mcpu=cortex-m0plus
@@ -100,12 +100,17 @@ neodk_g071: ASMFLAGS += -D__STACK_SIZE=4096
 
 # Add standard libraries at the very end of the linker input,
 # after all objects that may need symbols provided by these libraries.
-LIB_FILES += -lc -lnosys -lm
+LIB_FILES += -lmao -lc -lnosys -lm
 
 .PHONY: default help
 
 # Default target - first one defined.
 default: neodk_g071
+
+libmao.a:
+	$(CC) $(CFLAGS) -I$(MAO_LIB_INC) -I$(SEGGER) -c $(MAO_LIB_SRC)/*.c
+	$(AR) maolib/$@ *.o
+	rm *.o
 
 all: neodk_g071
 

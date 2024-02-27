@@ -3,14 +3,14 @@ An electrostimulation machine development kit.
 
 ## Overview
 ### What is it?
-This project describes the design and implementation of a bare-bones, yet innovative and powerful, pulse-based electrostimulation device. Both its hardware and its firmware are open for modification and extension.
+This project describes the design and implementation of a bare-bones, yet highly innovative and powerful, pulse-based electrostimulation device. Both its hardware and its firmware are open for modification and extension.
 
 ### Author
 Discord: @Onwrikbaar<br/>
 E: <onwrikbaar@hotmail.com>
 
 ### Status
-This is a work in progress. The repo will be updated every few weeks until well into 2024.
+This is a work in progress. The repo will be updated every few weeks until well into 2025.
 
 ### Request
 Please send me an e-mail in case you are building this design and let me know whether you run into any questions or problems. It will help me decide how I can best lower the threshold to replicating NeoDK. Thanks!
@@ -43,7 +43,10 @@ This project is intended for experienced electronics hobbyists and professionals
 - a pulse-based device that can store and play user-created routines (planned for 2025).
 
 ### Caveat
-NeoDK is not a production-ready set of blueprints. It is a minimal viable design (MVD) of a powerful and highly efficient electrostimulation device that is not limited by 2-pole 'channels' or strictly TENS-like waveforms. It can do things no commercially available e-stim box comes close to. If this appeals to you but you still would like to have more features than NeoDK offers, by all means use NeoDK as the foundation for your own design - while observing this project's [Licence](LICENSE.txt). Regarding licensing for commercial / non-open source purposes, please contact the author.
+NeoDK is _NOT_ a ready-for-play e-stim box. It is a minimal viable design (MVD) of a powerful and highly efficient electrostimulation device that is not limited by 2-pole 'channels' or strictly TENS-like waveforms. Schematic and board CAD files are included, but to get a working device involves soldering as well as programming.
+
+### Licensing
+NeoDK's electronics and firmware can do things no commercially available e-stim box comes close to. If this appeals to you but you would like to have more features than NeoDK offers, by all means use NeoDK as the foundation for your own design - while observing this project's [Licence](LICENSE.txt). Regarding licensing for commercial / non-open source purposes, please contact the author.
 
 ### Why to start simple
 "A complex system that works is invariably found to have evolved from a simple system that worked. A complex system designed from scratch never works and cannot be patched up to make it work. You have to start over with a working simple system." -- John Gall

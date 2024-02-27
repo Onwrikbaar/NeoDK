@@ -3,7 +3,7 @@
 ### Requirements
 1. Outputs galvanically isolated from the low-voltage circuitry and the communication interface.
 2. Four monopolar symmetric biphasic outputs, no 'channels'.
-3. Sufficient output power to drive even the largest internal metal electrodes with very high intensity.
+3. Sufficient output power to drive even the largest internal metal electrodes with amazing intensity.
 4. Very energy-efficient, so optionally battery-powered.
 5. Controllable by externally/remotely running software.
 
@@ -74,5 +74,5 @@ The device's on-board control program (aka firmware) consists of a collection of
 
 ### Structure
 Conceptually, the firmware consists of two layers:
-1. The hardware-dependent part, called the Board Support Package (BSP).
+1. The hardware-dependent part, called the Board Support Package (BSP). This is the only module that needs to be changed when porting the application to a different processor.
 2. The hardware-independent application logic.

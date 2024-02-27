@@ -44,7 +44,7 @@ void BSP_registerAppTimerHandler(void (*)(uint64_t), uint32_t microseconds_per_a
 uint64_t BSP_microsecondsSinceBoot();
 
 /*
- * Implement these functions in the application's
+ * Implement the following functions in the application's
  * BSP module when using comms channels.
  */
 void BSP_registerRxCallback(DeviceId, Selector const *rx_sel, Selector const *rx_err_sel);

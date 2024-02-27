@@ -71,7 +71,7 @@ typedef struct {
     // The following members get set only once.
     void (*app_timer_handler)(uint64_t);
     uint32_t clock_ticks_per_app_timer_tick;
-    Selector button_selector;
+    Selector button_sel;
     Selector sequencer_sel;
     Selector rx_sel;
     Selector rx_err_sel;
@@ -236,7 +236,7 @@ static void initDAC()
 }
 
 
-static void initADC()
+static void initADC1()
 {
     BSP_logf("%s\n", __func__);
     LL_ADC_InitTypeDef gis = {
@@ -295,7 +295,7 @@ static void initADC()
 }
 
 
-static void initDMAforADC(uint16_t volatile samples[], size_t nr_of_samples)
+static void initDMAforADC1(uint16_t volatile samples[], size_t nr_of_samples)
 {
     LL_DMA_SetPeriphRequest(DMA1, LL_DMA_CHANNEL_1, LL_DMAMUX_REQ_ADC1);
     LL_DMA_ConfigTransfer(DMA1, LL_DMA_CHANNEL_1, LL_DMA_DIRECTION_PERIPH_TO_MEMORY | LL_DMA_MODE_CIRCULAR
@@ -318,7 +318,7 @@ static void initUSART2(uint32_t serial_speed_bps)
 {
     RCC->CCIPR  |= RCC_USART2CLKSOURCE_HSI;     // 16 MHz clock.
     USART2->BRR  = (uint16_t)((16000000UL + serial_speed_bps / 2) / serial_speed_bps);
-    USART2->CR2 |= USART_CR2_SWAP;              // Only for old proto board!
+    // USART2->CR2 |= USART_CR2_SWAP;              // Only for old proto board!
     USART2->CR1 |= USART_CR1_UE | USART_CR1_FIFOEN;
 }
 
@@ -567,10 +567,10 @@ void EXTI4_15_IRQHandler(void)
 {
     if (EXTI->RPR1 & PUSHBUTTON_PIN) {          // Rising?
         EXTI->RPR1 = PUSHBUTTON_PIN;
-        invokeSelector(&bsp.button_selector, 1);
+        invokeSelector(&bsp.button_sel, 1);
     } else if (EXTI->FPR1 & PUSHBUTTON_PIN) {   // Falling?
         EXTI->FPR1 = PUSHBUTTON_PIN;
-        invokeSelector(&bsp.button_selector, 0);
+        invokeSelector(&bsp.button_sel, 0);
     } else {
         spuriousIRQ(&bsp);
     }
@@ -668,8 +668,8 @@ void BSP_init()
     initGPIO();
     initEXTI();
     initDAC();
-    initDMAforADC(bsp.adc_1_samples, M_DIM(bsp.adc_1_samples));
-    initADC();
+    initDMAforADC1(bsp.adc_1_samples, M_DIM(bsp.adc_1_samples));
+    initADC1();
     LL_ADC_Enable(ADC1);
 
     bsp.nr_of_serial_devices = 1;               // Device 0 is the SEGGER console.
@@ -761,7 +761,7 @@ void BSP_registerPulseHandler(Selector *sequencer_sel)
 
 void BSP_registerButtonHandler(Selector *sel)
 {
-    bsp.button_selector = *sel;
+    bsp.button_sel = *sel;
     enableInterruptWithPrio(EXTI4_15_IRQn, IRQ_PRIO_EXTI);
 }
 

@@ -11,21 +11,22 @@
 #include "bsp_dbg.h"
 #include "bsp_mao.h"
 #include "bsp_app.h"
+#include "circbuffer.h"
 
 // This module implements:
 #include "comms.h"
 
 
 struct _Comms {
-    uint8_t outbuf_storage[200];
-    int serial_fd;
+    CircBuffer output_buffer;
+    int channel_fd;
 };
 
 
 static void rxCallback(Comms *me, uint32_t ch)
 {
     if (ch == '\n') {
-        BSP_doChannelAction(me->serial_fd, CA_TX_CB_ENABLE);
+        BSP_doChannelAction(me->channel_fd, CA_TX_CB_ENABLE);
     } else {
         BSP_logf("%s(0x%02x)\n", __func__, ch);
     }
@@ -45,7 +46,7 @@ static void txCallback(Comms *me, uint8_t *dst)
     if (*cp != '\0') {
         *dst = *cp++;
     } else {
-        BSP_doChannelAction(me->serial_fd, CA_TX_CB_DISABLE);
+        BSP_doChannelAction(me->channel_fd, CA_TX_CB_DISABLE);
         *dst = '\n';
         cp = hello;
     }
@@ -64,34 +65,44 @@ static void txErrorCallback(Comms *me, uint32_t tx_error)
 Comms *Comms_new()
 {
     Comms *me = (Comms *)malloc(sizeof(Comms));
-    me->serial_fd = -1;
+    me->channel_fd = -1;
     return me;
 }
 
 
 bool Comms_open(Comms *me)
 {
-    BSP_initComms();
-    if (me->serial_fd >= 0 || (me->serial_fd = BSP_openSerialPort("serial_1")) < 0) return false;
+    BSP_initComms();                            // Initialise the communication peripheral.
+    if (me->channel_fd >= 0 || (me->channel_fd = BSP_openSerialPort("serial_1")) < 0) return false;
 
     Selector rx_sel, rx_err_sel, tx_err_sel;
     Selector_init(&rx_sel, (Action)&rxCallback, me);
     Selector_init(&rx_err_sel, (Action)&rxErrorCallback, me);
     Selector_init(&tx_err_sel, (Action)&txErrorCallback, me);
-    BSP_registerRxCallback(me->serial_fd, &rx_sel, &rx_err_sel);
-    BSP_registerTxCallback(me->serial_fd, (void (*)(void *, uint8_t *))&txCallback, me, &tx_err_sel);
-    BSP_doChannelAction(me->serial_fd, CA_OVERRUN_CB_ENABLE);
-    BSP_doChannelAction(me->serial_fd, CA_FRAMING_CB_ENABLE);
-    BSP_doChannelAction(me->serial_fd, CA_RX_CB_ENABLE);
-    BSP_doChannelAction(me->serial_fd, CA_TX_CB_ENABLE);
+    BSP_registerRxCallback(me->channel_fd, &rx_sel, &rx_err_sel);
+    BSP_registerTxCallback(me->channel_fd, (void (*)(void *, uint8_t *))&txCallback, me, &tx_err_sel);
+    BSP_doChannelAction(me->channel_fd, CA_OVERRUN_CB_ENABLE);
+    BSP_doChannelAction(me->channel_fd, CA_FRAMING_CB_ENABLE);
+    BSP_doChannelAction(me->channel_fd, CA_RX_CB_ENABLE);
+    BSP_doChannelAction(me->channel_fd, CA_TX_CB_ENABLE);
     return true;
+}
+
+
+int Comms_write(Comms *me, uint8_t const *data, size_t nb)
+{
+    BSP_criticalSectionEnter();
+    size_t nbw = CircBuffer_write(&me->output_buffer, data, nb);
+    BSP_doChannelAction(me->channel_fd, CA_TX_CB_ENABLE);
+    BSP_criticalSectionExit();
+    return nbw;
 }
 
 
 void Comms_close(Comms *me)
 {
     // TODO Close the underlying channel.
-    me->serial_fd = -1;
+    me->channel_fd = -1;
 }
 
 
