@@ -20,33 +20,27 @@
 #endif
 
 
-static void handleAppTimerTick(uint64_t app_timer_micros)
+static void onAppTimerTick(uint64_t app_timer_micros)
 {
-    static uint16_t millis = 0;
+    static uint64_t prev_micros = 0;
 
-    if (++millis == 5000) {
-        BSP_logf("%s\n", __func__);
-        millis = 0;
+    if (app_timer_micros - prev_micros >= 15000000) {
+        uint32_t seconds_since_boot = (uint32_t)(app_timer_micros / 1000000UL);
+        BSP_logf("Time %02u:%02u:%02u\n", seconds_since_boot / 3600, (seconds_since_boot / 60) % 60, seconds_since_boot % 60);
+        prev_micros = app_timer_micros;
     }
-}
-
-
-static void onButtonToggle(Sequencer *sequencer, bool pushed)
-{
-    Sequencer_startPulseTrain(sequencer, !pushed);
 }
 
 
 static void setupAndRunApplication(char const *app_name)
 {
-    BSP_registerAppTimerHandler(&handleAppTimerTick, MICROSECONDS_PER_APP_TIMER_TICK);
-
     Comms *comms = Comms_new();
     Comms_open(comms);
 
     Sequencer *sequencer = Sequencer_new();
+    Sequencer_start(sequencer);
     Selector button_selector;
-    BSP_registerButtonHandler(Selector_init(&button_selector, (Action)&onButtonToggle, sequencer));
+    BSP_registerButtonHandler(Selector_init(&button_selector, (Action)&Sequencer_togglePlayPause, sequencer));
 
     BSP_logf("Starting %s on NeoDK!\n", app_name);
     BSP_logf("Push the button! :-)\n");
@@ -68,6 +62,7 @@ int main()
     BSP_logf("Initialising...\n");
     BSP_init();                                 // Get the hardware ready.
 
+    BSP_registerAppTimerHandler(&onAppTimerTick, MICROSECONDS_PER_APP_TIMER_TICK);
     setupAndRunApplication("Button Shock Demo");
 
     BSP_close();

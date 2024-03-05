@@ -18,7 +18,8 @@ typedef struct _Sequencer Sequencer;            // Opaque type.
 Sequencer *Sequencer_new();
 
 // Instance methods.
-void Sequencer_startPulseTrain(Sequencer *, uint8_t phase);
+void Sequencer_start(Sequencer *);
+void Sequencer_togglePlayPause(Sequencer *, uint32_t button_pushed);
 void Sequencer_delete(Sequencer *);
 
 #endif

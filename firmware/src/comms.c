@@ -18,6 +18,8 @@
 
 
 struct _Comms {
+    uint8_t tx_buf_store[200];
+    // uint8_t rx_buf_store[200];
     CircBuffer output_buffer;
     int channel_fd;
 };
@@ -26,7 +28,8 @@ struct _Comms {
 static void rxCallback(Comms *me, uint32_t ch)
 {
     if (ch == '\n') {
-        BSP_doChannelAction(me->channel_fd, CA_TX_CB_ENABLE);
+        static uint8_t msg[] = "Hello!\n";
+        Comms_write(me, msg, sizeof(msg) - 1);
     } else {
         BSP_logf("%s(0x%02x)\n", __func__, ch);
     }
@@ -41,15 +44,14 @@ static void rxErrorCallback(Comms *me, uint32_t rx_error)
 
 static void txCallback(Comms *me, uint8_t *dst)
 {
-    static char const hello[] = "Hello!", *cp = hello;
-
-    if (*cp != '\0') {
-        *dst = *cp++;
-    } else {
+    uint32_t nbr = CircBuffer_read(&me->output_buffer, dst, 1);
+    M_ASSERT(nbr == 1);
+    // Once the buffer is empty, disable this callback.
+    BSP_criticalSectionEnter();
+    if (CircBuffer_availableData(&me->output_buffer) == 0) {
         BSP_doChannelAction(me->channel_fd, CA_TX_CB_DISABLE);
-        *dst = '\n';
-        cp = hello;
     }
+    BSP_criticalSectionExit();
 }
 
 
@@ -65,6 +67,7 @@ static void txErrorCallback(Comms *me, uint32_t tx_error)
 Comms *Comms_new()
 {
     Comms *me = (Comms *)malloc(sizeof(Comms));
+    CircBuffer_init(&me->output_buffer, me->tx_buf_store, sizeof me->tx_buf_store);
     me->channel_fd = -1;
     return me;
 }
@@ -84,16 +87,15 @@ bool Comms_open(Comms *me)
     BSP_doChannelAction(me->channel_fd, CA_OVERRUN_CB_ENABLE);
     BSP_doChannelAction(me->channel_fd, CA_FRAMING_CB_ENABLE);
     BSP_doChannelAction(me->channel_fd, CA_RX_CB_ENABLE);
-    BSP_doChannelAction(me->channel_fd, CA_TX_CB_ENABLE);
     return true;
 }
 
 
-int Comms_write(Comms *me, uint8_t const *data, size_t nb)
+uint32_t Comms_write(Comms *me, uint8_t const *data, size_t nb)
 {
     BSP_criticalSectionEnter();
-    size_t nbw = CircBuffer_write(&me->output_buffer, data, nb);
-    BSP_doChannelAction(me->channel_fd, CA_TX_CB_ENABLE);
+    uint32_t nbw = CircBuffer_write(&me->output_buffer, data, nb);
+    if (nbw != 0) BSP_doChannelAction(me->channel_fd, CA_TX_CB_ENABLE);
     BSP_criticalSectionExit();
     return nbw;
 }
@@ -101,7 +103,7 @@ int Comms_write(Comms *me, uint8_t const *data, size_t nb)
 
 void Comms_close(Comms *me)
 {
-    // TODO Close the underlying channel.
+    BSP_doChannelAction(me->channel_fd, CA_CLOSE);
     me->channel_fd = -1;
 }
 

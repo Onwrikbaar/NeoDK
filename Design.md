@@ -74,5 +74,5 @@ The device's on-board control program (aka firmware) consists of a collection of
 
 ### Structure
 Conceptually, the firmware consists of two layers:
-1. The hardware-dependent part, called the Board Support Package (BSP). This is the only module that needs to be changed when porting the application to a different processor.
-2. The hardware-independent application logic.
+1. The hardware-dependent part, called the Board Support Package (BSP), which implements the _mechanisms_. This is the only module that needs to be changed when porting the application to a different processor.
+2. The hardware-independent application logic, implementing the _policies_.

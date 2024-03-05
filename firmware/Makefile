@@ -47,7 +47,7 @@ STM32G0xx_INC += \
   $(SEGGER) \
 
 # Libraries common to all targets
-LIB_FILES += \
+LIB_FILES += -lmao \
 
 # Optimization flags
 # OPT = -O3 -g3
@@ -55,7 +55,7 @@ OPT = -O2
 # Uncomment the line below to enable link time optimization
 neodk_g071: OPT += -flto=auto
 # Use newlib in nano version
-neodk_g071: OPT += --specs=nano.specs -u _printf_float
+neodk_g071: OPT += --specs=nano.specs # -u _printf_float
 
 # C flags common to all targets
 CFLAGS += $(OPT)
@@ -82,7 +82,6 @@ ASMFLAGS += -g3
 LDFLAGS += -Wl,--gc-sections
 # LDFLAGS += --no-warn-rwx-segment
 # Use newlib in nano version
-neodk_g071: LDFLAGS += -u _printf_float
 
 # Target-specific linker flags.
 neodk_g071: LDFLAGS += $(OPT)
@@ -100,7 +99,7 @@ neodk_g071: ASMFLAGS += -D__STACK_SIZE=4096
 
 # Add standard libraries at the very end of the linker input,
 # after all objects that may need symbols provided by these libraries.
-LIB_FILES += -lmao -lc -lnosys -lm
+LIB_FILES += -lc -lnosys -lm
 
 .PHONY: default help
 

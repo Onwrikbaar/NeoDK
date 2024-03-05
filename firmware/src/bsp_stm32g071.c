@@ -20,6 +20,7 @@
 #include "stm32g0xx_ll_adc.h"
 
 #include "bsp_dbg.h"
+#include "app_event.h"
 
 // This module implements:
 #include "bsp_mao.h"
@@ -318,7 +319,6 @@ static void initUSART2(uint32_t serial_speed_bps)
 {
     RCC->CCIPR  |= RCC_USART2CLKSOURCE_HSI;     // 16 MHz clock.
     USART2->BRR  = (uint16_t)((16000000UL + serial_speed_bps / 2) / serial_speed_bps);
-    // USART2->CR2 |= USART_CR2_SWAP;              // Only for old proto board!
     USART2->CR1 |= USART_CR1_UE | USART_CR1_FIFOEN;
 }
 
@@ -333,13 +333,20 @@ static void setPinVal(GPIO_TypeDef *GPIOx, uint16_t gpio_pin, uint8_t pin_state)
 }
 
 
+static uint8_t getPhase(uint8_t const elcon[2])
+{
+    M_ASSERT((elcon[0] & elcon[1]) == 0);       // Prevent shorts.
+    return (elcon[0] & 0x5) ? 0 : 1;
+}
+
+
 static void setSwitches(uint16_t pattern)
 {
     // Turn on the LED if at least one triac will be activated.
     setPinVal(LED_GPIO_PORT, LED_1_PIN, pattern);
 
     // The triac enable signals are active low, so flip the bits.
-    pattern ^= (uint16_t)0xffff;
+    pattern ^= (uint16_t)~0;
     setPinVal(TRIAC_GPIO_PORT, TRIAC_1_PIN, pattern & 1);
     setPinVal(TRIAC_GPIO_PORT, TRIAC_2_PIN, pattern & 2);
     setPinVal(TRIAC_GPIO_PORT, TRIAC_3_PIN, pattern & 4);
@@ -514,9 +521,8 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
         pulse_timer->CR1 &= ~TIM_CR1_CEN;       // Stop the counter.
         pulse_timer->DIER &= ~(TIM_DIER_CC1IE | TIM_DIER_CC2IE);
         pulse_timer->SR &= ~(TIM_SR_UIF | TIM_SR_CC1IF | TIM_SR_CC2IF);
-        setSwitches(0);                         // Disconnect from the load.
-        BSP_logf("Pulse timer update\n");
-        // handlePulseUpdateEvent(&bsp);
+        setSwitches(0);                         // Disconnect the output stage from the load.
+        invokeSelector(&bsp.sequencer_sel, ET_BURST_EXPIRED);
     } else {
         BSP_logf("Pt SR=0x%x\n", __func__, pulse_timer->SR);
         // spuriousIRQ(&bsp);
@@ -526,18 +532,18 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
 
 void TIM1_CC_IRQHandler(void)
 {
-    bsp.pulse_seqnr += 1;
     if ((pulse_timer->DIER & TIM_DIER_CC1IE) && (pulse_timer->SR & TIM_SR_CC1IF)) {
         pulse_timer->SR &= ~TIM_SR_CC1IF;
+        bsp.pulse_seqnr += 1;
         BSP_logf("CC1 %hu\n", bsp.pulse_seqnr);
     }
     if ((pulse_timer->DIER & TIM_DIER_CC2IE) && (pulse_timer->SR & TIM_SR_CC2IF)) {
         pulse_timer->SR &= ~TIM_SR_CC2IF;
+        bsp.pulse_seqnr += 1;
         BSP_logf("CC2 %hu\n", bsp.pulse_seqnr);
     }
     if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-        LL_GPIO_ResetOutputPin(LED_GPIO_PORT, LED_1_PIN);
-        invokeSelector(&bsp.sequencer_sel, 1);
+        invokeSelector(&bsp.sequencer_sel, ET_BURST_COMPLETED);
     }
     if (pulse_timer->SR & 0xcffe0) {
         BSP_logf("Pt SR=0x%x\n", pulse_timer->SR & 0xcffe0);
@@ -664,7 +670,7 @@ void BSP_init()
 
     HAL_InitTick(IRQ_PRIO_SYSTICK);
     SystemClock_Config();
-    BSP_logf("DevId=0x%x, SystemCoreClock=%u, NVIC_PRIO_BITS=%u\n", LL_DBGMCU_GetDeviceID(), SystemCoreClock, __NVIC_PRIO_BITS);
+    BSP_logf("DevId=0x%x, SystemCoreClock=%u\n", LL_DBGMCU_GetDeviceID(), SystemCoreClock);
     initGPIO();
     initEXTI();
     initDAC();
@@ -744,16 +750,16 @@ void BSP_registerPulseHandler(Selector *sequencer_sel)
 {
     bsp.sequencer_sel = *sequencer_sel;
     pulse_timer->PSC = SystemCoreClock / PULSE_TIMER_FREQ_Hz - 1;
-    BSP_logf("%s: PSC=%u, ARR=%u\n", __func__, pulse_timer->PSC, pulse_timer->ARR);
+    BSP_logf("%s: PSC=%u\n", __func__, pulse_timer->PSC);
     // PWM mode 1 for both channels, enable preload.
     pulse_timer->CCMR1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1PE
                        | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2PE;
     // Enable both outputs.
     pulse_timer->CCER = TIM_CCER_CC1E | TIM_CCER_CC2E;
-    pulse_timer->CR2 = TIM_CR2_CCPC;            // Compare control signals are preloaded.
+    pulse_timer->CR2  = TIM_CR2_CCPC;            // Compare control signals are preloaded.
     enableInterruptWithPrio(pulse_timer_upd_irq, IRQ_PRIO_PULSE);
     enableInterruptWithPrio(pulse_timer_cc_irq,  IRQ_PRIO_PULSE);
-    pulse_timer->CR1 = TIM_CR1_ARPE | TIM_CR1_URS;
+    pulse_timer->CR1  = TIM_CR1_ARPE | TIM_CR1_URS;
     pulse_timer->DIER = TIM_DIER_UIE;           // Enable update interrupt.
     pulse_timer->BDTR = TIM_BDTR_OSSR | TIM_BDTR_MOE;
 }
@@ -837,14 +843,6 @@ int BSP_closeSerialPort(int device_id)
 }
 
 
-bool BSP_selectElectrodeConfiguration(uint8_t phase0, uint8_t phase1)
-{
-    M_ASSERT((phase0 & phase1) == 0);
-    setSwitches(phase0 | phase1);
-    return true;
-}
-
-
 void BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 {
     BSP_logf("Setting Vcap to %hu mV\n", V_prim_mV);
@@ -853,31 +851,40 @@ void BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 }
 
 
-bool BSP_startPulseTrain(uint8_t polarity, uint8_t pace_ms, uint8_t pulse_width_micros, uint16_t nr_of_pulses)
+bool BSP_startPulseTrain(PulseTrain const *pt)
 {
-    M_ASSERT(polarity <= 1);                    // For a single biphasic output stage.
-    M_ASSERT(pace_ms >= 4);                     // Repetition rate <= 250 Hz.
-    M_ASSERT(pulse_width_micros != 0);
-    M_ASSERT(nr_of_pulses != 0);
+    M_ASSERT(pt->pace_ms >= 4);                 // Repetition rate <= 250 Hz.
+    M_ASSERT(pt->pulse_width_micros != 0);
+    M_ASSERT(pt->nr_of_pulses != 0);
 
-    pulse_timer->ARR = pulsePaceMillisecondsToTicks(pace_ms) - 1;
-    pulse_timer->RCR = nr_of_pulses - 1;
+    pulse_timer->ARR = pulsePaceMillisecondsToTicks(pt->pace_ms) - 1;
+    pulse_timer->RCR = pt->nr_of_pulses - 1;
     pulse_timer->CNT = 0;
     pulse_timer->SR &= ~(TIM_SR_CC1IF | TIM_SR_CC2IF);
-    if (polarity == 0) {
-        pulse_timer->CCR1 = pulse_width_micros - 1;
+    uint8_t phase = getPhase(pt->elcon);
+    if (phase == 0) {
+        pulse_timer->CCR1 = pt->pulse_width_micros - 1;
         pulse_timer->DIER |= TIM_DIER_CC1IE;
-    } else {
-        pulse_timer->CCR2 = pulse_width_micros - 1;
+    } else if (phase == 1) {
+        pulse_timer->CCR2 = pt->pulse_width_micros - 1;
         pulse_timer->DIER |= TIM_DIER_CC2IE;
-    }
-    bsp.pulse_seqnr = 0;
+    } else return false;                        // We only have one output stage.
+
     pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
-    pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
-    // Insert a tiny delay here in case the CCRs get cleared before the update takes effect.
+    setSwitches(pt->elcon[0] | pt->elcon[1]);
+    // Insert a 0.1 µs delay here in case the CCRs get cleared before the update takes effect.
+    bsp.pulse_seqnr = 0;
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
+    pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
+    invokeSelector(&bsp.sequencer_sel, ET_BURST_STARTED);
     return true;
+}
+
+
+void BSP_disableOutputStage(void)
+{
+    // TODO Implement.
 }
 
 
