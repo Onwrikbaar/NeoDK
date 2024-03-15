@@ -38,8 +38,6 @@ int BSP_closeSerialPort(int fd);
 void BSP_registerPulseHandler(Selector *);
 void BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV);
 bool BSP_startPulseTrain(PulseTrain const *);
-void BSP_disableOutputStage(void);
-
 
 // Firmware update.
 void BSP_gotoDfuMode(void);

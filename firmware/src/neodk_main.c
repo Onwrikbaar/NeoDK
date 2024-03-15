@@ -39,11 +39,11 @@ static void setupAndRunApplication(char const *app_name)
 
     Sequencer *sequencer = Sequencer_new();
     Sequencer_start(sequencer);
-    Selector button_selector;
+    Selector button_selector;                   // Pass button events to the sequencer.
     BSP_registerButtonHandler(Selector_init(&button_selector, (Action)&Sequencer_togglePlayPause, sequencer));
 
     BSP_logf("Starting %s on NeoDK!\n", app_name);
-    BSP_logf("Push the button! :-)\n");
+    BSP_logf("Push the button to play or pause! :-)\n");
     BSP_setPrimaryVoltage_mV(2000);
     while (true) {
         BSP_idle(NULL);
@@ -63,7 +63,7 @@ int main()
     BSP_init();                                 // Get the hardware ready.
 
     BSP_registerAppTimerHandler(&onAppTimerTick, MICROSECONDS_PER_APP_TIMER_TICK);
-    setupAndRunApplication("Button Shock Demo");
+    setupAndRunApplication("Moving Pattern Demo");
 
     BSP_close();
     BSP_logf("Bye!\n");

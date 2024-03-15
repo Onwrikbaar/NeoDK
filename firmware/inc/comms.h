@@ -19,8 +19,8 @@ Comms *Comms_new();
 
 // Instance methods.
 bool Comms_open(Comms *);
-void Comms_close(Comms *);
 uint32_t Comms_write(Comms *, uint8_t const *, size_t);
+void Comms_close(Comms *);
 void Comms_delete(Comms *);
 
 #endif

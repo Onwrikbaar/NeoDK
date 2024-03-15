@@ -12,26 +12,99 @@
 #include "bsp_mao.h"
 #include "bsp_app.h"
 #include "circbuffer.h"
+#include "net_frame.h"
 
 // This module implements:
 #include "comms.h"
 
+#define MAX_PAYLOAD_SIZE     1024
 
 struct _Comms {
     uint8_t tx_buf_store[200];
     // uint8_t rx_buf_store[200];
     CircBuffer output_buffer;
-    int channel_fd;
+    uint8_t *rx_frame_buffer;
+    uint8_t rx_nb;
+    DeviceId channel_fd;
+    uint16_t header_size;
+    uint16_t rx_payload_size;
+    uint8_t proto_state;
+    uint8_t seq_nr;
 };
+
+
+/*static*/ void dumpBuffer(const char *prefix, const uint8_t *bbuf, uint8_t nb)
+{
+    if (prefix != NULL) BSP_logf("%s", prefix);
+    for (uint8_t i = 0; i < nb; i++) {
+        BSP_logf(" 0x%02x", bbuf[i]);
+    }
+}
+
+
+static void respondWithAckFrame(Comms *me, uint8_t ack_nr)
+{
+    uint8_t ack_frame[PhysFrame_headerSize()];
+    PhysFrame_initHeaderWithAck((PhysFrame *)ack_frame, FT_ACK, me->seq_nr, ack_nr);
+    BSP_logf("%s(%hhu) to controller\n", __func__, ack_nr);
+    Comms_write(me, ack_frame, sizeof ack_frame);
+}
+
+
+static void makeRoomForNextByte(Comms *me)
+{
+    me->rx_nb -= 1;
+    for (uint8_t i = 0; i < me->rx_nb; i++) {
+        me->rx_frame_buffer[i] = me->rx_frame_buffer[i + 1];
+    }
+}
+
+
+static FrameType assembleIncomingFrame(Comms *me, uint8_t ch)
+{
+    me->rx_frame_buffer[me->rx_nb++] = ch;
+    // Just collect bytes until we have a full header.
+    if (me->rx_nb < me->header_size) return FT_NONE;
+
+    PhysFrame const *frame = (PhysFrame const *)me->rx_frame_buffer;
+    // Shift/append the input buffer until it contains a valid header.
+    if (me->rx_nb == me->header_size) {
+        if (! PhysFrame_hasValidHeader(frame)) {
+            makeRoomForNextByte(me);
+            return FT_NONE;
+        }
+        // Valid header received, start collecting the payload (if any).
+        me->rx_payload_size = PhysFrame_payloadSize(frame);
+    }
+    if (me->rx_nb == me->header_size + me->rx_payload_size) {
+        me->rx_nb = 0;                          // Prepare for the next frame.
+        return PhysFrame_type(frame);
+    }
+    return FT_NONE;
+}
 
 
 static void rxCallback(Comms *me, uint32_t ch)
 {
-    if (ch == '\n') {
-        static uint8_t msg[] = "Hello!\n";
-        Comms_write(me, msg, sizeof(msg) - 1);
+    // BSP_logf("Byte %2hu is 0x%02x\n", me->rx_nb, ch);
+    if (me->proto_state == 0) {
+        if (ch == '\n') {
+            respondWithAckFrame(me, ch);
+        } else if (assembleIncomingFrame(me, (uint8_t)ch) == FT_SYNC) {
+            uint8_t rx_seq_nr = PhysFrame_seqNr((PhysFrame const *)me->rx_frame_buffer);
+            BSP_logf("Received SYNC frame from controller, seq_nr=%hhu\n", rx_seq_nr);
+            respondWithAckFrame(me, rx_seq_nr);
+            me->proto_state = 1;
+        }
     } else {
-        BSP_logf("%s(0x%02x)\n", __func__, ch);
+        if (assembleIncomingFrame(me, (uint8_t)ch) != FT_NONE) {
+            PhysFrame const *frame = (PhysFrame const *)me->rx_frame_buffer;
+            uint8_t rx_seq_nr = PhysFrame_seqNr(frame);
+            BSP_logf("Received %s frame from controller, seq_nr=%hhu, payload_size=%hu\n",
+                        PhysFrame_typeName(PhysFrame_type(frame)), rx_seq_nr, PhysFrame_payloadSize(frame));
+            BSP_logf("Payload: '%s'\n", PhysFrame_payload(frame));
+            respondWithAckFrame(me, rx_seq_nr);
+        }
     }
 }
 
@@ -46,7 +119,7 @@ static void txCallback(Comms *me, uint8_t *dst)
 {
     uint32_t nbr = CircBuffer_read(&me->output_buffer, dst, 1);
     M_ASSERT(nbr == 1);
-    // Once the buffer is empty, disable this callback.
+    // Once the buffer is empty, disable this callback (atomic).
     BSP_criticalSectionEnter();
     if (CircBuffer_availableData(&me->output_buffer) == 0) {
         BSP_doChannelAction(me->channel_fd, CA_TX_CB_DISABLE);
@@ -75,8 +148,15 @@ Comms *Comms_new()
 
 bool Comms_open(Comms *me)
 {
+    M_ASSERT(me->channel_fd < 0);
+    me->header_size = PhysFrame_headerSize();
+    me->rx_frame_buffer = malloc(me->header_size + MAX_PAYLOAD_SIZE);
+    me->rx_nb = 0;
+    me->proto_state = 0;
+    me->seq_nr = 0;
+
     BSP_initComms();                            // Initialise the communication peripheral.
-    if (me->channel_fd >= 0 || (me->channel_fd = BSP_openSerialPort("serial_1")) < 0) return false;
+    if ((me->channel_fd = BSP_openSerialPort("serial_1")) < 0) return false;
 
     Selector rx_sel, rx_err_sel, tx_err_sel;
     Selector_init(&rx_sel, (Action)&rxCallback, me);
@@ -104,11 +184,13 @@ uint32_t Comms_write(Comms *me, uint8_t const *data, size_t nb)
 void Comms_close(Comms *me)
 {
     BSP_doChannelAction(me->channel_fd, CA_CLOSE);
+    free(me->rx_frame_buffer);
     me->channel_fd = -1;
 }
 
 
 void Comms_delete(Comms *me)
 {
+    M_ASSERT(me->channel_fd < 0);
     free(me);
 }

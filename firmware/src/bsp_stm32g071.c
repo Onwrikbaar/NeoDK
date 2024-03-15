@@ -62,7 +62,7 @@
 #define LED_1_PIN               LL_GPIO_PIN_6   // The on-board LED.
 
 
-#define ADC_TIMER_FREQ_Hz        100000UL
+// #define ADC_TIMER_FREQ_Hz        100000UL
 #define PULSE_TIMER_FREQ_Hz     1000000UL
 #define APP_TIMER_FREQ_Hz       4000000UL
 #define TICKS_PER_MICROSECOND   (APP_TIMER_FREQ_Hz / 1000000UL)
@@ -91,7 +91,7 @@ typedef struct {
 } BSP;
 
 // The interrupt request priorities, from high to low.
-enum {  // The STM32G0xx MPUs have 4 interrupt priority levels.
+enum {  // STM32G0xx MPUs have 4 interrupt priority levels.
     IRQ_PRIO_SYSTICK, IRQ_PRIO_PULSE = IRQ_PRIO_SYSTICK,
     IRQ_PRIO_ADC_DMA,
     IRQ_PRIO_USART, IRQ_PRIO_APP_TIMER = IRQ_PRIO_USART,
@@ -547,7 +547,7 @@ void TIM1_CC_IRQHandler(void)
     }
     if (pulse_timer->SR & 0xcffe0) {
         BSP_logf("Pt SR=0x%x\n", pulse_timer->SR & 0xcffe0);
-        // spuriousIRQ(&bsp);
+        spuriousIRQ(&bsp);
     }
 }
 
@@ -741,7 +741,7 @@ void BSP_registerAppTimerHandler(void (*handler)(uint64_t), uint32_t microsecond
     bsp.clock_ticks_per_app_timer_tick = microseconds_per_app_timer_tick * TICKS_PER_MICROSECOND;
 
     app_timer->EGR |= (TIM_EGR_UG | TIM_EGR_CC1G);
-    app_timer->CR1 = TIM_CR1_CEN;               // Enable counter.
+    app_timer->CR1 = TIM_CR1_CEN;               // Enable the counter.
     enableInterruptWithPrio(app_timer_irq, IRQ_PRIO_APP_TIMER);
 }
 
@@ -872,19 +872,12 @@ bool BSP_startPulseTrain(PulseTrain const *pt)
 
     pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
     setSwitches(pt->elcon[0] | pt->elcon[1]);
-    // Insert a 0.1 µs delay here in case the CCRs get cleared before the update takes effect.
     bsp.pulse_seqnr = 0;
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
-    pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
     invokeSelector(&bsp.sequencer_sel, ET_BURST_STARTED);
+    pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
     return true;
-}
-
-
-void BSP_disableOutputStage(void)
-{
-    // TODO Implement.
 }
 
 

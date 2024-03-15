@@ -8,11 +8,11 @@ OUTPUT_DIRECTORY := build
 
 MAO_LIB_INC := maolib/inc
 MAO_LIB_SRC := maolib/src
+PROJ_DIR_INC := inc
+PROJ_DIR_SRC := src
 STM32REPO := $(HOME)/STM32Cube/Repository
 STM32CUBE_G0 := $(STM32REPO)/STM32Cube_FW_G0_V1.6.0
 SEGGER := $(HOME)/SEGGER_RTT
-PROJ_DIR_SRC := src
-PROJ_DIR_INC := inc
 
 $(OUTPUT_DIRECTORY)/neodk_g071.out: \
   LINKER_SCRIPT := STM32G071_FLASH.ld
@@ -25,6 +25,7 @@ STM32G0xx_SRC := \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_pwr.c \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_pwr_ex.c \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_rcc.c \
+  $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_rcc_ex.c \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_ll_gpio.c \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_ll_exti.c \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_ll_dac.c \
@@ -36,6 +37,7 @@ STM32G0xx_SRC := \
 PROJ_COMMON_SRC += \
   $(PROJ_DIR_SRC)/neodk_main.c \
   $(PROJ_DIR_SRC)/sequencer.c \
+  $(PROJ_DIR_SRC)/pattern_iter.c \
   $(PROJ_DIR_SRC)/comms.c \
 
 # Target-dependent include folders.
@@ -69,6 +71,7 @@ neodk_g071 libmao.a: CFLAGS += -DSTM32G071xx
 neodk_g071 libmao.a: CFLAGS += -mcpu=cortex-m0plus
 neodk_g071 libmao.a: CFLAGS += -mfloat-abi=softfp
 neodk_g071 libmao.a: CFLAGS += -mthumb -mabi=aapcs
+neodk_g071: CFLAGS += -DBUFFER_SIZE_UP=8192
 neodk_g071: CFLAGS += -DUSE_FULL_LL_DRIVER
 
 # C++ flags common to all targets
@@ -129,7 +132,6 @@ neodk_g071:
   SRC_FILES := \
   $(PROJ_DIR_SRC)/startup_stm32g071xx.s \
   $(PROJ_DIR_SRC)/bsp_stm32g071.c \
-  $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_rcc_ex.c \
   $(STM32G0xx_SRC) \
   $(PROJ_COMMON_SRC)
   $(call define_target, neodk_g071)
