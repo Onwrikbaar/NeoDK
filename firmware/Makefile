@@ -39,6 +39,7 @@ PROJ_COMMON_SRC += \
   $(PROJ_DIR_SRC)/sequencer.c \
   $(PROJ_DIR_SRC)/pattern_iter.c \
   $(PROJ_DIR_SRC)/comms.c \
+  $(PROJ_DIR_SRC)/debug_cli.c \
 
 # Target-dependent include folders.
 STM32G0xx_INC += \

@@ -2,6 +2,7 @@
 /.settings/
 .DS_Store
 *.log
+/firmware/maolib/src/
 
 # Prerequisites
 *.d

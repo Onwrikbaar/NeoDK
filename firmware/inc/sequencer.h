@@ -15,7 +15,7 @@ typedef struct _Sequencer Sequencer;            // Opaque type.
 
 
 // Class method.
-Sequencer *Sequencer_new();
+Sequencer *Sequencer_new(void);
 
 // Instance methods.
 void Sequencer_start(Sequencer *);

@@ -19,8 +19,8 @@ extern "C" {
 #endif
 
 // Class methods.
-uint16_t PhysFrame_headerSize();
-char const *PhysFrame_typeName(FrameType frame_type);
+uint16_t PhysFrame_headerSize(void);
+char const *PhysFrame_typeName(FrameType);
 
 // Instance methods.
 PhysFrame *PhysFrame_initHeader(PhysFrame *, FrameType, uint8_t seq);
@@ -29,6 +29,7 @@ PhysFrame *PhysFrame_init(PhysFrame *, FrameType, uint8_t seq, uint8_t const *, 
 bool PhysFrame_hasValidHeader(PhysFrame const *);
 ProtocolVersion PhysFrame_protocolVersion(PhysFrame const *);
 uint8_t PhysFrame_seqNr(PhysFrame const *);
+uint8_t PhysFrame_ackNr(PhysFrame const *);
 FrameType PhysFrame_type(PhysFrame const *);
 uint16_t PhysFrame_payloadSize(PhysFrame const *);
 uint8_t const *PhysFrame_payload(PhysFrame const *);

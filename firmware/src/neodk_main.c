@@ -12,6 +12,7 @@
 #include "bsp_mao.h"
 #include "bsp_app.h"
 #include "comms.h"
+#include "debug_cli.h"
 #include "sequencer.h"
 
 
@@ -36,6 +37,7 @@ static void setupAndRunApplication(char const *app_name)
 {
     Comms *comms = Comms_new();
     Comms_open(comms);
+    CLI_init(comms);
 
     Sequencer *sequencer = Sequencer_new();
     Sequencer_start(sequencer);

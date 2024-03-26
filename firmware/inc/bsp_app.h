@@ -20,6 +20,7 @@ typedef struct {
 
 
 void BSP_init(void);                            // Get the hardware ready for action.
+void BSP_toggleTheLED(void);
 uint32_t BSP_millisecondsToTicks(uint16_t ms);
 uint64_t BSP_ticksToMicroseconds(uint64_t ticks);
 uint64_t BSP_microsecondsSinceBoot(void);
@@ -36,6 +37,7 @@ int BSP_closeSerialPort(int fd);
 
 // Pulse generation related functions.
 void BSP_registerPulseHandler(Selector *);
+void BSP_primaryVoltageEnable(bool must_be_on);
 void BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV);
 bool BSP_startPulseTrain(PulseTrain const *);
 

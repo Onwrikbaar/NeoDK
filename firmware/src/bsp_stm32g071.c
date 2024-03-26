@@ -85,9 +85,6 @@ typedef struct {
     uint16_t volatile adc_1_samples[3];         // Must match the number of ADC1 ranks.
     uint16_t pulse_seqnr;
     uint8_t pulse_phase;
-    uint8_t ci_state;
-    uint8_t ci_len;
-    uint8_t ci_buf[23];
 } BSP;
 
 // The interrupt request priorities, from high to low.
@@ -425,67 +422,6 @@ static void doUartAction(USART_TypeDef *uart, ChannelAction action)
     }
 }
 
-/**
- * @brief   Debugger console commands for interactive testing.
- */
-static void interpretCommand(BSP *me, char ch)
-{
-    switch (ch)
-    {
-        case '?':
-            BSP_logf("Commands: /? /t /0 /1../9\n");
-            break;
-        case '0':
-            if ((BUCK_GPIO_PORT->ODR & BUCK_ENABLE_PIN) != 0) {
-                BSP_logf("Turning Vcap OFF\n");
-                LL_GPIO_ResetOutputPin(BUCK_GPIO_PORT, BUCK_ENABLE_PIN);
-            }
-            BSP_setPrimaryVoltage_mV(0);
-            break;
-        case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-            if ((BUCK_GPIO_PORT->ODR & BUCK_ENABLE_PIN) == 0) {
-                BSP_logf("Turning Vcap ON\n");
-                LL_GPIO_SetOutputPin(BUCK_GPIO_PORT, BUCK_ENABLE_PIN);
-            }
-            BSP_setPrimaryVoltage_mV((ch - '0') * 1000U);
-            break;
-        case 't':                               // Toggle the LED.
-            LL_GPIO_TogglePin(LED_GPIO_PORT, LED_1_PIN);
-            break;
-        default:
-            BSP_logf("Unknown command '%c'\n", ch);
-    }
-}
-
-
-static void gatherInputCharacters(BSP *me, char ch)
-{
-    me->ci_buf[me->ci_len] = '\0';
-    if (ch == '\n' || (me->ci_buf[me->ci_len++] = ch, me->ci_len == sizeof me->ci_buf)) {
-        if (ch != '\n') BSP_logf("\n");         // Buffer is full, no newline seen.
-        BSP_logf("Console: '%s'\n", me->ci_buf);
-        me->ci_len = 0;
-    }
-}
-
-
-static void handleConsoleInput(BSP *me, char ch)
-{
-    if (me->ci_state == 0) {
-        if (ch == '/') me->ci_state = 1;
-        else gatherInputCharacters(me, ch);
-    } else {                                    // '/' seen.
-        if (ch == '\n') {                       // Not a command.
-            gatherInputCharacters(me, '/');
-            gatherInputCharacters(me, ch);
-        } else {
-            BSP_logf("\n");
-            interpretCommand(me, ch);
-        }
-        me->ci_state = 0;
-    }
-}
-
 /*
  * Following are the interrupt service routines.
  */
@@ -772,16 +708,9 @@ void BSP_registerButtonHandler(Selector *sel)
 }
 
 
-void BSP_idle(bool (*maySleep)(void))
+void BSP_toggleTheLED()
 {
-    char ch;
-    if (BSP_readConsole(&ch, 1)) {
-        handleConsoleInput(&bsp, ch);
-    }
-
-    if (maySleep == NULL || maySleep()) {       // All pending events have been handled.
-        // TODO Put the processor to sleep to save power?
-    }
+    LL_GPIO_TogglePin(LED_GPIO_PORT, LED_1_PIN);
 }
 
 
@@ -840,6 +769,22 @@ int BSP_closeSerialPort(int device_id)
     // TODO De-initialise USART2?
     NVIC_DisableIRQ(USART2_IRQn);
     return 0;
+}
+
+
+void BSP_primaryVoltageEnable(bool must_be_on)
+{
+    if ((BUCK_GPIO_PORT->ODR & BUCK_ENABLE_PIN) == 0) {
+        if (must_be_on) {
+            BSP_logf("Turning Vcap ON\n");
+            LL_GPIO_SetOutputPin(BUCK_GPIO_PORT, BUCK_ENABLE_PIN);
+        }
+    } else {
+        if (! must_be_on) {
+            BSP_logf("Turning Vcap OFF\n");
+            LL_GPIO_ResetOutputPin(BUCK_GPIO_PORT, BUCK_ENABLE_PIN);
+        }
+    }
 }
 
 

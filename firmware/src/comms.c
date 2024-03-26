@@ -28,7 +28,7 @@ struct _Comms {
     DeviceId channel_fd;
     uint16_t header_size;
     uint16_t rx_payload_size;
-    uint8_t proto_state;
+    uint8_t synced;
     uint8_t seq_nr;
 };
 
@@ -39,15 +39,6 @@ struct _Comms {
     for (uint8_t i = 0; i < nb; i++) {
         BSP_logf(" 0x%02x", bbuf[i]);
     }
-}
-
-
-static void respondWithAckFrame(Comms *me, uint8_t ack_nr)
-{
-    uint8_t ack_frame[PhysFrame_headerSize()];
-    PhysFrame_initHeaderWithAck((PhysFrame *)ack_frame, FT_ACK, me->seq_nr, ack_nr);
-    BSP_logf("%s(%hhu) to controller\n", __func__, ack_nr);
-    Comms_write(me, ack_frame, sizeof ack_frame);
 }
 
 
@@ -84,26 +75,38 @@ static FrameType assembleIncomingFrame(Comms *me, uint8_t ch)
 }
 
 
+static void respondWithAckFrame(Comms *me, uint8_t ack_nr)
+{
+    uint8_t ack_frame[me->header_size];
+    PhysFrame_initHeaderWithAck((PhysFrame *)ack_frame, FT_ACK, me->seq_nr, ack_nr);
+    // BSP_logf("%s(%hhu) to controller\n", __func__, ack_nr);
+    Comms_write(me, ack_frame, sizeof ack_frame);
+}
+
+
+static void handleIncomingFrame(Comms *me, PhysFrame const *frame)
+{
+    uint8_t rx_seq_nr = PhysFrame_seqNr(frame);
+    uint16_t payload_size = PhysFrame_payloadSize(frame);
+    BSP_logf("Got %s frame, seq_nr=%2hhu, payload_size=%hu\n",
+                PhysFrame_typeName(PhysFrame_type(frame)), rx_seq_nr, payload_size);
+    respondWithAckFrame(me, rx_seq_nr);
+}
+
+
 static void rxCallback(Comms *me, uint32_t ch)
 {
-    // BSP_logf("Byte %2hu is 0x%02x\n", me->rx_nb, ch);
-    if (me->proto_state == 0) {
-        if (ch == '\n') {
+    if (! me->synced) {
+        if (ch == '\n') {                       // Dweeb's poll character.
             respondWithAckFrame(me, ch);
         } else if (assembleIncomingFrame(me, (uint8_t)ch) == FT_SYNC) {
-            uint8_t rx_seq_nr = PhysFrame_seqNr((PhysFrame const *)me->rx_frame_buffer);
-            BSP_logf("Received SYNC frame from controller, seq_nr=%hhu\n", rx_seq_nr);
-            respondWithAckFrame(me, rx_seq_nr);
-            me->proto_state = 1;
+            // BSP_logf("Byte %2hu is 0x%02x\n", me->rx_nb, ch);
+            handleIncomingFrame(me, (PhysFrame const *)me->rx_frame_buffer);
+            me->synced = true;
         }
     } else {
         if (assembleIncomingFrame(me, (uint8_t)ch) != FT_NONE) {
-            PhysFrame const *frame = (PhysFrame const *)me->rx_frame_buffer;
-            uint8_t rx_seq_nr = PhysFrame_seqNr(frame);
-            BSP_logf("Received %s frame from controller, seq_nr=%hhu, payload_size=%hu\n",
-                        PhysFrame_typeName(PhysFrame_type(frame)), rx_seq_nr, PhysFrame_payloadSize(frame));
-            BSP_logf("Payload: '%s'\n", PhysFrame_payload(frame));
-            respondWithAckFrame(me, rx_seq_nr);
+            handleIncomingFrame(me, (PhysFrame const *)me->rx_frame_buffer);
         }
     }
 }
@@ -152,7 +155,7 @@ bool Comms_open(Comms *me)
     me->header_size = PhysFrame_headerSize();
     me->rx_frame_buffer = malloc(me->header_size + MAX_PAYLOAD_SIZE);
     me->rx_nb = 0;
-    me->proto_state = 0;
+    me->synced = 0;
     me->seq_nr = 0;
 
     BSP_initComms();                            // Initialise the communication peripheral.
@@ -168,6 +171,12 @@ bool Comms_open(Comms *me)
     BSP_doChannelAction(me->channel_fd, CA_FRAMING_CB_ENABLE);
     BSP_doChannelAction(me->channel_fd, CA_RX_CB_ENABLE);
     return true;
+}
+
+
+void Comms_waitForSync(Comms *me)
+{
+    me->synced = false;
 }
 
 
