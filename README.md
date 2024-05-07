@@ -13,7 +13,7 @@ E: <onwrikbaar@hotmail.com>
 This is a work in progress. The repo will be updated every few weeks until well into 2025.
 
 ### Request
-Please send me an e-mail in case you are building this design and let me know whether you run into any questions or problems. It will help me decide how I can best lower the threshold to replicating NeoDK. Thanks!
+Please send me an e-mail in case you are building this design, and let me know whether you run into any questions or problems. It will help me decide how I can best lower the threshold to replicating NeoDK. Thanks!
 
 ### Goals
 1. The last quarter century, innovation in the e-stim realm has been virtually nonexistent, despite massive advances in electronics and cheap computing power. Currently available commercial devices are without exception channel-oriented and produce TENS-like waveforms. Most are horrendously energy-inefficient. The time has come to unlock the potential of a more capable architecture.
@@ -30,9 +30,9 @@ NeoDK is experimental, recreational, educational hardware and software. It comes
 - Do not use a so-called triphase cable with this device!
 
 ### Safety
-The NeoDK device can generate potentially lethal voltages and currents on its outputs and on internal components, even when powered from a battery. The risks associated with building, testing and using this device can be reduced but not eliminated.
+NeoDK can generate potentially lethal voltages and currents on its outputs and on internal components, even when powered from a battery. The risks associated with building, testing and using this device can be reduced but not eliminated.
 
-The NeoDK device is designed to stay well within the IEC 60601-2-10 requirements. However, these limits are not necessarily maintained when the supply voltage, circuit, components or accompanying firmware are changed in any way.
+The NeoDK device is designed to stay well within the IEC 60601-2-10 limits. However, these limits are not necessarily maintained when the supply voltage, circuit, components or accompanying firmware are changed in any way.
 
 ### Audience
 This project is intended for experienced electronics hobbyists and professionals, who possess a keen understanding of the risks associated with electrostimulation and high-voltage circuitry, and who desire one or more of the following:
@@ -50,6 +50,3 @@ NeoDK's electronics and firmware can do things no commercially available e-stim 
 
 ### Why to start simple
 "A complex system that works is invariably found to have evolved from a simple system that worked. A complex system designed from scratch never works and cannot be patched up to make it work. You have to start over with a working simple system." -- John Gall
-
-## Kindly support my work
-[Buy Me a Coffee](https://www.buymeacoffee.com/onwrikbaar)

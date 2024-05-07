@@ -22192,7 +22192,6 @@ conversion&lt;/p&gt;  &lt;a href="https://pricing.snapeda.com/parts/AP63203/Diod
 <part name="J5" library="S2B-XH-A_LF__SN_" deviceset="S2B-XH-A(LF)(SN)" device=""/>
 <part name="D3" library="PRTR5V0U2X" deviceset="PRTR5V0U2X" device=""/>
 <part name="GND5" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
-<part name="SUPPLY3" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="VCC" device=""/>
 <part name="R21" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="100k"/>
 <part name="GND18" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="C14" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0603" package3d_urn="urn:adsk.eagle:package:23616/2" value="100n"/>
@@ -22207,7 +22206,7 @@ conversion&lt;/p&gt;  &lt;a href="https://pricing.snapeda.com/parts/AP63203/Diod
 <text x="177.8" y="96.52" size="1.778" layer="91">Snubber</text>
 <text x="195.58" y="53.34" size="2.286" layer="91" ratio="12">Use ONLY
 this transformer.</text>
-<text x="132.08" y="48.26" size="2.286" layer="91" ratio="10">NeoDK v1.0
+<text x="132.08" y="48.26" size="2.286" layer="91" ratio="10">NeoDK v1.1
 © 2023, 2024 Neostim</text>
 <text x="91.44" y="-20.32" size="1.778" layer="91">ADC</text>
 <text x="88.9" y="-22.86" size="1.778" layer="91">ADC</text>
@@ -22592,9 +22591,6 @@ on LED's Vf.</text>
 <instance part="GND5" gate="1" x="20.32" y="-45.72" smashed="yes">
 <attribute name="VALUE" x="17.78" y="-48.26" size="1.778" layer="96"/>
 </instance>
-<instance part="SUPPLY3" gate="G$1" x="20.32" y="-15.24" smashed="yes">
-<attribute name="VALUE" x="18.415" y="-12.065" size="1.778" layer="96"/>
-</instance>
 <instance part="R21" gate="G$1" x="152.4" y="-58.42" smashed="yes" rot="R90">
 <attribute name="NAME" x="153.67" y="-56.9214" size="1.778" layer="95"/>
 <attribute name="VALUE" x="153.67" y="-59.182" size="1.778" layer="96"/>
@@ -22850,10 +22846,6 @@ on LED's Vf.</text>
 <wire x1="93.98" y1="45.72" x2="93.98" y2="48.26" width="0.1524" layer="91"/>
 <junction x="93.98" y="45.72"/>
 <wire x1="93.98" y1="45.72" x2="99.06" y2="45.72" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="D3" gate="G$1" pin="VCC"/>
-<pinref part="SUPPLY3" gate="G$1" pin="VCC"/>
 </segment>
 </net>
 <net name="N$9" class="0">
