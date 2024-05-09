@@ -1,0 +1,88 @@
+(footprint "TESTPOINT_ROUND_1MM"
+	(version 20240108)
+	(generator "pcbnew")
+	(generator_version "8.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at 1.143 0.127 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "81b5ccd1-d99c-4be1-b1c6-323c15eaa3c6")
+		(effects
+			(font
+				(size 0.666496 0.666496)
+				(thickness 0.146304)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Value" "TESTPOINT_ROUND_1MM"
+		(at 1.143 0.635 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "b9047a66-6125-49c4-83ed-0edc5bde630a")
+		(effects
+			(font
+				(size 0.36576 0.36576)
+				(thickness 0.04064)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Footprint" "TESTPOINT_ROUND_1MM"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "5e25ab11-e678-468a-9c6c-2f2ff092eb4d")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "0be46741-bdd8-4d80-b914-f2add628d76a")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "43fcd4b6-af5e-4234-a878-f887f7fa8ab5")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(fp_circle
+		(center 0 0)
+		(end 0.7 0)
+		(stroke
+			(width 0.2032)
+			(type solid)
+		)
+		(fill none)
+		(layer "F.SilkS")
+		(uuid "90a48142-e238-40f7-87cd-266b85771a3e")
+	)
+	(pad "P$1" smd roundrect
+		(at 0 0)
+		(size 1 1)
+		(layers "F.Cu" "F.Mask")
+		(roundrect_rratio 0.5)
+		(solder_mask_margin 0.1016)
+		(thermal_bridge_angle 0)
+		(uuid "56a90153-442a-449b-8c8f-592121c59175")
+	)
+)

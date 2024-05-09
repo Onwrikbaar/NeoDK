@@ -7331,6 +7331,102 @@
 				)
 			)
 		)
+		(symbol "power:PWR_FLAG"
+			(power)
+			(pin_numbers hide)
+			(pin_names
+				(offset 0) hide)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "#FLG"
+				(at 0 1.905 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Value" "PWR_FLAG"
+				(at 0 3.81 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Special symbol for telling ERC where power comes from"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "flag power"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "PWR_FLAG_0_0"
+				(pin power_out line
+					(at 0 0 90)
+					(length 0)
+					(name "~"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(symbol "PWR_FLAG_0_1"
+				(polyline
+					(pts
+						(xy 0 0) (xy 0 1.27) (xy -1.016 1.905) (xy 0 2.54) (xy 1.016 1.905) (xy 0 1.27)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+		)
 	)
 	(junction
 		(at 132.08 22.86)
@@ -7429,6 +7525,12 @@
 		(uuid "54e11282-aa75-4f02-8339-5d4d3c082da0")
 	)
 	(junction
+		(at 35.56 66.04)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "62544bf4-917d-4a05-910c-3604bb6dec62")
+	)
+	(junction
 		(at 134.62 81.28)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -7501,6 +7603,12 @@
 		(uuid "921bfb6b-c32d-4c51-9a50-fd5e9410d6c6")
 	)
 	(junction
+		(at 142.24 71.12)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "938abe66-de84-431a-99e0-1abe21fe5222")
+	)
+	(junction
 		(at 142.24 33.02)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -7523,6 +7631,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "9be8f92f-2e70-4a2f-bbb7-97d418bd6d41")
+	)
+	(junction
+		(at 69.85 66.04)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "a21a8923-77d4-4e4b-829c-45e6fc4ccfd3")
 	)
 	(junction
 		(at 111.76 22.86)
@@ -7637,6 +7751,70 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "fb87a2c0-279f-485a-8d13-12badd126ac3")
+	)
+	(no_connect
+		(at 180.34 144.78)
+		(uuid "1d4e81c3-d13a-4dc8-b5f5-0cb387de77c9")
+	)
+	(no_connect
+		(at 180.34 154.94)
+		(uuid "2e385e6b-4bbe-4def-97fe-bbcd9eb9cb4e")
+	)
+	(no_connect
+		(at 180.34 142.24)
+		(uuid "2e608165-6f8c-475f-aead-b4c57799a202")
+	)
+	(no_connect
+		(at 30.48 116.84)
+		(uuid "30b883cd-154b-4c83-9586-558d69eba8df")
+	)
+	(no_connect
+		(at 180.34 162.56)
+		(uuid "3a5fae31-dd24-4dc4-8975-f388224c6dc7")
+	)
+	(no_connect
+		(at 129.54 167.64)
+		(uuid "65dc7d4c-b82e-42e6-ade3-72d5e1100677")
+	)
+	(no_connect
+		(at 55.88 116.84)
+		(uuid "67896874-a2b9-43a3-ad48-478cb87c46e0")
+	)
+	(no_connect
+		(at 55.88 134.62)
+		(uuid "6796f2eb-2c6e-43ed-94c5-5c195858ecd7")
+	)
+	(no_connect
+		(at 55.88 114.3)
+		(uuid "7988aff5-5d77-49b5-a5fb-535a725013bc")
+	)
+	(no_connect
+		(at 180.34 147.32)
+		(uuid "9cee3703-99a1-42b3-abe5-6945a32bd1e0")
+	)
+	(no_connect
+		(at 129.54 154.94)
+		(uuid "a82678f6-4d41-4a66-83f2-d2f29dee63af")
+	)
+	(no_connect
+		(at 180.34 167.64)
+		(uuid "bfa819e6-019d-46d7-b9e3-5d8abad63229")
+	)
+	(no_connect
+		(at 246.38 73.66)
+		(uuid "c0ddf376-cfbf-4264-9c6c-a7f1297eda2f")
+	)
+	(no_connect
+		(at 180.34 165.1)
+		(uuid "cc70cf86-1532-4152-88ca-a55ba2ae4e33")
+	)
+	(no_connect
+		(at 33.02 68.58)
+		(uuid "e22a827b-77bd-4973-b997-31deb5ed1998")
+	)
+	(no_connect
+		(at 129.54 170.18)
+		(uuid "e2c2734c-d759-4e88-9da6-5c9271c47ebd")
 	)
 	(wire
 		(pts
@@ -8020,6 +8198,16 @@
 	)
 	(wire
 		(pts
+			(xy 35.56 66.04) (xy 33.02 66.04)
+		)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(uuid "26f243a2-9e13-401d-bb41-ae91eec5be3d")
+	)
+	(wire
+		(pts
 			(xy 111.76 43.18) (xy 119.38 43.18)
 		)
 		(stroke
@@ -8137,6 +8325,16 @@
 			(type solid)
 		)
 		(uuid "43f89aef-9a4e-461e-90d8-a12dd22033b2")
+	)
+	(wire
+		(pts
+			(xy 142.24 69.85) (xy 142.24 71.12)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "44cc352c-86b3-4ef6-8354-b824fd0396c8")
 	)
 	(wire
 		(pts
@@ -8330,7 +8528,7 @@
 	)
 	(wire
 		(pts
-			(xy 198.12 160.02) (xy 180.34 160.02)
+			(xy 201.93 160.02) (xy 180.34 160.02)
 		)
 		(stroke
 			(width 0.1524)
@@ -8370,7 +8568,7 @@
 	)
 	(wire
 		(pts
-			(xy 198.12 185.42) (xy 220.98 185.42)
+			(xy 201.93 185.42) (xy 220.98 185.42)
 		)
 		(stroke
 			(width 0.1524)
@@ -8490,7 +8688,7 @@
 	)
 	(wire
 		(pts
-			(xy 40.64 66.04) (xy 33.02 66.04)
+			(xy 40.64 66.04) (xy 35.56 66.04)
 		)
 		(stroke
 			(width 0.1524)
@@ -8540,6 +8738,16 @@
 	)
 	(wire
 		(pts
+			(xy 35.56 63.5) (xy 35.56 66.04)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "72b041c5-68f4-4c61-baec-f23ea1c19c47")
+	)
+	(wire
+		(pts
 			(xy 30.48 109.22) (xy 27.94 109.22)
 		)
 		(stroke
@@ -8567,6 +8775,16 @@
 			(type solid)
 		)
 		(uuid "76da3167-14ef-4eb2-8104-3e6a3d776b53")
+	)
+	(wire
+		(pts
+			(xy 69.85 63.5) (xy 69.85 66.04)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7a8fef04-2c2b-4bc2-ae59-b83d21f23196")
 	)
 	(wire
 		(pts
@@ -8610,7 +8828,7 @@
 	)
 	(wire
 		(pts
-			(xy 68.58 35.56) (xy 68.58 48.26)
+			(xy 68.58 35.56) (xy 68.58 46.99)
 		)
 		(stroke
 			(width 0.1524)
@@ -8890,7 +9108,7 @@
 	)
 	(wire
 		(pts
-			(xy 198.12 185.42) (xy 198.12 160.02)
+			(xy 201.93 185.42) (xy 201.93 160.02)
 		)
 		(stroke
 			(width 0.1524)
@@ -9020,7 +9238,7 @@
 	)
 	(wire
 		(pts
-			(xy 66.04 66.04) (xy 73.66 66.04)
+			(xy 66.04 66.04) (xy 69.85 66.04)
 		)
 		(stroke
 			(width 0.1524)
@@ -9350,6 +9568,16 @@
 	)
 	(wire
 		(pts
+			(xy 69.85 66.04) (xy 73.66 66.04)
+		)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(uuid "e1f5a116-c78d-41a7-9061-2f04f0b54383")
+	)
+	(wire
+		(pts
 			(xy 127 137.16) (xy 127 93.98)
 		)
 		(stroke
@@ -9487,6 +9715,16 @@
 			(type solid)
 		)
 		(uuid "f42dd973-e29a-488c-a6ed-677e5b6b4d9d")
+	)
+	(wire
+		(pts
+			(xy 35.56 81.28) (xy 40.64 81.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f5698b0f-fc4a-48ce-a8b3-755f5cc0e17d")
 	)
 	(wire
 		(pts
@@ -9667,17 +9905,6 @@
 		)
 		(uuid "970040e3-8385-47f1-90dd-4905de5a4059")
 	)
-	(text "3.3V"
-		(exclude_from_sim no)
-		(at 137.16 68.58 0)
-		(effects
-			(font
-				(size 1.778 1.5113)
-			)
-			(justify left bottom)
-		)
-		(uuid "a65f6cb9-4032-40a8-b3f2-232046075ec0")
-	)
 	(text "NeoDK v1.1\n© 2023, 2024 Neostim"
 		(exclude_from_sim no)
 		(at 167.64 68.58 0)
@@ -9744,60 +9971,38 @@
 		)
 		(uuid "f531ca7d-2ec1-44fd-a919-3c42804a9fa7")
 	)
-	(label "SWCLK"
-		(at 66.04 111.76 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.2446 1.2446)
-			)
-			(justify left bottom)
-		)
-		(uuid "031b5819-1f84-4f72-9475-5981de7e85e1")
-	)
-	(label "BUCK_EN"
-		(at 59.69 48.26 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.2446 1.2446)
-			)
-			(justify left bottom)
-		)
-		(uuid "25ec3a09-03c3-45f8-81cf-65a1eec6c784")
-	)
-	(label "TRIAC_3"
-		(at 121.92 165.1 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.2446 1.2446)
-			)
-			(justify left bottom)
-		)
-		(uuid "261424d2-06af-4d65-aec7-5e55903bfe0d")
-	)
-	(label "BUCK_EN"
-		(at 182.88 170.18 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.2446 1.2446)
-			)
-			(justify left bottom)
-		)
-		(uuid "35c81430-5536-4e27-b40a-200cc05110af")
-	)
 	(label "SWDIO"
 		(at 182.88 149.86 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
-				(size 1.2446 1.2446)
+				(size 1.27 1.27)
 			)
 			(justify left bottom)
 		)
-		(uuid "4fb77297-36f8-4871-83de-622d8f7a3053")
+		(uuid "19d9f5d3-bf93-4dfc-9865-0499fbcc3e27")
+	)
+	(label "TRIAC_2"
+		(at 127 162.56 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "3025869b-71f1-4dfb-bc50-3d37a9b37581")
+	)
+	(label "TRIAC_1"
+		(at 213.36 124.46 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "39e0fca1-fd40-4331-be3e-a1f101a0f05c")
 	)
 	(label "VBAT"
 		(at 96.52 88.9 0)
@@ -9821,8 +10026,19 @@
 		)
 		(uuid "69095491-8674-4b35-ba0c-47ff66a383db")
 	)
+	(label "SWDIO"
+		(at 58.42 109.22 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "6e75a2a6-d0ee-4fe0-9c0e-66195b11967e")
+	)
 	(label "VBAT"
-		(at 66.04 66.04 0)
+		(at 73.66 66.04 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -9843,38 +10059,27 @@
 		)
 		(uuid "8c7d4628-4185-4c99-8d5f-6ccce9b83ec6")
 	)
-	(label "TRIAC_1"
-		(at 121.92 160.02 0)
+	(label "TRIAC_3"
+		(at 127 165.1 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
-				(size 1.2446 1.2446)
+				(size 1.27 1.27)
 			)
-			(justify left bottom)
+			(justify right bottom)
 		)
-		(uuid "ace309ec-ddc9-457c-b5aa-4d3de8cb5917")
+		(uuid "c8695a26-bcb8-4787-abad-23881883f492")
 	)
 	(label "TRIAC_1"
-		(at 213.36 124.46 0)
+		(at 127 160.02 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
-				(size 1.2446 1.2446)
+				(size 1.27 1.27)
 			)
-			(justify left bottom)
+			(justify right bottom)
 		)
-		(uuid "afc6df6a-f1d8-4847-94e2-b87575ed7806")
-	)
-	(label "SWCLK"
-		(at 182.88 152.4 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.2446 1.2446)
-			)
-			(justify left bottom)
-		)
-		(uuid "ca50896e-7b4f-4f1a-b235-7aa32dd1141c")
+		(uuid "d599c8b9-521c-4119-a669-0955a370f068")
 	)
 	(label "VCAP"
 		(at 137.16 22.86 0)
@@ -9887,47 +10092,134 @@
 		)
 		(uuid "dbea675d-c4c3-48db-bf1d-735fa665b302")
 	)
-	(label "SWDIO"
-		(at 55.88 109.22 0)
+	(label "SWCLK"
+		(at 66.04 111.76 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
-				(size 1.2446 1.2446)
+				(size 1.27 1.27)
 			)
 			(justify left bottom)
 		)
-		(uuid "dfe55e10-5761-4e8d-b179-80cb566e5d95")
+		(uuid "ed4d0941-51d4-471a-b14f-1929ac63c384")
 	)
-	(label "TRIAC_2"
-		(at 121.92 162.56 0)
+	(label "SWCLK"
+		(at 182.88 152.4 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
-				(size 1.2446 1.2446)
+				(size 1.27 1.27)
 			)
 			(justify left bottom)
 		)
-		(uuid "ea374bf8-0a81-4df0-8761-babc693cfc1d")
+		(uuid "ed902203-a761-4a92-b34c-8fcf42d63f9e")
 	)
-	(global_label "GNDBREAK"
-		(shape bidirectional)
-		(at 33.02 68.58 0)
+	(global_label "BUCK_EN"
+		(shape input)
+		(at 187.96 170.18 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
-				(size 1.016 1.016)
+				(size 1.27 1.27)
 			)
 			(justify left)
 		)
-		(uuid "bed3a8c7-076c-4197-98eb-b8dbb2b21ade")
+		(uuid "2b2f5547-e307-4c10-aa87-0a94a9c62feb")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 44.2314 68.58 0)
+			(at 199.5328 170.18 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 				(hide yes)
+			)
+		)
+	)
+	(global_label "BUCK_EN"
+		(shape input)
+		(at 68.58 46.99 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "655635d4-56b4-4261-8cc0-e8bc002b7d24")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 57.0072 46.99 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+				(hide yes)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:PWR_FLAG")
+		(at 35.56 81.28 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "02f7e809-28aa-4efa-9b6e-b87a923ca858")
+		(property "Reference" "#FLG02"
+			(at 35.56 79.375 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "PWR_FLAG"
+			(at 33.528 77.47 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 35.56 81.28 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 35.56 81.28 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Special symbol for telling ERC where power comes from"
+			(at 35.56 81.28 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "95636db4-f657-4f0b-a71b-6208823d1263")
+		)
+		(instances
+			(project "neodk_v1"
+				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
+					(reference "#FLG02")
+					(unit 1)
+				)
 			)
 		)
 	)
@@ -10009,7 +10301,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "0376834b-c14b-4ffc-9529-90dca1214bc7")
-		(property "Reference" "#SUPPLY9"
+		(property "Reference" "#SUPPLY09"
 			(at 210.82 175.26 0)
 			(effects
 				(font
@@ -10060,7 +10352,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#SUPPLY9")
+					(reference "#SUPPLY09")
 					(unit 1)
 				)
 			)
@@ -10144,7 +10436,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "0424989f-6337-4ef5-bd5b-18e2c695fa12")
-		(property "Reference" "#SUPPLY6"
+		(property "Reference" "#SUPPLY06"
 			(at 210.82 114.3 0)
 			(effects
 				(font
@@ -10195,7 +10487,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#SUPPLY6")
+					(reference "#SUPPLY06")
 					(unit 1)
 				)
 			)
@@ -10211,7 +10503,7 @@
 		(dnp no)
 		(uuid "05ebb944-8a22-4200-b122-f2255a209a7f")
 		(property "Reference" "R21"
-			(at 189.23 173.7614 90)
+			(at 189.738 175.26 90)
 			(effects
 				(font
 					(size 1.778 1.5113)
@@ -10220,7 +10512,7 @@
 			)
 		)
 		(property "Value" "100k"
-			(at 189.23 176.022 90)
+			(at 189.484 177.546 90)
 			(effects
 				(font
 					(size 1.778 1.5113)
@@ -10279,7 +10571,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "061550f0-4758-4317-b0bd-7274359b4a3b")
-		(property "Reference" "#SUPPLY7"
+		(property "Reference" "#SUPPLY07"
 			(at 27.94 96.52 0)
 			(effects
 				(font
@@ -10330,7 +10622,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#SUPPLY7")
+					(reference "#SUPPLY07")
 					(unit 1)
 				)
 			)
@@ -10781,7 +11073,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "1e1d5b9b-5396-4d36-99b4-b980455fc5b1")
-		(property "Reference" "#GND1"
+		(property "Reference" "#GND01"
 			(at 213.36 81.28 0)
 			(effects
 				(font
@@ -10832,7 +11124,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND1")
+					(reference "#GND01")
 					(unit 1)
 				)
 			)
@@ -10916,7 +11208,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "22674153-b68c-4a5e-bcc7-7345b90de244")
-		(property "Reference" "#GND7"
+		(property "Reference" "#GND07"
 			(at 167.64 45.72 0)
 			(effects
 				(font
@@ -10967,7 +11259,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND7")
+					(reference "#GND07")
 					(unit 1)
 				)
 			)
@@ -11598,7 +11890,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "37d70d31-9f3c-437e-9691-104cc934105b")
-		(property "Reference" "#SUPPLY5"
+		(property "Reference" "#SUPPLY05"
 			(at 187.96 119.38 0)
 			(effects
 				(font
@@ -11649,7 +11941,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#SUPPLY5")
+					(reference "#SUPPLY05")
 					(unit 1)
 				)
 			)
@@ -11664,7 +11956,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "3a8ee8b3-181a-4ae7-bbf8-ac2dd34ec2bc")
-		(property "Reference" "#GND3"
+		(property "Reference" "#GND03"
 			(at 76.2 190.5 0)
 			(effects
 				(font
@@ -11715,7 +12007,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND3")
+					(reference "#GND03")
 					(unit 1)
 				)
 			)
@@ -11805,7 +12097,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "41447a39-b702-4ce1-97bb-8dd1cfb137ba")
-		(property "Reference" "#GND16"
+		(property "Reference" "#GND016"
 			(at 27.94 38.1 0)
 			(effects
 				(font
@@ -11856,7 +12148,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND16")
+					(reference "#GND016")
 					(unit 1)
 				)
 			)
@@ -11871,7 +12163,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "444fdcbe-3d50-448f-8a51-9a8cf6dbc7cd")
-		(property "Reference" "#GND15"
+		(property "Reference" "#GND015"
 			(at 116.84 190.5 0)
 			(effects
 				(font
@@ -11922,7 +12214,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND15")
+					(reference "#GND015")
 					(unit 1)
 				)
 			)
@@ -11937,7 +12229,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "44892109-ff1f-4a74-9ad8-78c6d1b2d9d8")
-		(property "Reference" "#GND8"
+		(property "Reference" "#GND08"
 			(at 205.74 58.42 0)
 			(effects
 				(font
@@ -11988,7 +12280,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND8")
+					(reference "#GND08")
 					(unit 1)
 				)
 			)
@@ -12736,7 +13028,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "58c0e8f5-3c10-4c5d-8995-d8202077a09b")
-		(property "Reference" "#GND4"
+		(property "Reference" "#GND04"
 			(at 180.34 182.88 0)
 			(effects
 				(font
@@ -12787,7 +13079,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND4")
+					(reference "#GND04")
 					(unit 1)
 				)
 			)
@@ -13126,7 +13418,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "5dc4e93f-bfe9-47dd-abf6-afb73535c407")
-		(property "Reference" "#GND6"
+		(property "Reference" "#GND06"
 			(at 187.96 132.08 0)
 			(effects
 				(font
@@ -13177,7 +13469,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND6")
+					(reference "#GND06")
 					(unit 1)
 				)
 			)
@@ -13192,7 +13484,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "6473acc2-42f3-4095-a33d-9a93f01f4c48")
-		(property "Reference" "#SUPPLY4"
+		(property "Reference" "#SUPPLY04"
 			(at 205.74 38.1 0)
 			(effects
 				(font
@@ -13243,7 +13535,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#SUPPLY4")
+					(reference "#SUPPLY04")
 					(unit 1)
 				)
 			)
@@ -13347,7 +13639,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "662659dc-111c-403c-a618-4956fc9413f0")
-		(property "Reference" "#GND12"
+		(property "Reference" "#GND012"
 			(at 27.94 121.92 0)
 			(effects
 				(font
@@ -13398,7 +13690,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND12")
+					(reference "#GND012")
 					(unit 1)
 				)
 			)
@@ -13413,7 +13705,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "6eb3fb93-344d-44f7-ae2b-d918ddfaccb8")
-		(property "Reference" "#SUPPLY8"
+		(property "Reference" "#SUPPLY08"
 			(at 210.82 154.94 0)
 			(effects
 				(font
@@ -13464,7 +13756,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#SUPPLY8")
+					(reference "#SUPPLY08")
 					(unit 1)
 				)
 			)
@@ -13637,7 +13929,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "7746bf01-0ca3-4700-8215-8b818cd04986")
-		(property "Reference" "#GND20"
+		(property "Reference" "#GND020"
 			(at 101.6 111.76 0)
 			(effects
 				(font
@@ -13688,7 +13980,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND20")
+					(reference "#GND020")
 					(unit 1)
 				)
 			)
@@ -13766,7 +14058,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "803547a6-65e7-4d30-9f77-0a55ef3a1928")
-		(property "Reference" "#GND10"
+		(property "Reference" "#GND010"
 			(at 144.78 114.3 0)
 			(effects
 				(font
@@ -13817,7 +14109,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND10")
+					(reference "#GND010")
 					(unit 1)
 				)
 			)
@@ -13956,6 +14248,72 @@
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
 					(reference "R15")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:PWR_FLAG")
+		(at 142.24 69.85 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "8b1902d5-569a-45ce-844c-4f9ad3f1179c")
+		(property "Reference" "#FLG01"
+			(at 142.24 67.945 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "PWR_FLAG"
+			(at 142.24 64.77 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 142.24 69.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 142.24 69.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Special symbol for telling ERC where power comes from"
+			(at 142.24 69.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "fad9070d-6124-47e9-aa48-64a1717bc809")
+		)
+		(instances
+			(project "neodk_v1"
+				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
+					(reference "#FLG01")
 					(unit 1)
 				)
 			)
@@ -14108,7 +14466,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "8de1d619-876e-4859-bf4a-fe77c6ffef07")
-		(property "Reference" "#GND18"
+		(property "Reference" "#GND018"
 			(at 187.96 182.88 0)
 			(effects
 				(font
@@ -14159,7 +14517,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND18")
+					(reference "#GND018")
 					(unit 1)
 				)
 			)
@@ -14175,13 +14533,12 @@
 		(dnp no)
 		(uuid "8fd89da6-04ee-4866-8c69-3e5e77daf91c")
 		(property "Reference" "U2"
-			(at 175.6156 34.0614 0)
+			(at 182.118 34.036 0)
 			(effects
 				(font
 					(size 2.0828 1.7703)
 				)
 				(justify left bottom)
-				(hide yes)
 			)
 		)
 		(property "Value" "INA180A1IDBVR"
@@ -14191,7 +14548,6 @@
 					(size 2.0828 1.7703)
 				)
 				(justify left bottom)
-				(hide yes)
 			)
 		)
 		(property "Footprint" "neodk_v1:DBV5"
@@ -14330,7 +14686,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "92ba4508-21bb-4443-884e-13445d94333c")
-		(property "Reference" "#GND13"
+		(property "Reference" "#GND013"
 			(at 40.64 83.82 0)
 			(effects
 				(font
@@ -14381,7 +14737,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND13")
+					(reference "#GND013")
 					(unit 1)
 				)
 			)
@@ -14465,7 +14821,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "937b24b9-b900-48ed-8aad-b15f9d961e69")
-		(property "Reference" "#GND14"
+		(property "Reference" "#GND014"
 			(at 78.74 45.72 0)
 			(effects
 				(font
@@ -14516,7 +14872,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND14")
+					(reference "#GND014")
 					(unit 1)
 				)
 			)
@@ -15038,7 +15394,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "a5671a80-309e-48c5-9fe2-2437357cd165")
-		(property "Reference" "#GND2"
+		(property "Reference" "#GND02"
 			(at 223.52 96.52 0)
 			(effects
 				(font
@@ -15089,7 +15445,137 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND2")
+					(reference "#GND02")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:PWR_FLAG")
+		(at 35.56 63.5 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "a8a52faa-c785-46d4-bc88-c41ec51fd064")
+		(property "Reference" "#FLG03"
+			(at 35.56 61.595 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "PWR_FLAG"
+			(at 33.528 59.69 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 35.56 63.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 35.56 63.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Special symbol for telling ERC where power comes from"
+			(at 35.56 63.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "9ec15eaf-2fc1-4d5a-86c9-4de6a84af8a9")
+		)
+		(instances
+			(project "neodk_v1"
+				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
+					(reference "#FLG03")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:PWR_FLAG")
+		(at 69.85 63.5 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "aadcc736-fc43-422f-8243-abbe9b0ae886")
+		(property "Reference" "#FLG04"
+			(at 69.85 61.595 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "PWR_FLAG"
+			(at 67.818 59.69 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 69.85 63.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 69.85 63.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Special symbol for telling ERC where power comes from"
+			(at 69.85 63.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "0b82a1b7-4358-482d-b5be-50231d6d3205")
+		)
+		(instances
+			(project "neodk_v1"
+				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
+					(reference "#FLG04")
 					(unit 1)
 				)
 			)
@@ -15242,7 +15728,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "b079997a-3278-404f-81ad-d08459b7ae3e")
-		(property "Reference" "#GND11"
+		(property "Reference" "#GND011"
 			(at 96.52 149.86 0)
 			(effects
 				(font
@@ -15293,7 +15779,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND11")
+					(reference "#GND011")
 					(unit 1)
 				)
 			)
@@ -15308,7 +15794,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "b178e143-74ac-410a-8ded-1313bfd2a5be")
-		(property "Reference" "#GND5"
+		(property "Reference" "#GND05"
 			(at 55.88 162.56 0)
 			(effects
 				(font
@@ -15359,7 +15845,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND5")
+					(reference "#GND05")
 					(unit 1)
 				)
 			)
@@ -15374,7 +15860,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "b2888304-53be-426d-8960-126f649d3c72")
-		(property "Reference" "#GND9"
+		(property "Reference" "#GND09"
 			(at 165.1 114.3 0)
 			(effects
 				(font
@@ -15425,7 +15911,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND9")
+					(reference "#GND09")
 					(unit 1)
 				)
 			)
@@ -15515,7 +16001,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "b8d96edf-e044-4d40-96e9-2146627779bc")
-		(property "Reference" "#SUPPLY13"
+		(property "Reference" "#SUPPLY013"
 			(at 210.82 134.62 0)
 			(effects
 				(font
@@ -15566,7 +16052,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#SUPPLY13")
+					(reference "#SUPPLY013")
 					(unit 1)
 				)
 			)
@@ -15588,7 +16074,6 @@
 					(size 2.0828 1.7703)
 				)
 				(justify left bottom)
-				(hide yes)
 			)
 		)
 		(property "Value" "SGM61410XN6G/TR"
@@ -15598,7 +16083,6 @@
 					(size 2.0828 1.7703)
 				)
 				(justify left bottom)
-				(hide yes)
 			)
 		)
 		(property "Footprint" "neodk_v1:SOT-23-6_SNC"
@@ -15730,7 +16214,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "c26ca823-c746-4af3-a4ac-d9a4676f592a")
-		(property "Reference" "#SUPPLY2"
+		(property "Reference" "#SUPPLY02"
 			(at 76.2 175.26 0)
 			(effects
 				(font
@@ -15781,7 +16265,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#SUPPLY2")
+					(reference "#SUPPLY02")
 					(unit 1)
 				)
 			)
@@ -16073,7 +16557,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "d04da0b9-e509-4b8b-aad2-bdb8093ea0fc")
-		(property "Reference" "#GND17"
+		(property "Reference" "#GND017"
 			(at 106.68 190.5 0)
 			(effects
 				(font
@@ -16124,7 +16608,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND17")
+					(reference "#GND017")
 					(unit 1)
 				)
 			)
@@ -16734,7 +17218,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "f22b8b4c-9d5d-43d2-af70-c439eb398107")
-		(property "Reference" "#SUPPLY1"
+		(property "Reference" "#SUPPLY01"
 			(at 134.62 66.04 0)
 			(effects
 				(font
@@ -16785,7 +17269,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#SUPPLY1")
+					(reference "#SUPPLY01")
 					(unit 1)
 				)
 			)
@@ -17007,7 +17491,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "f9ec687b-8dd1-4bbd-ae83-9c92f05508bb")
-		(property "Reference" "#GND19"
+		(property "Reference" "#GND019"
 			(at 134.62 83.82 0)
 			(effects
 				(font
@@ -17058,7 +17542,7 @@
 		(instances
 			(project "neodk_v1"
 				(path "/1ed153f9-0e4c-489b-b406-cfcbd070f47c"
-					(reference "#GND19")
+					(reference "#GND019")
 					(unit 1)
 				)
 			)

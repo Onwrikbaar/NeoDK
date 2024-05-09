@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 0)
+  (lib (name "neodk_v1-eagle-import")(type "KiCad")(uri "${KIPRJMOD}/neodk_v1-eagle-import.kicad_sym")(options "")(descr ""))
+)
