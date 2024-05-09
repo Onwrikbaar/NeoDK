@@ -9,15 +9,17 @@
 #include <limits.h>
 #include <string.h>
 
-#include "stm32g0xx_hal.h"
-// #include "stm32g0xx_hal_rcc.h"
+#include "stm32g0xx_hal_rcc.h"
+// #include "stm32g0xx_ll_rcc.h"
 // #include "stm32g0xx_ll_pwr.h"
+#include "stm32g0xx_hal_pwr_ex.h"
 #include "stm32g0xx_ll_system.h"
 #include "stm32g0xx_ll_gpio.h"
 #include "stm32g0xx_ll_exti.h"
 #include "stm32g0xx_ll_tim.h"
 #include "stm32g0xx_ll_dac.h"
 #include "stm32g0xx_ll_adc.h"
+#include "stm32g0xx_ll_dma.h"
 
 #include "bsp_dbg.h"
 #include "app_event.h"
@@ -70,10 +72,11 @@
 
 typedef struct {
     // The following members get set only once.
-    void (*app_timer_handler)(uint64_t);
+    void (*app_timer_handler)(void *, uint64_t);
+    void *app_timer_target;
     uint32_t clock_ticks_per_app_timer_tick;
     Selector button_sel;
-    Selector sequencer_sel;
+    EventQueue *pulse_delegate_queue;
     Selector rx_sel;
     Selector rx_err_sel;
     void (*tx_callback)(void *, uint8_t *);
@@ -88,12 +91,16 @@ typedef struct {
 } BSP;
 
 // The interrupt request priorities, from high to low.
-enum {  // STM32G0xx MPUs have 4 interrupt priority levels.
-    IRQ_PRIO_SYSTICK, IRQ_PRIO_PULSE = IRQ_PRIO_SYSTICK,
-    IRQ_PRIO_ADC_DMA,
+enum {  // STM32G0xx MCUs have 4 interrupt priority levels.
+    IRQ_PRIO_PULSE,
+    IRQ_PRIO_ADC_DMA, IRQ_PRIO_SYSTICK = IRQ_PRIO_ADC_DMA,
     IRQ_PRIO_USART, IRQ_PRIO_APP_TIMER = IRQ_PRIO_USART,
     IRQ_PRIO_ADC1, IRQ_PRIO_EXTI = IRQ_PRIO_ADC1
 };
+
+
+extern HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority);
+extern void HAL_IncTick(void);
 
 // Ensure the following consts refer to the same timer.
 static TIM_TypeDef *const pulse_timer = TIM1;   // Advanced 16-bit timer.
@@ -134,10 +141,10 @@ static void SystemClock_Config(void)
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {
         .ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1,
         .SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK,
-        .AHBCLKDivider = RCC_SYSCLK_DIV1,
+        .AHBCLKDivider = LL_RCC_SYSCLK_DIV_1,
         .APB1CLKDivider = RCC_HCLK_DIV1
     };
-    HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
+    HAL_RCC_ClockConfig(&RCC_ClkInitStruct, LL_FLASH_LATENCY_2);
 
     PWR->CR1 &= ~PWR_CR1_DBP;
 }
@@ -280,7 +287,7 @@ static void initADC1()
         .SequencerLength  = LL_ADC_REG_SEQ_SCAN_ENABLE_3RANKS,
         .SequencerDiscont = LL_ADC_REG_SEQ_DISCONT_DISABLE,
         .ContinuousMode   = LL_ADC_REG_CONV_SINGLE,
-        .TriggerSource    = LL_ADC_REG_TRIG_EXT_TIM3_TRGO,
+        // .TriggerSource    = LL_ADC_REG_TRIG_EXT_TIM3_TRGO,
         .DMATransfer      = LL_ADC_REG_DMA_TRANSFER_UNLIMITED,
         .Overrun          = LL_ADC_REG_OVR_DATA_OVERWRITTEN,
     };
@@ -306,16 +313,15 @@ static void initDMAforADC1(uint16_t volatile samples[], size_t nr_of_samples)
     LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_1); // Enable transfer complete interrupt.
     LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_1); // Enable transfer error interrupt.
     LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_1);
-
-    DMA1->IFCR = ~0;                            // Clear all flags.
+    DMA1->IFCR = DMA_IFCR_CGIF1;                // Clear all channel 1 flags.
     enableInterruptWithPrio(DMA1_Channel1_IRQn, IRQ_PRIO_ADC_DMA);
 }
 
 
 static void initUSART2(uint32_t serial_speed_bps)
 {
-    RCC->CCIPR  |= RCC_USART2CLKSOURCE_HSI;     // 16 MHz clock.
-    USART2->BRR  = (uint16_t)((16000000UL + serial_speed_bps / 2) / serial_speed_bps);
+    RCC->CCIPR |= LL_RCC_USART2_CLKSOURCE_HSI;
+    USART2->BRR = (uint16_t)((HSI_VALUE + serial_speed_bps / 2) / serial_speed_bps);
     USART2->CR1 |= USART_CR1_UE | USART_CR1_FIFOEN;
 }
 
@@ -416,6 +422,10 @@ static void doUartAction(USART_TypeDef *uart, ChannelAction action)
         case CA_FRAMING_CB_DISABLE:
             break;
         case CA_CLEAR_ERRORS:
+            uart->ICR = USART_ICR_ORECF | USART_ICR_PECF | USART_ICR_NECF | USART_ICR_UDRCF;
+            break;
+        case CA_CLOSE:
+            // TODO Deinit the UART?
             break;
         default:
             BSP_logf("%s(%u): unknown UART action\n", __func__, action);
@@ -458,7 +468,7 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
         pulse_timer->DIER &= ~(TIM_DIER_CC1IE | TIM_DIER_CC2IE);
         pulse_timer->SR &= ~(TIM_SR_UIF | TIM_SR_CC1IF | TIM_SR_CC2IF);
         setSwitches(0);                         // Disconnect the output stage from the load.
-        invokeSelector(&bsp.sequencer_sel, ET_BURST_EXPIRED);
+        EventQueue_postEvent(bsp.pulse_delegate_queue, ET_BURST_EXPIRED, NULL, 0);
     } else {
         BSP_logf("Pt SR=0x%x\n", __func__, pulse_timer->SR);
         // spuriousIRQ(&bsp);
@@ -479,7 +489,7 @@ void TIM1_CC_IRQHandler(void)
         BSP_logf("CC2 %hu\n", bsp.pulse_seqnr);
     }
     if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-        invokeSelector(&bsp.sequencer_sel, ET_BURST_COMPLETED);
+        EventQueue_postEvent(bsp.pulse_delegate_queue, ET_BURST_COMPLETED, NULL, 0);
     }
     if (pulse_timer->SR & 0xcffe0) {
         BSP_logf("Pt SR=0x%x\n", pulse_timer->SR & 0xcffe0);
@@ -492,7 +502,7 @@ void TIM2_IRQHandler(void)
 {
     if (app_timer->SR & TIM_SR_CC1IF) {         // Capture/compare 1.
         app_timer->SR &= ~TIM_SR_CC1IF;         // Clear the interrupt.
-        bsp.app_timer_handler(BSP_microsecondsSinceBoot());
+        bsp.app_timer_handler(bsp.app_timer_target, BSP_microsecondsSinceBoot());
         app_timer->CCR1 += bsp.clock_ticks_per_app_timer_tick;
         return;
     }
@@ -554,24 +564,26 @@ void DMA1_Channel1_IRQHandler(void)
 {
     if (DMA1->ISR & DMA_ISR_TCIF1) {
         DMA1->IFCR = DMA_IFCR_CTCIF1;           // Clear transfer complete flag.
-        // TODO Process the ADC values.
+        volatile uint16_t const *v = bsp.adc_1_samples;
+        uint32_t Vcap_mV = ((uint32_t)v[1] * 52813UL) / 16384;
+        uint32_t Vbat_mV = ((uint32_t)v[2] * 52813UL) / 16384;
+        BSP_logf("Iprim=%hu, Vcap=%u mV, Vbat=%u mV\n", v[0], Vcap_mV, Vbat_mV);
     } else if (DMA1->ISR & DMA_ISR_TEIF1) {
         DMA1->IFCR = DMA_IFCR_CTEIF1;           // Clear transfer error flag.
         BSP_logf("%s, TEIF1\n", __func__);
         LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_1);
     } else {
         BSP_logf("%s, ISR=0x%x\n", __func__, DMA1->ISR);
-        DMA1->IFCR = ~0;
+        DMA1->IFCR = DMA_IFCR_CGIF1;            // Clear all channel 1 flags.
     }
 }
 
 
 void USART2_IRQHandler(void)
 {
-    if (USART2->ISR & USART_ISR_RXNE_RXFNE) {   // Byte received.
+    if (USART2->ISR & USART_ISR_RXNE_RXFNE) {
         invokeSelector(&bsp.rx_sel, USART2->RDR);
     } else if (USART2->ISR & USART_ISR_TXE_TXFNF) {
-        // Transmit a byte.
         bsp.tx_callback(bsp.tx_target, (uint8_t *)&USART2->TDR);
     } else {
         spuriousIRQ(&bsp);
@@ -664,7 +676,7 @@ uint64_t BSP_microsecondsSinceBoot()
 }
 
 
-void BSP_registerAppTimerHandler(void (*handler)(uint64_t), uint32_t microseconds_per_app_timer_tick)
+void BSP_registerAppTimerHandler(void (*handler)(void *, uint64_t), void *target, uint32_t microseconds_per_app_timer_tick)
 {
     BSP_logf("%s\n", __func__);
     app_timer->PSC = SystemCoreClock / APP_TIMER_FREQ_Hz - 1;
@@ -674,6 +686,7 @@ void BSP_registerAppTimerHandler(void (*handler)(uint64_t), uint32_t microsecond
     app_timer->CCER |= TIM_CCER_CC1E;           // Compare 1 output enable.
     app_timer->DIER |= TIM_DIER_CC1IE;          // Interrupt on match with compare register.
     bsp.app_timer_handler = handler;
+    bsp.app_timer_target  = target;
     bsp.clock_ticks_per_app_timer_tick = microseconds_per_app_timer_tick * TICKS_PER_MICROSECOND;
 
     app_timer->EGR |= (TIM_EGR_UG | TIM_EGR_CC1G);
@@ -682,9 +695,9 @@ void BSP_registerAppTimerHandler(void (*handler)(uint64_t), uint32_t microsecond
 }
 
 
-void BSP_registerPulseHandler(Selector *sequencer_sel)
+void BSP_registerPulseDelegate(EventQueue *pdq)
 {
-    bsp.sequencer_sel = *sequencer_sel;
+    bsp.pulse_delegate_queue = pdq;
     pulse_timer->PSC = SystemCoreClock / PULSE_TIMER_FREQ_Hz - 1;
     BSP_logf("%s: PSC=%u\n", __func__, pulse_timer->PSC);
     // PWM mode 1 for both channels, enable preload.
@@ -820,9 +833,16 @@ bool BSP_startPulseTrain(PulseTrain const *pt)
     bsp.pulse_seqnr = 0;
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
-    invokeSelector(&bsp.sequencer_sel, ET_BURST_STARTED);
+    EventQueue_postEvent(bsp.pulse_delegate_queue, ET_BURST_STARTED, NULL, 0);
     pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
     return true;
+}
+
+
+void BSP_triggerADC(void)
+{
+    BSP_logf("%s\n", __func__);
+    LL_ADC_REG_StartConversion(ADC1);
 }
 
 

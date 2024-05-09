@@ -40,7 +40,7 @@ typedef enum {
  */
 void BSP_criticalSectionEnter();
 void BSP_criticalSectionExit();
-void BSP_registerAppTimerHandler(void (*)(uint64_t), uint32_t microseconds_per_app_timer_tick);
+void BSP_registerAppTimerHandler(void (*)(void *, uint64_t), void *target, uint32_t microseconds_per_app_timer_tick);
 uint64_t BSP_microsecondsSinceBoot();
 
 /*
@@ -52,7 +52,7 @@ void BSP_registerTxCallback(DeviceId, void (*)(void *, uint8_t *), void *, Selec
 void BSP_doChannelAction(DeviceId, ChannelAction);
 
 // Implementing this function is optional.
-void BSP_idle(bool (*maySleep)(void));
+void BSP_idle(bool (*maySleep)(void const *), void const *);
 
 #ifdef __cplusplus
 }

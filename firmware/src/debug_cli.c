@@ -7,7 +7,9 @@
  */
 
 #include "bsp_dbg.h"
+#include "bsp_mao.h"
 #include "bsp_app.h"
+#include "app_event.h"
 
 // This module implements:
 #include "debug_cli.h"
@@ -17,7 +19,7 @@ typedef struct {
     uint8_t buf[30];
     uint8_t len;
     uint8_t state;
-    Comms *comms;
+    EventQueue *delegate_queue;
 } CmndInterp;
 
 static CmndInterp my = {0};
@@ -41,7 +43,7 @@ static void interpretCommand(CmndInterp *me, char ch)
     switch (ch)
     {
         case '?':
-            BSP_logf("Commands: /? /l /s /0 /1../9\n");
+            BSP_logf("Commands: /? /a /l /q /s /0 /1../9\n");
             break;
         case '0':
             BSP_primaryVoltageEnable(false);
@@ -51,11 +53,19 @@ static void interpretCommand(CmndInterp *me, char ch)
             BSP_primaryVoltageEnable(true);
             BSP_setPrimaryVoltage_mV((ch - '0') * 1000U);
             break;
+        case 'a':
+            BSP_triggerADC();
+            break;
         case 'l':
             BSP_toggleTheLED();
             break;
+        case 'q': {                             // Quit.
+            int sig = 2;                        // Simulate Ctrl-C.
+            EventQueue_postEvent(me->delegate_queue, ET_POSIX_SIGNAL, (uint8_t const *)&sig, sizeof sig);
+            break;
+        }
         case 's':
-            Comms_waitForSync(me->comms);
+            EventQueue_postEvent(me->delegate_queue, ET_COMMS_WAIT_FOR_SYNC, NULL, 0);
             break;
         default:
             BSP_logf("Unknown command '/%c'\n", ch);
@@ -84,20 +94,25 @@ static void handleConsoleInput(CmndInterp *me, char ch)
  * Below are the functions implementing this module's interface.
  */
 
-void CLI_init(Comms *comms)
+void CLI_init(EventQueue *dq)
 {
-    my.comms = comms;
+    my.delegate_queue = dq;
 }
 
 
-void BSP_idle(bool (*maySleep)(void))
+void BSP_idle(bool (*maySleep)(void const *), void const *context)
 {
     char ch;
     if (BSP_readConsole(&ch, 1)) {
         handleConsoleInput(&my, ch);
     }
 
-    if (maySleep == NULL || maySleep()) {       // All pending events have been handled.
-        // TODO Put the processor to sleep to save power?
+    if (maySleep != NULL) {
+        BSP_criticalSectionEnter();
+        if (maySleep(context)) {
+            // All pending events have been handled.
+            // TODO Put the processor to sleep to save power?
+        }
+        BSP_criticalSectionExit();
     }
 }

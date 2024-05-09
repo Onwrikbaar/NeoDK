@@ -19,7 +19,8 @@ Sequencer *Sequencer_new(void);
 
 // Instance methods.
 void Sequencer_start(Sequencer *);
-void Sequencer_togglePlayPause(Sequencer *, uint32_t button_pushed);
+bool Sequencer_handleEvent(Sequencer *);
+void Sequencer_stop(Sequencer *);
 void Sequencer_delete(Sequencer *);
 
 #endif

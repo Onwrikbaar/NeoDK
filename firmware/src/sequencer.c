@@ -10,9 +10,8 @@
 
 #include "bsp_dbg.h"
 #include "bsp_mao.h"
-#include "bsp_app.h"
 #include "app_event.h"
-#include "convenience.h"
+#include "eventqueue.h"
 #include "pattern_iter.h"
 
 // This module implements:
@@ -20,9 +19,11 @@
 
 #define MAX_PULSE_WIDTH_MICROS           200
 
-typedef void *(*StateFunc)(Sequencer *, uint32_t);
+typedef void *(*StateFunc)(Sequencer *, AOEvent const *);
 
 struct _Sequencer {
+    EventQueue event_queue;                     // This MUST be the first member.
+    uint8_t event_storage[200];
     StateFunc state;
     PatternIterator pi;
 };
@@ -72,12 +73,12 @@ static uint8_t const pattern_circle[][2] =
 
 
 // Forward declaration.
-static void *statePulsing(Sequencer *me, uint32_t evt);
+static void *statePulsing(Sequencer *me, AOEvent const *evt);
 
 
-static void *stateIdle(Sequencer *me, uint32_t evt)
+static void *stateIdle(Sequencer *me, AOEvent const *evt)
 {
-    switch (evt)
+    switch (AOEvent_type(evt))
     {
         case ET_AO_ENTRY:
             BSP_logf("%s ENTRY\n", __func__);
@@ -104,9 +105,9 @@ static void *stateIdle(Sequencer *me, uint32_t evt)
 }
 
 
-static void *statePaused(Sequencer *me, uint32_t evt)
+static void *statePaused(Sequencer *me, AOEvent const *evt)
 {
-    switch (evt)
+    switch (AOEvent_type(evt))
     {
         case ET_AO_ENTRY:
             BSP_logf("%s ENTRY\n", __func__);
@@ -149,9 +150,9 @@ static bool scheduleNextPulseTrain(Sequencer *me)
 }
 
 
-static void *statePulsing(Sequencer *me, uint32_t evt)
+static void *statePulsing(Sequencer *me, AOEvent const *evt)
 {
-    switch (evt)
+    switch (AOEvent_type(evt))
     {
         case ET_AO_ENTRY:
             BSP_logf("%s ENTRY\n", __func__);
@@ -180,21 +181,19 @@ static void *statePulsing(Sequencer *me, uint32_t evt)
     return NULL;
 }
 
-
-static void sendEvent(Sequencer *me, uint32_t evt)
+// Send one event to the state machine.
+static void dispatchEvent(Sequencer *me, AOEvent const *evt)
 {
     // BSP_logf("%s(%u)\n", __func__, evt);
-    BSP_criticalSectionEnter();
     StateFunc new_state = me->state(me, evt);
     if (new_state != NULL) {                    // Transition.
-        StateFunc sf = me->state(me, ET_AO_EXIT);
+        StateFunc sf = me->state(me, AOEvent_newExitEvent());
         // No transition allowed on ENTRY and EXIT events.
         M_ASSERT(sf == NULL);
         me->state = new_state;
-        sf = me->state(me, ET_AO_ENTRY);
+        sf = me->state(me, AOEvent_newEntryEvent());
         M_ASSERT(sf == NULL);
     }
-    BSP_criticalSectionExit();
 }
 
 /*
@@ -204,10 +203,9 @@ static void sendEvent(Sequencer *me, uint32_t evt)
 Sequencer *Sequencer_new()
 {
     Sequencer *me = (Sequencer *)malloc(sizeof(Sequencer));
+    EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
     me->state = &stateIdle;
-
-    Selector sel;
-    BSP_registerPulseHandler(Selector_init(&sel, (Action)&sendEvent, me));
+    BSP_registerPulseDelegate(&me->event_queue);
     return me;
 }
 
@@ -226,15 +224,18 @@ void Sequencer_start(Sequencer *me)
         total_nr_of_pulses += pt.nr_of_pulses;
     }
     BSP_logf("Total number of pulses: %u\n", total_nr_of_pulses);
-    sendEvent(me, ET_AO_ENTRY);
+    dispatchEvent(me, AOEvent_newEntryEvent());
 }
 
 
-void Sequencer_togglePlayPause(Sequencer *me, uint32_t button_pushed)
+bool Sequencer_handleEvent(Sequencer *me)
 {
-    if (button_pushed) {
-        sendEvent(me, ET_SEQUENCER_PLAY_PAUSE);
-    }
+    return EventQueue_handleNextEvent(&me->event_queue, (EvtFunc)&dispatchEvent, me);
+}
+
+
+void Sequencer_stop(Sequencer *me)
+{
 }
 
 

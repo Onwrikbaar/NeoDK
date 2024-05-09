@@ -176,6 +176,7 @@ bool Comms_open(Comms *me)
 
 void Comms_waitForSync(Comms *me)
 {
+    BSP_logf("%s\n", __func__);
     me->synced = false;
 }
 

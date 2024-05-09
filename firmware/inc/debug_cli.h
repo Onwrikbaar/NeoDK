@@ -10,10 +10,9 @@
 #define INC_DEBUG_CLI_H_
 
 #include <stdbool.h>
-#include "comms.h"
+#include "eventqueue.h"
 
 
-void CLI_init(Comms *);
-void BSP_idle(bool (*maySleep)(void));
+void CLI_init(EventQueue *);
 
 #endif
