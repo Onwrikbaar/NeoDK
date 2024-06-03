@@ -23,7 +23,7 @@ typedef void *(*StateFunc)(Sequencer *, AOEvent const *);
 
 struct _Sequencer {
     EventQueue event_queue;                     // This MUST be the first member.
-    uint8_t event_storage[200];
+    uint8_t event_storage[400];
     StateFunc state;
     PatternIterator pi;
 };
@@ -37,8 +37,8 @@ static char const elset_str[][5] = {
 static uint8_t const pattern_toggle[][2] =
 {
     {EL_A, EL_B},
-    {EL_B, EL_A},
     {EL_C, EL_D},
+    {EL_B, EL_A},
     {EL_D, EL_C},
 };
 
@@ -72,8 +72,16 @@ static uint8_t const pattern_circle[][2] =
 };
 
 
+static void printAdcValues(uint16_t const *v)
+{
+    uint32_t Iprim_mA = ((uint32_t)v[0] * 2063UL) / 1024;
+    uint32_t Vcap_mV = ((uint32_t)v[1] * 52813UL) / 16384;
+    uint32_t Vbat_mV = ((uint32_t)v[2] * 52813UL) / 16384;
+    BSP_logf("Iprim=%u mA, Vcap=%u mV, Vbat=%u mV\n", Iprim_mA, Vcap_mV, Vbat_mV);
+}
+
 // Forward declaration.
-static void *statePulsing(Sequencer *me, AOEvent const *evt);
+static void *statePulsing(Sequencer *, AOEvent const *);
 
 
 static void *stateIdle(Sequencer *me, AOEvent const *evt)
@@ -83,11 +91,15 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
         case ET_AO_ENTRY:
             BSP_logf("%s ENTRY\n", __func__);
             // TODO Choose a different pattern each time?
-            PatternIterator_init(&me->pi, pattern_toggle, M_DIM(pattern_toggle), 40, 4);
-            // PatternIterator_init(&me->pi, pattern_circle, M_DIM(pattern_circle), 50, 2);
+            PatternIterator_init(&me->pi, pattern_toggle, M_DIM(pattern_toggle), 10, 400, 3);
+            // PatternIterator_init(&me->pi, pattern_simple, M_DIM(pattern_simple), 50, 4, 7);
+            // PatternIterator_init(&me->pi, pattern_circle, M_DIM(pattern_circle), 25, 3, 5);
             break;
         case ET_AO_EXIT:
             BSP_logf("%s EXIT\n", __func__);
+            break;
+        case ET_ADC_DATA_AVAILABLE:
+            printAdcValues((uint16_t const *)AOEvent_data(evt));
             break;
         case ET_SEQUENCER_PLAY_PAUSE:
             M_ASSERT(! PatternIterator_done(&me->pi));
@@ -216,7 +228,7 @@ void Sequencer_start(Sequencer *me)
     PatternIterator_checkPattern(pattern_simple, M_DIM(pattern_simple));
     PatternIterator_checkPattern(pattern_circle, M_DIM(pattern_circle));
 
-    PatternIterator_init(&me->pi, pattern_circle, 8/*M_DIM(pattern_circle)*/, 40, 5);
+    PatternIterator_init(&me->pi, pattern_circle, 8/*M_DIM(pattern_circle)*/, 40, 1, 2);
     uint32_t total_nr_of_pulses = 0;
     PulseTrain pt;
     while (PatternIterator_getNextPulseTrain(&me->pi, &pt)) {
@@ -224,7 +236,7 @@ void Sequencer_start(Sequencer *me)
         total_nr_of_pulses += pt.nr_of_pulses;
     }
     BSP_logf("Total number of pulses: %u\n", total_nr_of_pulses);
-    dispatchEvent(me, AOEvent_newEntryEvent());
+    me->state(me, AOEvent_newEntryEvent());
 }
 
 
@@ -236,6 +248,7 @@ bool Sequencer_handleEvent(Sequencer *me)
 
 void Sequencer_stop(Sequencer *me)
 {
+    BSP_primaryVoltageEnable(false);
 }
 
 

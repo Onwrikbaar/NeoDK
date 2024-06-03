@@ -112,7 +112,8 @@ static bool Boss_handleEvent(Boss *me)
 
 static bool noEventsPending(Boss const *me)
 {
-    return EventQueue_isEmpty(&me->event_queue) && EventQueue_isEmpty((EventQueue const *)me->sequencer);
+    return EventQueue_isEmpty(&me->event_queue)
+        && EventQueue_isEmpty((EventQueue const *)me->sequencer);
 }
 
 
@@ -127,7 +128,7 @@ static void setupAndRunApplication(Boss *me, char const *app_name)
 
     BSP_logf("Starting %s on NeoDK!\n", app_name);
     BSP_logf("Push the button to play or pause! :-)\n");
-    BSP_setPrimaryVoltage_mV(2000);
+    BSP_setPrimaryVoltage_mV(3000);
 
     while (me->keep_running) {
         if (Sequencer_handleEvent(me->sequencer)) continue;

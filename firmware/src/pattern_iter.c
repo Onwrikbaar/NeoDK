@@ -58,15 +58,16 @@ bool PatternIterator_checkPattern(uint8_t const pattern[][2], uint16_t nr_of_elc
 
 
 void PatternIterator_init(PatternIterator *me, uint8_t const pattern[][2],
-                          uint16_t nr_of_elcons, uint8_t pace_ms, uint16_t nr_of_reps)
+                          uint16_t nr_of_elcons, uint8_t pace_ms, uint16_t nr_of_reps, uint8_t nr_of_steps)
 {
     me->pattern = pattern;
     me->nr_of_elcons = nr_of_elcons;
     me->elcon_nr = 0;
-    me->nr_of_steps =  7;                       // Length of a transition.
+    me->nr_of_steps = nr_of_steps;              // Length of a transition.
+    M_ASSERT(me->nr_of_steps != 0);
     me->step_nr = 0;
     me->segment_nr = 0;                         // 0 or 1.
-    me->pulse_width_micros = 60;
+    me->pulse_width_micros = 80;
     me->pace_ms = pace_ms;
     me->nr_of_reps = nr_of_reps;
 }

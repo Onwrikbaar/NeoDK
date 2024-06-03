@@ -99,7 +99,7 @@ enum {  // STM32G0xx MCUs have 4 interrupt priority levels.
 };
 
 
-extern HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority);
+extern HAL_StatusTypeDef HAL_InitTick(uint32_t);
 extern void HAL_IncTick(void);
 
 // Ensure the following consts refer to the same timer.
@@ -243,7 +243,7 @@ static void initDAC()
 
 static void initADC1()
 {
-    BSP_logf("%s\n", __func__);
+    // BSP_logf("%s\n", __func__);
     LL_ADC_InitTypeDef gis = {
         // .Clock = LL_ADC_CLOCK_SYNC_PCLK_DIV4,
         .Resolution    = LL_ADC_RESOLUTION_12B,
@@ -256,17 +256,17 @@ static void initADC1()
     LL_ADC_ClearFlag_CCRDY(ADC1);
 
     LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_COMMON_1, LL_ADC_SAMPLINGTIME_7CYCLES_5);
-    LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_COMMON_2, LL_ADC_SAMPLINGTIME_19CYCLES_5);
+    LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_COMMON_2, LL_ADC_SAMPLINGTIME_39CYCLES_5);
 
     // Configure a regular channel for the transformer's primary current sensing.
     LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_0);
     LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_0, LL_ADC_SAMPLINGTIME_COMMON_1);
     // Configure a regular channel for the capacitor voltage VCAP.
     LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_2, LL_ADC_CHANNEL_1);
-    LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_1, LL_ADC_SAMPLINGTIME_COMMON_1);
+    LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_1, LL_ADC_SAMPLINGTIME_COMMON_2);
     // Configure a regular channel for the battery/supply voltage.
     LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_3, LL_ADC_CHANNEL_6);
-    LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_6, LL_ADC_SAMPLINGTIME_COMMON_1);
+    LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_6, LL_ADC_SAMPLINGTIME_COMMON_2);
 
     LL_ADC_EnableInternalRegulator(ADC1);
     uint32_t volatile wli = LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / 1000000);
@@ -310,10 +310,10 @@ static void initDMAforADC1(uint16_t volatile samples[], size_t nr_of_samples)
     LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_1, LL_ADC_DMA_GetRegAddr(ADC1, LL_ADC_DMA_REG_REGULAR_DATA),
                             (uint32_t)samples, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
     LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_1, nr_of_samples);
+    DMA1->IFCR = DMA_IFCR_CGIF1;                // Clear all channel 1 interrupt flags.
     LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_1); // Enable transfer complete interrupt.
     LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_1); // Enable transfer error interrupt.
     LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_1);
-    DMA1->IFCR = DMA_IFCR_CGIF1;                // Clear all channel 1 flags.
     enableInterruptWithPrio(DMA1_Channel1_IRQn, IRQ_PRIO_ADC_DMA);
 }
 
@@ -564,17 +564,14 @@ void DMA1_Channel1_IRQHandler(void)
 {
     if (DMA1->ISR & DMA_ISR_TCIF1) {
         DMA1->IFCR = DMA_IFCR_CTCIF1;           // Clear transfer complete flag.
-        volatile uint16_t const *v = bsp.adc_1_samples;
-        uint32_t Vcap_mV = ((uint32_t)v[1] * 52813UL) / 16384;
-        uint32_t Vbat_mV = ((uint32_t)v[2] * 52813UL) / 16384;
-        BSP_logf("Iprim=%hu, Vcap=%u mV, Vbat=%u mV\n", v[0], Vcap_mV, Vbat_mV);
+        EventQueue_postEvent(bsp.pulse_delegate_queue, ET_ADC_DATA_AVAILABLE, (uint8_t const *)bsp.adc_1_samples, sizeof bsp.adc_1_samples);
     } else if (DMA1->ISR & DMA_ISR_TEIF1) {
         DMA1->IFCR = DMA_IFCR_CTEIF1;           // Clear transfer error flag.
         BSP_logf("%s, TEIF1\n", __func__);
         LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_1);
     } else {
         BSP_logf("%s, ISR=0x%x\n", __func__, DMA1->ISR);
-        DMA1->IFCR = DMA_IFCR_CGIF1;            // Clear all channel 1 flags.
+        DMA1->IFCR = DMA_IFCR_CHTIF1;
     }
 }
 
@@ -632,7 +629,7 @@ void BSP_init()
 
 void BSP_initComms(void)
 {
-    initUSART2(57600UL);
+    initUSART2(115200UL);
 }
 
 
