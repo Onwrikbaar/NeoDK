@@ -1,9 +1,13 @@
 /*
  *  bsp_stm32g071.c
  *
+ *  NOTICE (do not remove):
+ *      This file is part of project NeoDK (https://github.com/Onwrikbaar/NeoDK).
+ *      See https://github.com/Onwrikbaar/NeoDK/blob/main/LICENSE.txt for full license details.
+ *
  *  Created on: 20 Oct 2023
  *      Author: mark
- *   Copyright  2023, 2024 Neostim
+ *   Copyright  2023, 2024 Neostim™
  */
 
 #include <limits.h>
@@ -174,6 +178,12 @@ static void initGPIO()
     GPIO_InitStruct.Pull = LL_GPIO_PULL_DOWN;
     GPIO_InitStruct.Pin  = PUSHBUTTON_PIN;
     LL_GPIO_Init(PUSHBUTTON_PORT, &GPIO_InitStruct);
+    if (LL_GPIO_IsInputPinSet(PUSHBUTTON_PORT, GPIO_InitStruct.Pin)) {
+        uint32_t const *const SYS_MEM = (uint32_t *)0x1FFF0000;
+        __set_MSP(SYS_MEM[0]);                  // Set up the bootloader's stackpointer.
+        void (*startBootLoader)(void) = (void (*)(void)) SYS_MEM[1];
+        startBootLoader();                      // This call does not return.
+    }
 
     GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
@@ -605,18 +615,19 @@ void assert_failed(uint8_t *filename, uint32_t line_nr)
 
 void BSP_init()
 {
+    RCC->IOPENR = RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN;
+    initGPIO();
+
     LL_RCC_SetADCClockSource(LL_RCC_ADC_CLKSOURCE_HSI);
     RCC->APBENR1 = RCC_APBENR1_TIM2EN | RCC_APBENR1_TIM3EN | RCC_APBENR1_USART2EN | RCC_APBENR1_PWREN | RCC_APBENR1_DAC1EN;
     RCC->APBENR2 = RCC_APBENR2_TIM1EN | RCC_APBENR2_TIM16EN | RCC_APBENR2_ADCEN | RCC_APBENR2_SYSCFGEN;
     RCC->AHBENR |= RCC_AHBENR_DMA1EN;
-    RCC->IOPENR |= RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN;
     // Enable instruction cache and prefetch buffer.
     FLASH->ACR |= FLASH_ACR_ICEN | FLASH_ACR_PRFTEN;
 
     HAL_InitTick(IRQ_PRIO_SYSTICK);
     SystemClock_Config();
     BSP_logf("DevId=0x%x, SystemCoreClock=%u\n", LL_DBGMCU_GetDeviceID(), SystemCoreClock);
-    initGPIO();
     initEXTI();
     initDAC();
     initDMAforADC1(bsp.adc_1_samples, M_DIM(bsp.adc_1_samples));
@@ -702,7 +713,7 @@ void BSP_registerPulseDelegate(EventQueue *pdq)
                        | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2PE;
     // Enable both outputs.
     pulse_timer->CCER = TIM_CCER_CC1E | TIM_CCER_CC2E;
-    pulse_timer->CR2  = TIM_CR2_CCPC;            // Compare control signals are preloaded.
+    pulse_timer->CR2  = TIM_CR2_CCPC;           // Compare control signals are preloaded.
     enableInterruptWithPrio(pulse_timer_upd_irq, IRQ_PRIO_PULSE);
     enableInterruptWithPrio(pulse_timer_cc_irq,  IRQ_PRIO_PULSE);
     pulse_timer->CR1  = TIM_CR1_ARPE | TIM_CR1_URS;

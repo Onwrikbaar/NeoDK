@@ -1,9 +1,13 @@
 /*
  * sequencer.c -- the pulse train executor
  *
+ *  NOTICE (do not remove):
+ *      This file is part of project NeoDK (https://github.com/Onwrikbaar/NeoDK).
+ *      See https://github.com/Onwrikbaar/NeoDK/blob/main/LICENSE.txt for full license details.
+ *
  *  Created on: 27 Feb 2024
  *      Author: mark
- *   Copyright  2024 Neostim
+ *   Copyright  2024 Neostim™
  */
 
 #include <stdlib.h>
@@ -91,8 +95,8 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
         case ET_AO_ENTRY:
             BSP_logf("%s ENTRY\n", __func__);
             // TODO Choose a different pattern each time?
-            PatternIterator_init(&me->pi, pattern_toggle, M_DIM(pattern_toggle), 10, 400, 3);
-            // PatternIterator_init(&me->pi, pattern_simple, M_DIM(pattern_simple), 50, 4, 7);
+            // PatternIterator_init(&me->pi, pattern_toggle, M_DIM(pattern_toggle), 10, 400, 3);
+            PatternIterator_init(&me->pi, pattern_simple, M_DIM(pattern_simple), 50, 4, 7);
             // PatternIterator_init(&me->pi, pattern_circle, M_DIM(pattern_circle), 25, 3, 5);
             break;
         case ET_AO_EXIT:

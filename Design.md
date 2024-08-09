@@ -1,9 +1,9 @@
 # Design
 ## Functional design
 ### Requirements
-1. Outputs galvanically isolated from the low-voltage circuitry and the communication interface.
-2. Four monopolar symmetric biphasic outputs, no 'channels'.
-3. Sufficient output power to drive even the largest internal metal electrodes with amazing intensity.
+1. Four monopolar symmetric biphasic outputs, no 'channels'.
+2. Outputs are galvanically isolated from the low-voltage circuitry and the communication interface.
+3. Sufficient output power to drive even the largest insertable metal electrodes with amazing intensity.
 4. Very energy-efficient, so optionally battery-powered.
 5. Controllable by externally/remotely running software.
 
@@ -44,7 +44,7 @@ An off-the-shelf, cheap transformer that meets these criteria, is the Xicon 42TU
 The output voltage of the transformer is distributed to the four electrodes through a 4-node switch matrix consisting of opto-triacs (aka photo-triacs or triac output optocouplers).
 
 ### Buffer capacitor
-When the device is powered from a battery that cannot immediately deliver the required primary current, a low-ESR buffer capacitor is needed to help supply the output stage. We use three 220 µF 16V tantalum capacitors in parallel.
+When the device is powered from a battery that cannot immediately deliver the required primary current, a charge buffer is needed to help supply the output stage. For this, we use three low-ESR 220 µF 16V tantalum capacitors in parallel.
 
 ### Snubber
 Stray inductance of the transformer causes inductive spikes every time the primary current is switched off. These spikes must be suppressed in order to prevent destruction of the MOSFETs switching the transformer's primary. This is accomplished by 'shorting' the spikes to the primary voltage rail when they exceed a critical value. This way part of the energy stored in the transformer's inductance is dumped back into the capacitors.
@@ -67,7 +67,7 @@ The STM32G071 is an affordable 32-bit microcontroller with an ARM Cortex M0+ cor
 For safety, it is best to power NeoDK from a battery, like a 3S (nominally 11.1V) Li-ion battery pack. When using a mains voltage adapter ('wall wart') instead, make sure it is doubly insulated and meets all applicable safety standards for your region. If you happen to own an Estim Systems 2B power box, you can use its 12V mains adapter for NeoDK too.
 
 ### Serial communications interface
-The device is controlled through a standard serial UART interface using 3.3V TTL signal levels at 57600 bps. Suitable USB-to-serial cables (3.3V TTL, Tip=Tx, Ring=Rx, Sleeve=GND) are readily available from various sources, like Aliexpress, for about €7 including shipping.
+The device is controlled through a standard serial UART interface using 3.3V TTL signal levels at 115200 bps. Suitable USB-to-serial cables (3.3V TTL, Tip=Tx, Ring=Rx, Sleeve=GND) are readily available from various sources, like Aliexpress, for about €10 including shipping.
 
 ## Firmware
 The device's on-board control program (aka firmware) consists of a collection of collaborating state machines. The firmware is event-driven and 100% nonblocking.

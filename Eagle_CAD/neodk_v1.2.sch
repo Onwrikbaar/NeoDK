@@ -21616,67 +21616,6 @@ conversion&lt;/p&gt;  &lt;a href="https://pricing.snapeda.com/parts/AP63203/Diod
 </deviceset>
 </devicesets>
 </library>
-<library name="SRR4818A-3R9Y">
-<packages>
-<package name="IND_SRR4818A-3R9Y">
-<wire x1="-2.4" y1="2.4" x2="2.4" y2="2.4" width="0.127" layer="51"/>
-<wire x1="2.4" y1="2.4" x2="2.4" y2="-2.4" width="0.127" layer="51"/>
-<wire x1="2.4" y1="-2.4" x2="-2.4" y2="-2.4" width="0.127" layer="51"/>
-<wire x1="-2.4" y1="-2.4" x2="-2.4" y2="2.4" width="0.127" layer="51"/>
-<wire x1="-2.4" y1="2.415" x2="2.4" y2="2.415" width="0.127" layer="21"/>
-<wire x1="-2.4" y1="-2.415" x2="2.4" y2="-2.415" width="0.127" layer="21"/>
-<wire x1="-2.815" y1="2.65" x2="2.815" y2="2.65" width="0.05" layer="39"/>
-<wire x1="2.815" y1="2.65" x2="2.815" y2="-2.65" width="0.05" layer="39"/>
-<wire x1="2.815" y1="-2.65" x2="-2.815" y2="-2.65" width="0.05" layer="39"/>
-<wire x1="-2.815" y1="-2.65" x2="-2.815" y2="2.65" width="0.05" layer="39"/>
-<circle x="-3.49" y="0.27" radius="0.1220625" width="0.2" layer="21"/>
-<circle x="-3.49" y="0.27" radius="0.13038125" width="0.2" layer="51"/>
-<text x="-2.65" y="2.83" size="1.27" layer="25">&gt;NAME</text>
-<text x="-2.77" y="-4.03" size="1.27" layer="27">&gt;VALUE</text>
-<smd name="1" x="-1.575" y="0" dx="1.98" dy="4.2" layer="1"/>
-<smd name="2" x="1.575" y="0" dx="1.98" dy="4.2" layer="1"/>
-</package>
-</packages>
-<symbols>
-<symbol name="SRR4818A-3R9Y">
-<wire x1="-2.54" y1="-1.27" x2="0" y2="-1.27" width="0.254" layer="94" curve="-270"/>
-<wire x1="0" y1="-1.27" x2="2.54" y2="-1.27" width="0.254" layer="94" curve="-270"/>
-<wire x1="-2.54" y1="-1.27" x2="-5.588" y2="0" width="0.254" layer="94" curve="225"/>
-<wire x1="2.54" y1="-1.27" x2="5.588" y2="0" width="0.254" layer="94" curve="-225"/>
-<wire x1="-5.588" y1="0" x2="-7.62" y2="0" width="0.254" layer="94"/>
-<wire x1="5.588" y1="0" x2="7.62" y2="0" width="0.254" layer="94"/>
-<text x="-5.08" y="5.08" size="1.778" layer="95">&gt;NAME</text>
-<text x="-5.08" y="-5.08" size="1.778" layer="96">&gt;VALUE</text>
-<wire x1="-5.334" y1="2.794" x2="4.826" y2="2.794" width="0.254" layer="94" style="shortdash"/>
-<wire x1="-5.334" y1="3.556" x2="4.826" y2="3.556" width="0.254" layer="94" style="shortdash"/>
-<pin name="1" x="-10.16" y="0" visible="off" length="short" direction="pas"/>
-<pin name="2" x="10.16" y="0" visible="off" length="short" direction="pas" rot="R180"/>
-</symbol>
-</symbols>
-<devicesets>
-<deviceset name="SRR4818A-3R9Y" prefix="L">
-<description> &lt;a href="https://pricing.snapeda.com/parts/SRR4818A-3R9Y/Bourns%20Inc./view-part?ref=eda"&gt;Check availability&lt;/a&gt;</description>
-<gates>
-<gate name="G$1" symbol="SRR4818A-3R9Y" x="0" y="0"/>
-</gates>
-<devices>
-<device name="" package="IND_SRR4818A-3R9Y">
-<connects>
-<connect gate="G$1" pin="1" pad="1"/>
-<connect gate="G$1" pin="2" pad="2"/>
-</connects>
-<technologies>
-<technology name="">
-<attribute name="DESCRIPTION" value=" Ind, 4.8x4.8x1.8mm, 3.9uH30%, 2.7A, shdSMD | Bourns SRR4818A-3R9Y "/>
-<attribute name="MF" value="Bourns Inc."/>
-<attribute name="MP" value="SRR4818A-3R9Y"/>
-</technology>
-</technologies>
-</device>
-</devices>
-</deviceset>
-</devicesets>
-</library>
 <library name="PRTR5V0U2X">
 <packages>
 <package name="SOT190P230X110-4N">
@@ -22019,6 +21958,75 @@ conversion&lt;/p&gt;  &lt;a href="https://pricing.snapeda.com/parts/AP63203/Diod
 </deviceset>
 </devicesets>
 </library>
+<library name="VLS5045EX-4R7M">
+<packages>
+<package name="IND_VLS5045EX-4R7M">
+<wire x1="-2.5" y1="2.5" x2="2.5" y2="2.5" width="0.127" layer="51"/>
+<wire x1="2.5" y1="2.5" x2="2.5" y2="-2.5" width="0.127" layer="51"/>
+<wire x1="2.5" y1="-2.5" x2="-2.5" y2="-2.5" width="0.127" layer="51"/>
+<wire x1="-2.5" y1="-2.5" x2="-2.5" y2="2.5" width="0.127" layer="51"/>
+<wire x1="-2.5" y1="2.5" x2="2.5" y2="2.5" width="0.127" layer="21"/>
+<wire x1="-2.5" y1="-2.5" x2="2.5" y2="-2.5" width="0.127" layer="21"/>
+<wire x1="2.5" y1="-2.5" x2="2.5" y2="-2.2" width="0.127" layer="21"/>
+<wire x1="-2.5" y1="-2.5" x2="-2.5" y2="-2.2" width="0.127" layer="21"/>
+<wire x1="-2.5" y1="2.5" x2="-2.5" y2="2.2" width="0.127" layer="21"/>
+<wire x1="2.5" y1="2.5" x2="2.5" y2="2.2" width="0.127" layer="21"/>
+<circle x="-3.25" y="2" radius="0.15" width="0.3" layer="21"/>
+<wire x1="-2.8" y1="2.8" x2="2.8" y2="2.8" width="0.05" layer="39"/>
+<wire x1="2.8" y1="2.8" x2="2.8" y2="-2.8" width="0.05" layer="39"/>
+<wire x1="2.8" y1="-2.8" x2="-2.8" y2="-2.8" width="0.05" layer="39"/>
+<wire x1="-2.8" y1="-2.8" x2="-2.8" y2="2.8" width="0.05" layer="39"/>
+<text x="-3.00176875" y="4.00235" size="1.27075" layer="25">&gt;NAME</text>
+<text x="-3.00028125" y="-4.00038125" size="1.27011875" layer="27" align="top-left">&gt;VALUE</text>
+<smd name="1" x="-1.8" y="0" dx="4" dy="1.5" layer="1" rot="R90"/>
+<smd name="2" x="1.8" y="0" dx="4" dy="1.5" layer="1" rot="R90"/>
+</package>
+</packages>
+<symbols>
+<symbol name="VLS5045EX-4R7M">
+<wire x1="-5.08" y1="0" x2="-3.81" y2="1.27" width="0.254" layer="94" curve="-90"/>
+<wire x1="-2.54" y1="0" x2="-3.81" y2="1.27" width="0.254" layer="94" curve="90"/>
+<wire x1="-2.54" y1="0" x2="-1.27" y2="1.27" width="0.254" layer="94" curve="-90"/>
+<wire x1="0" y1="0" x2="-1.27" y2="1.27" width="0.254" layer="94" curve="90"/>
+<wire x1="0" y1="0" x2="1.27" y2="1.27" width="0.254" layer="94" curve="-90"/>
+<wire x1="2.54" y1="0" x2="1.27" y2="1.27" width="0.254" layer="94" curve="90"/>
+<wire x1="2.54" y1="0" x2="3.81" y2="1.27" width="0.254" layer="94" curve="-90"/>
+<wire x1="5.08" y1="0" x2="3.81" y2="1.27" width="0.254" layer="94" curve="90"/>
+<text x="-5.085009375" y="5.085009375" size="2.542509375" layer="95">&gt;NAME</text>
+<text x="-5.089209375" y="-2.544609375" size="2.544609375" layer="96" align="top-left">&gt;VALUE</text>
+<pin name="1" x="-7.62" y="0" visible="off" length="short" direction="pas"/>
+<pin name="2" x="7.62" y="0" visible="off" length="short" direction="pas" rot="R180"/>
+</symbol>
+</symbols>
+<devicesets>
+<deviceset name="VLS5045EX-4R7M" prefix="L">
+<description>FIXED IND 4.7UH 3.2A 46.8 MOHM &lt;a href="https://pricing.snapeda.com/parts/VLS5045EX-4R7M/TDK/view-part?ref=eda"&gt;Check availability&lt;/a&gt;</description>
+<gates>
+<gate name="G$1" symbol="VLS5045EX-4R7M" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="IND_VLS5045EX-4R7M">
+<connects>
+<connect gate="G$1" pin="1" pad="1"/>
+<connect gate="G$1" pin="2" pad="2"/>
+</connects>
+<technologies>
+<technology name="">
+<attribute name="AVAILABILITY" value="In Stock"/>
+<attribute name="CHECK_PRICES" value="https://www.snapeda.com/parts/VLS5045EX-4R7M/TDK/view-part/?ref=eda"/>
+<attribute name="DESCRIPTION" value=" 4.7 µH Shielded Drum Core, Wirewound Inductor 3.2 A 46.8mOhm Max Nonstandard "/>
+<attribute name="MF" value="TDK"/>
+<attribute name="MP" value="VLS5045EX-4R7M"/>
+<attribute name="PACKAGE" value="NON STANDARD-2 TDK"/>
+<attribute name="PRICE" value="None"/>
+<attribute name="SNAPEDA_LINK" value="https://www.snapeda.com/parts/VLS5045EX-4R7M/TDK/view-part/?ref=snap"/>
+</technology>
+</technologies>
+</device>
+</devices>
+</deviceset>
+</devicesets>
+</library>
 </libraries>
 <attributes>
 </attributes>
@@ -22050,10 +22058,7 @@ conversion&lt;/p&gt;  &lt;a href="https://pricing.snapeda.com/parts/AP63203/Diod
 </part>
 <part name="GND15" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="GND" device=""/>
 <part name="SUPPLY6" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="VCC" device=""/>
-<part name="SUPPLY8" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="VCC" device=""/>
-<part name="SUPPLY9" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="VCC" device=""/>
 <part name="TP1" library="microbuilder" deviceset="TESTPOINT" device="ROUND1MM" value="PrimaryCurrent"/>
-<part name="SUPPLY13" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="VCC" device=""/>
 <part name="U3" library="STM32G071KBT6" deviceset="STM32G071KBT6" device="" value="STM32G071KBT6">
 <attribute name="OC_FARNELL" value="3009964"/>
 </part>
@@ -22169,7 +22174,7 @@ conversion&lt;/p&gt;  &lt;a href="https://pricing.snapeda.com/parts/AP63203/Diod
 </spice>
 <attribute name="OC_FARNELL" value="3953982"/>
 </part>
-<part name="L1" library="SRR4818A-3R9Y" deviceset="SRR4818A-3R9Y" device="" value="3.9 µH"/>
+<part name="L1" library="VLS5045EX-4R7M" deviceset="VLS5045EX-4R7M" device="" value="4.7 µH"/>
 <part name="C4" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0603" package3d_urn="urn:adsk.eagle:package:23616/2" value="6.8p">
 <spice>
 <pinmapping spiceprefix="C">
@@ -22206,8 +22211,8 @@ conversion&lt;/p&gt;  &lt;a href="https://pricing.snapeda.com/parts/AP63203/Diod
 <text x="177.8" y="96.52" size="1.778" layer="91">Snubber</text>
 <text x="195.58" y="53.34" size="2.286" layer="91" ratio="12">Use ONLY
 this transformer.</text>
-<text x="132.08" y="48.26" size="2.286" layer="91" ratio="10">NeoDK v1.1
-© 2023, 2024 Neostim</text>
+<text x="132.08" y="48.26" size="2.286" layer="91" ratio="10">NeoDK v1.2
+© 2024 Neostim</text>
 <text x="91.44" y="-20.32" size="1.778" layer="91">ADC</text>
 <text x="88.9" y="-22.86" size="1.778" layer="91">ADC</text>
 <text x="88.9" y="-35.56" size="1.778" layer="91">ADC</text>
@@ -22259,21 +22264,12 @@ on LED's Vf.</text>
 <instance part="GND15" gate="1" x="81.28" y="-73.66" smashed="yes">
 <attribute name="VALUE" x="78.74" y="-76.2" size="1.778" layer="96"/>
 </instance>
-<instance part="SUPPLY6" gate="G$1" x="175.26" y="2.54" smashed="yes">
-<attribute name="VALUE" x="173.355" y="5.715" size="1.778" layer="96"/>
-</instance>
-<instance part="SUPPLY8" gate="G$1" x="175.26" y="-38.1" smashed="yes">
-<attribute name="VALUE" x="173.355" y="-34.925" size="1.778" layer="96"/>
-</instance>
-<instance part="SUPPLY9" gate="G$1" x="175.26" y="-58.42" smashed="yes">
-<attribute name="VALUE" x="173.355" y="-55.245" size="1.778" layer="96"/>
+<instance part="SUPPLY6" gate="G$1" x="170.18" y="5.08" smashed="yes">
+<attribute name="VALUE" x="168.275" y="8.255" size="1.778" layer="96"/>
 </instance>
 <instance part="TP1" gate="G$1" x="127" y="83.82" smashed="yes">
 <attribute name="NAME" x="129.54" y="88.9" size="1.27" layer="95"/>
 <attribute name="VALUE" x="129.54" y="86.995" size="1.27" layer="95"/>
-</instance>
-<instance part="SUPPLY13" gate="G$1" x="175.26" y="-17.78" smashed="yes">
-<attribute name="VALUE" x="173.355" y="-14.605" size="1.778" layer="96"/>
 </instance>
 <instance part="U3" gate="G$1" x="119.38" y="-35.56" smashed="yes">
 <attribute name="NAME" x="99.06" y="-1.54" size="2.0828" layer="95" ratio="10" rot="SR0"/>
@@ -22533,17 +22529,17 @@ on LED's Vf.</text>
 <attribute name="OC_FARNELL" x="190.5" y="66.04" size="1.778" layer="96" rot="R90" display="off"/>
 </instance>
 <instance part="L1" gate="G$1" x="83.82" y="45.72" smashed="yes">
-<attribute name="VALUE" x="83.82" y="51.6128" size="1.27" layer="96" ratio="10" rot="SR0"/>
-<attribute name="NAME" x="83.82" y="54.1528" size="1.27" layer="95" ratio="11" rot="SR0"/>
+<attribute name="VALUE" x="81.28" y="43.9928" size="1.27" layer="96" ratio="10" rot="SR0"/>
+<attribute name="NAME" x="83.82" y="49.0728" size="1.27" layer="95" ratio="11" rot="SR0"/>
 </instance>
 <instance part="C4" gate="G$1" x="129.54" y="10.16" smashed="yes">
 <attribute name="NAME" x="131.064" y="10.541" size="1.778" layer="95"/>
 <attribute name="VALUE" x="131.064" y="5.461" size="1.778" layer="96"/>
 <attribute name="OC_FARNELL" x="129.54" y="10.16" size="1.778" layer="96" display="off"/>
 </instance>
-<instance part="TP2" gate="G$1" x="93.98" y="48.26" smashed="yes">
-<attribute name="NAME" x="91.44" y="55.88" size="1.27" layer="95"/>
-<attribute name="VALUE" x="91.44" y="53.975" size="1.27" layer="95"/>
+<instance part="TP2" gate="G$1" x="91.44" y="48.26" smashed="yes">
+<attribute name="NAME" x="88.9" y="55.88" size="1.27" layer="95"/>
+<attribute name="VALUE" x="88.9" y="53.975" size="1.27" layer="95"/>
 </instance>
 <instance part="C16" gate="G$1" x="43.18" y="81.28" smashed="yes">
 <attribute name="NAME" x="44.704" y="81.661" size="1.778" layer="95"/>
@@ -22791,19 +22787,21 @@ on LED's Vf.</text>
 </segment>
 <segment>
 <pinref part="SUPPLY6" gate="G$1" pin="VCC"/>
-<pinref part="R10" gate="G$1" pin="2"/>
-</segment>
-<segment>
-<pinref part="SUPPLY13" gate="G$1" pin="VCC"/>
-<pinref part="R6" gate="G$1" pin="2"/>
-</segment>
-<segment>
-<pinref part="SUPPLY8" gate="G$1" pin="VCC"/>
-<pinref part="R7" gate="G$1" pin="2"/>
-</segment>
-<segment>
-<pinref part="SUPPLY9" gate="G$1" pin="VCC"/>
 <pinref part="R8" gate="G$1" pin="2"/>
+<wire x1="170.18" y1="-60.96" x2="175.26" y2="-60.96" width="0.1524" layer="91"/>
+<wire x1="170.18" y1="-60.96" x2="170.18" y2="-40.64" width="0.1524" layer="91"/>
+<pinref part="R10" gate="G$1" pin="2"/>
+<wire x1="170.18" y1="-40.64" x2="170.18" y2="-20.32" width="0.1524" layer="91"/>
+<wire x1="170.18" y1="-20.32" x2="170.18" y2="0" width="0.1524" layer="91"/>
+<wire x1="170.18" y1="0" x2="170.18" y2="2.54" width="0.1524" layer="91"/>
+<wire x1="175.26" y1="0" x2="170.18" y2="0" width="0.1524" layer="91"/>
+<junction x="170.18" y="0"/>
+<pinref part="R7" gate="G$1" pin="2"/>
+<wire x1="175.26" y1="-40.64" x2="170.18" y2="-40.64" width="0.1524" layer="91"/>
+<junction x="170.18" y="-40.64"/>
+<pinref part="R6" gate="G$1" pin="2"/>
+<wire x1="175.26" y1="-20.32" x2="170.18" y2="-20.32" width="0.1524" layer="91"/>
+<junction x="170.18" y="-20.32"/>
 </segment>
 <segment>
 <pinref part="SW2" gate="G$1" pin="2"/>
@@ -22839,13 +22837,13 @@ on LED's Vf.</text>
 <pinref part="SUPPLY1" gate="G$1" pin="VCC"/>
 <wire x1="99.06" y1="48.26" x2="99.06" y2="45.72" width="0.1524" layer="91"/>
 <pinref part="U8" gate="G$1" pin="FB"/>
-<wire x1="68.58" y1="40.64" x2="93.98" y2="40.64" width="0.1524" layer="91"/>
+<wire x1="68.58" y1="40.64" x2="91.44" y2="40.64" width="0.1524" layer="91"/>
 <pinref part="TP2" gate="G$1" pin="P$1"/>
-<wire x1="93.98" y1="40.64" x2="93.98" y2="45.72" width="0.1524" layer="91"/>
+<wire x1="91.44" y1="40.64" x2="91.44" y2="45.72" width="0.1524" layer="91"/>
 <pinref part="L1" gate="G$1" pin="2"/>
-<wire x1="93.98" y1="45.72" x2="93.98" y2="48.26" width="0.1524" layer="91"/>
-<junction x="93.98" y="45.72"/>
-<wire x1="93.98" y1="45.72" x2="99.06" y2="45.72" width="0.1524" layer="91"/>
+<wire x1="91.44" y1="45.72" x2="91.44" y2="48.26" width="0.1524" layer="91"/>
+<junction x="91.44" y="45.72"/>
+<wire x1="91.44" y1="45.72" x2="99.06" y2="45.72" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$9" class="0">
@@ -23152,15 +23150,6 @@ on LED's Vf.</text>
 <label x="55.88" y="27.94" size="1.778" layer="95"/>
 </segment>
 </net>
-<net name="N$35" class="0">
-<segment>
-<pinref part="U8" gate="G$1" pin="SW"/>
-<pinref part="C8" gate="G$1" pin="2"/>
-<wire x1="68.58" y1="45.72" x2="73.66" y2="45.72" width="0.1524" layer="91"/>
-<pinref part="L1" gate="G$1" pin="1"/>
-<junction x="73.66" y="45.72"/>
-</segment>
-</net>
 <net name="N$36" class="0">
 <segment>
 <pinref part="U8" gate="G$1" pin="BST"/>
@@ -23351,6 +23340,16 @@ on LED's Vf.</text>
 <wire x1="66.04" y1="-43.18" x2="66.04" y2="-27.94" width="0.1524" layer="91"/>
 <wire x1="76.2" y1="-27.94" x2="66.04" y2="-27.94" width="0.1524" layer="91"/>
 <junction x="66.04" y="-27.94"/>
+</segment>
+</net>
+<net name="N$25" class="0">
+<segment>
+<pinref part="U8" gate="G$1" pin="SW"/>
+<pinref part="L1" gate="G$1" pin="1"/>
+<wire x1="68.58" y1="45.72" x2="73.66" y2="45.72" width="0.1524" layer="91"/>
+<pinref part="C8" gate="G$1" pin="2"/>
+<wire x1="73.66" y1="45.72" x2="76.2" y2="45.72" width="0.1524" layer="91"/>
+<junction x="73.66" y="45.72"/>
 </segment>
 </net>
 </nets>

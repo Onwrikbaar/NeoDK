@@ -18,7 +18,7 @@ In this directory ('firmware'), at the command prompt type
 
 This should compile the demo code without errors and create file 'neodk_g071.hex' (and a few others) in directory 'build'.
 
-### Flashing the MPU using Segger JLink
+### Updating the firmware using Segger JLink
 On the commandline type<br/>
 &nbsp;&nbsp;`cd firmware`<br/>
 &nbsp;&nbsp;`JLinkExe -device stm32g071kb -if SWD -speed 4000 -autoconnect 1`<br>
@@ -33,3 +33,14 @@ This should now show output from NeoDK.<br>
 In the JLinkRTTClient window, type<br>
 &nbsp;&nbsp;`/?`<br>
 to see a list of available NeoDK interactive commands.
+
+### Updating the firmware without using a debugging probe
+1. Download and install STM's free [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html) programming tool.
+2. Connect NeoDK to a computer using the USB-to-3.5mm-serial cable.
+3. Press and hold the pushbutton on NeoDK while switching on its power (or connecting the battery). This puts NeoDK in bootloader mode. Release the button.
+4. Open a terminal window and execute the following on the command line:<br/>
+&nbsp;&nbsp;`cd firmware`<br/>
+&nbsp;&nbsp;`./STM32_Programmer_CLI -c port=/dev/tty.usbserial-0001 -w build/neodk_g071.hex -v`<br/>
+Specify the COM port that corresponds to your USB-serial cable, in place of `/dev/tty.usbserial-0001`.
+&nbsp;&nbsp;`./STM32_Programmer_CLI -c port=/dev/tty.usbserial-0001 -g`<br/>
+This last command starts the firmware; the blue LED should light up and the box is ready for use. A power cycle instead of this command will have the same effect.

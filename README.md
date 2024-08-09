@@ -10,7 +10,7 @@ Discord: @Onwrikbaar<br/>
 E: <onwrikbaar@hotmail.com>
 
 ### Status
-This is a work in progress. The repo will be updated every few weeks until well into 2025.
+This is a work in progress. Updates may be few and far between.
 
 ### Request
 Please send me an e-mail in case you are building this design, and let me know whether you run into any questions or problems. It will help me decide how I can best lower the threshold to replicating NeoDK. Thanks!
