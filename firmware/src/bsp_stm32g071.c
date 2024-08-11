@@ -102,10 +102,6 @@ enum {  // STM32G0xx MCUs have 4 interrupt priority levels.
     IRQ_PRIO_ADC1, IRQ_PRIO_EXTI = IRQ_PRIO_ADC1
 };
 
-
-extern HAL_StatusTypeDef HAL_InitTick(uint32_t);
-extern void HAL_IncTick(void);
-
 // Ensure the following consts refer to the same timer.
 static TIM_TypeDef *const pulse_timer = TIM1;   // Advanced 16-bit timer.
 static IRQn_Type const pulse_timer_upd_irq = TIM1_BRK_UP_TRG_COM_IRQn;
@@ -116,6 +112,10 @@ static TIM_TypeDef *const app_timer = TIM2;     // General purpose 32-bit timer.
 static IRQn_Type const app_timer_irq = TIM2_IRQn;
 
 static BSP bsp = {0};
+
+// A couple of functions from STM's infamous HAL.
+extern HAL_StatusTypeDef HAL_InitTick(uint32_t);
+extern void HAL_IncTick(void);
 
 
 static void SystemClock_Config(void)
@@ -708,7 +708,7 @@ void BSP_registerPulseDelegate(EventQueue *pdq)
     bsp.pulse_delegate_queue = pdq;
     pulse_timer->PSC = SystemCoreClock / PULSE_TIMER_FREQ_Hz - 1;
     BSP_logf("%s: PSC=%u\n", __func__, pulse_timer->PSC);
-    // PWM mode 1 for both channels, enable preload.
+    // PWM mode 1 for timer channels 1 and 2, enable preload.
     pulse_timer->CCMR1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1PE
                        | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2PE;
     // Enable both outputs.
@@ -819,7 +819,7 @@ void BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 
 bool BSP_startPulseTrain(PulseTrain const *pt)
 {
-    M_ASSERT(pt->pace_ms >= 4);                 // Repetition rate <= 250 Hz.
+    M_ASSERT(pt->pace_ms >= 5);                 // Repetition rate <= 200 Hz.
     M_ASSERT(pt->pulse_width_micros != 0);
     M_ASSERT(pt->nr_of_pulses != 0);
 

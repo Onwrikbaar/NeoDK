@@ -115,7 +115,7 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             BSP_logf("Pulse train finished\n");
             break;
         default:
-            BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, evt);
+            BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
     }
     return NULL;
 }
@@ -145,7 +145,7 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
             BSP_logf("Pulse train finished - pausing\n");
             break;
         default:
-            BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, evt);
+            BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
     }
     return NULL;
 }
@@ -191,8 +191,11 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
                 return &stateIdle;              // Transition.
             }
             break;
+        case ET_ADC_DATA_AVAILABLE:
+            printAdcValues((uint16_t const *)AOEvent_data(evt));
+            break;
         default:
-            BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, evt);
+            BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
     }
     return NULL;
 }
