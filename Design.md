@@ -44,10 +44,10 @@ An off-the-shelf, cheap transformer that meets these criteria, is the Xicon 42TU
 The output voltage of the transformer is distributed to the four electrodes through a 4-node switch matrix consisting of opto-triacs (aka photo-triacs or triac output optocouplers).
 
 ### Buffer capacitor
-When the device is powered from a battery that cannot immediately deliver the required primary current, a charge buffer is needed to help supply the output stage. For this, we use three low-ESR 220 µF 16V tantalum capacitors in parallel.
+When the device is powered from a battery that cannot immediately deliver the required primary current, a charge buffer is needed to help supply the output stage. For this, we use three low-ESR 220 µF 16V tantalum capacitors in parallel. At the maximum primary voltage of 10V, these capacitors together hold 6.6 mC of charge, representing 33 mJ of energy.
 
 ### Snubber
-Stray inductance of the transformer causes inductive spikes every time the primary current is switched off. These spikes must be suppressed in order to prevent destruction of the MOSFETs switching the transformer's primary. This is accomplished by 'shorting' the spikes to the primary voltage rail when they exceed a critical value. This way part of the energy stored in the transformer's inductance is dumped back into the capacitors.
+Stray inductance of the transformer causes inductive spikes every time the primary current is switched off. These spikes must be suppressed in order to prevent destruction of the MOSFETs that switch the transformer's primary. This is accomplished by 'shorting' the spikes to the primary voltage rail when they exceed a critical value. This way part of the energy stored in the transformer's inductance is dumped back into the capacitors.
 
 ### Primary current sensing
 The primary current is measured on the high side, by means of a 20 mΩ shunt resistor and a x20 current sense amplifier. The output of the current sense amplifier is fed to an ADC input of the microcontroller. This way, the maximum primary current that can be reliably measured is 3.3V / (20 * 20 mΩ) = 8.25 A.

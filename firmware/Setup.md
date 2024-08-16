@@ -19,6 +19,7 @@ In this directory ('firmware'), at the command prompt type
 This should compile the demo code without errors and create file 'neodk_g071.hex' (and a few others) in directory 'build'.
 
 ### Updating the firmware using Segger JLink
+Connect the JLink to a USB port of your computer, and to the 10-pin SWD header on the NeoDK board.
 On the commandline type<br/>
 &nbsp;&nbsp;`cd firmware`<br/>
 &nbsp;&nbsp;`JLinkExe -device stm32g071kb -if SWD -speed 4000 -autoconnect 1`<br>
@@ -27,6 +28,7 @@ At the JLink prompt, type<br>
 &nbsp;&nbsp;`loadfile build/neodk_g071.hex`<br>
 &nbsp;&nbsp;`r`<br>
 &nbsp;&nbsp;`g`<br>
+NeoDK's blue LED should now light up.
 In another window, open a Segger console<br>
 &nbsp;&nbsp;`JLinkRTTClient`<br>
 This should now show output from NeoDK.<br>
