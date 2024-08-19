@@ -29,7 +29,7 @@ The four biphasic unipolar outputs A, B, C and D can be switched under software 
 - C-BD
 - AC-BD
 
-Every single pulse can be directed to a different electrode configuration of 2, 3 or 4 electrodes, if so desired. This allows the creation of stimulation patterns that are perceived as moving across the skin or in 3D through the body.
+Every single pulse can have either of the two polarities, and be directed to any of the nine different electrode configuration of 2, 3 or 4 electrodes, if so desired. This allows the creation of stimulation patterns that are perceived as moving across the skin or in 3D through the body.
 
 ## Electronic design
 ### The output transformer

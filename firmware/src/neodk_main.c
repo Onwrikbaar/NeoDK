@@ -133,6 +133,7 @@ static void setupAndRunApplication(Boss *me, char const *app_name)
     BSP_logf("Starting %s on NeoDK!\n", app_name);
     BSP_logf("Push the button to play or pause! :-)\n");
     BSP_setPrimaryVoltage_mV(3000);
+    BSP_primaryVoltageEnable(true);
 
     while (me->keep_running) {
         if (Sequencer_handleEvent(me->sequencer)) continue;
