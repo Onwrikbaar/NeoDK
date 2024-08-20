@@ -1,9 +1,13 @@
 /*
  * bsp_app.h -- The application's Board Support Package interface.
  *
+ *  NOTICE (do not remove):
+ *      This file is part of project NeoDK (https://github.com/Onwrikbaar/NeoDK).
+ *      See https://github.com/Onwrikbaar/NeoDK/blob/main/LICENSE.txt for full license details.
+ *
  *  Created on: 6 Oct 2020
  *      Author: mark
- *   Copyright  2020..2024 Neostim
+ *   Copyright  2020..2024 Neostim™
  */
 
 #ifndef INC_BSP_APP_H_
@@ -49,6 +53,7 @@ void BSP_gotoDfuMode(void);
 
 // Close any communication ports and release resources, if applicable.
 void BSP_close(void);
+void BSP_sleepMCU(void);
 void BSP_shutDown(void);
 
 #endif

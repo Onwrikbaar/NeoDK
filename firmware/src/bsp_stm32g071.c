@@ -16,6 +16,7 @@
 #include "stm32g0xx_hal_rcc.h"
 // #include "stm32g0xx_ll_rcc.h"
 // #include "stm32g0xx_ll_pwr.h"
+#include "stm32g0xx_hal_pwr.h"
 #include "stm32g0xx_hal_pwr_ex.h"
 #include "stm32g0xx_ll_system.h"
 #include "stm32g0xx_ll_gpio.h"
@@ -860,9 +861,15 @@ void BSP_close()
 }
 
 
+void BSP_sleepMCU()
+{
+    HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+}
+
+
 void BSP_shutDown()
 {
     disableOutputStage();
-    // TODO Turn off the processor.
+    HAL_PWREx_EnterSHUTDOWNMode();
     while (1) {}
 }

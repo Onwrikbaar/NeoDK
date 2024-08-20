@@ -44,6 +44,6 @@ to see a list of available NeoDK interactive commands.
 &nbsp;&nbsp;`cd firmware`<br/>
 &nbsp;&nbsp;`STM32_Programmer_CLI -c port=/dev/tty.usbserial-0001 -w build/neodk_g071.hex -v`<br/>
 (Specify the COM port that corresponds to your USB-serial cable, in place of `/dev/tty.usbserial-0001`).<br/>
-If flashing was successful, execute:
+If flashing was successful, execute:<br/>
 &nbsp;&nbsp;`STM32_Programmer_CLI -c port=/dev/tty.usbserial-0001 -g`<br/>
 This last command starts the firmware; the blue LED should light up and the box is ready for use. A power cycle instead of this command will have the same effect.

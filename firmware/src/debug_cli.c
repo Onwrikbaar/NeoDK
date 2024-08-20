@@ -1,9 +1,13 @@
 /*
  * debug_cli.c
  *
+ *  NOTICE (do not remove):
+ *      This file is part of project NeoDK (https://github.com/Onwrikbaar/NeoDK).
+ *      See https://github.com/Onwrikbaar/NeoDK/blob/main/LICENSE.txt for full license details.
+ *
  *  Created on: 26 Mar 2024
  *      Author: mark
- *   Copyright  2024 Neostim
+ *   Copyright  2024 Neostim™
  */
 
 #include "bsp_dbg.h"
@@ -111,7 +115,7 @@ void BSP_idle(bool (*maySleep)(void const *), void const *context)
         BSP_criticalSectionEnter();
         if (maySleep(context)) {
             // All pending events have been handled.
-            // TODO Put the processor to sleep to save power?
+            BSP_sleepMCU();
         }
         BSP_criticalSectionExit();
     }
