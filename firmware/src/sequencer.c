@@ -96,8 +96,8 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             BSP_logf("%s ENTRY\n", __func__);
             // TODO Choose a different pattern each time?
             // PatternIterator_init(&me->pi, pattern_toggle, M_DIM(pattern_toggle), 80, 400, 3);
-            // PatternIterator_init(&me->pi, pattern_simple, M_DIM(pattern_simple), 50, 4, 7);
-            PatternIterator_init(&me->pi, pattern_circle, M_DIM(pattern_circle), 25, 10, 5);
+            PatternIterator_init(&me->pi, pattern_simple, M_DIM(pattern_simple), 20, 50, 15);
+            // PatternIterator_init(&me->pi, pattern_circle, M_DIM(pattern_circle), 25, 10, 5);
             break;
         case ET_AO_EXIT:
             BSP_logf("%s EXIT\n", __func__);
@@ -143,6 +143,9 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
                 return &stateIdle;              // Transition.
             }
             BSP_logf("Pulse train finished - pausing\n");
+            break;
+        case ET_ADC_DATA_AVAILABLE:
+            printAdcValues((uint16_t const *)AOEvent_data(evt));
             break;
         default:
             BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));

@@ -47,7 +47,7 @@ static void interpretCommand(CmndInterp *me, char ch)
     switch (ch)
     {
         case '?':
-            BSP_logf("Commands: /? /a /l /q /s /0 /1../9\n");
+            BSP_logf("Commands: /? /a /l /q /0 /1../9\n");
             break;
         case '0':
             BSP_primaryVoltageEnable(false);
@@ -68,9 +68,6 @@ static void interpretCommand(CmndInterp *me, char ch)
             EventQueue_postEvent(me->delegate_queue, ET_POSIX_SIGNAL, (uint8_t const *)&sig, sizeof sig);
             break;
         }
-        case 's':
-            EventQueue_postEvent(me->delegate_queue, ET_COMMS_WAIT_FOR_SYNC, NULL, 0);
-            break;
         default:
             BSP_logf("Unknown command '/%c'\n", ch);
     }

@@ -17,7 +17,7 @@
 #include "bsp_app.h"
 #include "app_event.h"
 #include "eventqueue.h"
-#include "comms.h"
+#include "controller.h"
 #include "debug_cli.h"
 #include "sequencer.h"
 
@@ -29,7 +29,6 @@
 typedef struct {
     EventQueue event_queue;                     // This MUST be the first member.
     uint8_t event_storage[400];
-    Comms *comms;
     Sequencer *sequencer;
     uint64_t prev_micros;
     uint8_t keep_running;
@@ -39,7 +38,6 @@ typedef struct {
 static void Boss_init(Boss *me)
 {
     EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
-    me->comms = Comms_new();
     me->sequencer = Sequencer_new();
     me->prev_micros = 0;
     me->keep_running = true;
@@ -49,7 +47,6 @@ static void Boss_init(Boss *me)
 static void Boss_finish(Boss *me)
 {
     Sequencer_delete(me->sequencer);
-    Comms_delete(me->comms);
 }
 
 
@@ -83,9 +80,6 @@ static void dispatchEvent(Boss *me, AOEvent const *evt)
             break;
         case ET_BUTTON_RELEASED:
             // Ignore for now.
-            break;
-        case ET_COMMS_WAIT_FOR_SYNC:
-            Comms_waitForSync(me->comms);
             break;
         default:
             BSP_logf("%s(%hu)?\n", __func__, evt_type);
@@ -123,7 +117,9 @@ static bool noEventsPending(Boss const *me)
 
 static void setupAndRunApplication(Boss *me, char const *app_name)
 {
-    Comms_open(me->comms);
+    Controller *controller = Controller_new();
+    Comms *comms = Comms_new();
+    Controller_init(controller, comms);
     CLI_init(&me->event_queue);
     Sequencer_start(me->sequencer);
 
@@ -132,7 +128,7 @@ static void setupAndRunApplication(Boss *me, char const *app_name)
 
     BSP_logf("Starting %s on NeoDK!\n", app_name);
     BSP_logf("Push the button to play or pause! :-)\n");
-    BSP_setPrimaryVoltage_mV(3000);
+    BSP_setPrimaryVoltage_mV(2000);
     BSP_primaryVoltageEnable(true);
 
     while (me->keep_running) {
@@ -142,8 +138,10 @@ static void setupAndRunApplication(Boss *me, char const *app_name)
     }
 
     Sequencer_stop(me->sequencer);
+    Controller_stop(controller);
     BSP_logf("End of session\n");
-    Comms_close(me->comms);
+    Controller_delete(controller);
+    Comms_delete(comms);
 }
 
 

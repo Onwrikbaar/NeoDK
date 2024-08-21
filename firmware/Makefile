@@ -36,6 +36,7 @@ STM32G0xx_SRC := \
 # Source files common to all targets.
 PROJ_COMMON_SRC += \
   $(PROJ_DIR_SRC)/neodk_main.c \
+  $(PROJ_DIR_SRC)/controller.c \
   $(PROJ_DIR_SRC)/sequencer.c \
   $(PROJ_DIR_SRC)/pattern_iter.c \
   $(PROJ_DIR_SRC)/comms.c \
@@ -120,7 +121,8 @@ all: neodk_g071
 # Print all targets that can be built
 help:
 	@echo following targets are available:
-	@echo		neodk_g071
+	@echo	neodk_g071
+	@echo	libmao.a
 
 TEMPLATE_PATH := toolchain/gcc
 include $(TEMPLATE_PATH)/Makefile.common

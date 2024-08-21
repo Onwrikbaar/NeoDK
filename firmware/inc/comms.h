@@ -1,9 +1,13 @@
 /*
  * comms.h
  *
+ *  NOTICE (do not remove):
+ *      This file is part of project NeoDK (https://github.com/Onwrikbaar/NeoDK).
+ *      See https://github.com/Onwrikbaar/NeoDK/blob/main/LICENSE.txt for full license details.
+ *
  *  Created on: 24 Feb 2024
  *      Author: mark
- *   Copyright  2024 Neostim
+ *   Copyright  2024 Neostim™
  */
 
 #ifndef INC_COMMS_H_
@@ -12,15 +16,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef void (*PacketCallback)(void *, uint8_t const *packet, uint16_t nb);
 typedef struct _Comms Comms;                    // Opaque type.
 
 // Class method.
 Comms *Comms_new();
 
 // Instance methods.
-bool Comms_open(Comms *);
+bool Comms_open(Comms *, void *packet_handler, PacketCallback);
 void Comms_waitForSync(Comms *);
-uint32_t Comms_write(Comms *, uint8_t const *, size_t);
+bool Comms_sendPacket(Comms *, uint8_t const *, size_t);
 void Comms_close(Comms *);
 void Comms_delete(Comms *);
 
