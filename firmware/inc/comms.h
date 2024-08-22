@@ -25,7 +25,7 @@ Comms *Comms_new();
 // Instance methods.
 bool Comms_open(Comms *, void *packet_handler, PacketCallback);
 void Comms_waitForSync(Comms *);
-bool Comms_sendPacket(Comms *, uint8_t const *, size_t);
+bool Comms_sendPacket(Comms *, uint8_t const *, uint16_t);
 void Comms_close(Comms *);
 void Comms_delete(Comms *);
 

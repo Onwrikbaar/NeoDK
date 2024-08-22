@@ -837,9 +837,9 @@ bool BSP_startPulseTrain(PulseTrain const *pt)
         pulse_timer->DIER |= TIM_DIER_CC2IE;
     } else return false;                        // We only have one output stage.
 
-    pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
     setSwitches(pt->elcon[0] | pt->elcon[1]);
     bsp.pulse_seqnr = 0;
+    pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
     EventQueue_postEvent(bsp.pulse_delegate_queue, ET_BURST_STARTED, NULL, 0);
@@ -870,6 +870,8 @@ void BSP_sleepMCU()
 void BSP_shutDown()
 {
     disableOutputStage();
-    HAL_PWREx_EnterSHUTDOWNMode();
-    while (1) {}
+    // HAL_Delay(1000);
+    LL_GPIO_ResetOutputPin(LED_GPIO_PORT, LED_1_PIN);
+    // HAL_PWREx_EnterSHUTDOWNMode();
+    while (1) {}                                // Not reached.
 }

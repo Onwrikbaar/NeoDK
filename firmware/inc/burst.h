@@ -1,9 +1,13 @@
 /*
  * burst.h -- the interface to the Burst (aka pulse train) object.
  *
+ *  NOTICE (do not remove):
+ *      This file is part of project NeoDK (https://github.com/Onwrikbaar/NeoDK).
+ *      See https://github.com/Onwrikbaar/NeoDK/blob/main/LICENSE.txt for full license details.
+ *
  *  Created on: 29 Dec 2019
  *      Author: mark
- *   Copyright  2019..2024 Neostim
+ *   Copyright  2019..2024 Neostim™
  */
 
 #ifndef INC_BURST_H_
