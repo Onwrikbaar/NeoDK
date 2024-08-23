@@ -13,7 +13,7 @@
 #ifndef INC_CONTROLLER_H_
 #define INC_CONTROLLER_H_
 
-#include "comms.h"
+#include "datalink.h"
 
 typedef struct _Controller Controller;          // Opaque type.
 
@@ -21,7 +21,7 @@ typedef struct _Controller Controller;          // Opaque type.
 Controller *Controller_new();
 
 // Instance methods.
-void Controller_init(Controller *, Comms *);
+void Controller_init(Controller *, DataLink *);
 void Controller_stop(Controller *);
 void Controller_delete(Controller *);
 

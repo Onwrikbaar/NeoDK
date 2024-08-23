@@ -35,7 +35,7 @@ uint64_t BSP_microsecondsSinceBoot(void);
 void BSP_registerIdleHandler(Selector *);
 void BSP_registerButtonHandler(Selector *);
 
-// Serial comms related functions.
+// Serial communications related functions.
 void BSP_initComms(void);
 DeviceId BSP_openSerialPort(char const *name);
 int BSP_closeSerialPort(int fd);

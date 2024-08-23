@@ -17,14 +17,14 @@
 
 
 struct _Controller {
-    Comms *comms;
+    DataLink *datalink;
 };
 
 
 static void handleHostMessage(Controller *me, uint8_t const *msg, uint16_t nb)
 {
     BSP_logf("%s('%s')\n", __func__, msg);
-    Comms_sendPacket(me->comms, (uint8_t const *)"Ok!", 3);
+    DataLink_sendPacket(me->datalink, (uint8_t const *)"Ok!", 3);
 }
 
 /*
@@ -37,18 +37,18 @@ Controller *Controller_new()
 }
 
 
-void Controller_init(Controller *me, Comms *comms)
+void Controller_init(Controller *me, DataLink *datalink)
 {
-    me->comms = comms;
-    Comms_open(me->comms, me, (PacketCallback)&handleHostMessage);
-    Comms_waitForSync(me->comms);
+    me->datalink = datalink;
+    DataLink_open(me->datalink, me, (PacketCallback)&handleHostMessage);
+    DataLink_waitForSync(me->datalink);
 }
 
 
 void Controller_stop(Controller *me)
 {
     BSP_logf("%s\n", __func__);
-    Comms_close(me->comms);
+    DataLink_close(me->datalink);
 }
 
 

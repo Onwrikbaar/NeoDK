@@ -1,5 +1,5 @@
 /*
- * comms.h
+ * datalink.h
  *
  *  NOTICE (do not remove):
  *      This file is part of project NeoDK (https://github.com/Onwrikbaar/NeoDK).
@@ -17,16 +17,16 @@
 #include <stdint.h>
 
 typedef void (*PacketCallback)(void *, uint8_t const *packet, uint16_t nb);
-typedef struct _Comms Comms;                    // Opaque type.
+typedef struct _DataLink DataLink;              // Opaque type.
 
 // Class method.
-Comms *Comms_new();
+DataLink *DataLink_new();
 
 // Instance methods.
-bool Comms_open(Comms *, void *packet_handler, PacketCallback);
-void Comms_waitForSync(Comms *);
-bool Comms_sendPacket(Comms *, uint8_t const *, uint16_t);
-void Comms_close(Comms *);
-void Comms_delete(Comms *);
+bool DataLink_open(DataLink *, void *packet_handler, PacketCallback);
+void DataLink_waitForSync(DataLink *);
+bool DataLink_sendPacket(DataLink *, uint8_t const *, uint16_t);
+void DataLink_close(DataLink *);
+void DataLink_delete(DataLink *);
 
 #endif

@@ -118,8 +118,8 @@ static bool noEventsPending(Boss const *me)
 static void setupAndRunApplication(Boss *me, char const *app_name)
 {
     Controller *controller = Controller_new();
-    Comms *comms = Comms_new();
-    Controller_init(controller, comms);
+    DataLink *datalink = DataLink_new();
+    Controller_init(controller, datalink);
     CLI_init(&me->event_queue);
     Sequencer_start(me->sequencer);
 
@@ -141,7 +141,7 @@ static void setupAndRunApplication(Boss *me, char const *app_name)
     Controller_stop(controller);
     BSP_logf("End of session\n");
     Controller_delete(controller);
-    Comms_delete(comms);
+    DataLink_delete(datalink);
 }
 
 
