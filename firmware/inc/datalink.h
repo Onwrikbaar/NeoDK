@@ -10,8 +10,8 @@
  *   Copyright  2024 Neostim™
  */
 
-#ifndef INC_COMMS_H_
-#define INC_COMMS_H_
+#ifndef INC_DATALINK_H_
+#define INC_DATALINK_H_
 
 #include <stdbool.h>
 #include <stdint.h>

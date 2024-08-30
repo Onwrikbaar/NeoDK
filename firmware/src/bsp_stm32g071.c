@@ -400,11 +400,14 @@ static uint16_t pulsePaceMillisecondsToTicks(uint8_t pace_ms)
  * @brief   Calculate the value (0..4095) for the 12-bit DAC to set the desired primary voltage [mV].
  * @note    Assuming R15 = 115 kΩ, R18 = 13 kΩ and R19 = 42.2 kΩ (Refer to the schematic).
  */
+#define VPRIM_MIN_mV     1064   // 1202 for Tokmas instead of SGM 61410 buck chip.
+#define VPRIM_MAX_mV    10057   //10195
+
 static uint16_t Vcap_mV_ToDacVal(uint16_t Vcap_mV)
 {
-    if (Vcap_mV < 1064) Vcap_mV = 1064;
-    else if (Vcap_mV > 10057) Vcap_mV = 10057;
-    return (uint16_t)(((1865 * (uint32_t)(10057 - Vcap_mV)) + 2048) / 4096);
+    if (Vcap_mV < VPRIM_MIN_mV) Vcap_mV = VPRIM_MIN_mV;
+    else if (Vcap_mV > VPRIM_MAX_mV) Vcap_mV = VPRIM_MAX_mV;
+    return (uint16_t)(((1865 * (uint32_t)(VPRIM_MAX_mV - Vcap_mV)) + 2048) / 4096);
 }
 
 
@@ -837,9 +840,9 @@ bool BSP_startPulseTrain(PulseTrain const *pt)
         pulse_timer->DIER |= TIM_DIER_CC2IE;
     } else return false;                        // We only have one output stage.
 
+    pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
     setSwitches(pt->elcon[0] | pt->elcon[1]);
     bsp.pulse_seqnr = 0;
-    pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
     EventQueue_postEvent(bsp.pulse_delegate_queue, ET_BURST_STARTED, NULL, 0);
