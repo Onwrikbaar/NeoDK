@@ -95,8 +95,8 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
         case ET_AO_ENTRY:
             BSP_logf("%s ENTRY\n", __func__);
             // TODO Choose a different pattern each time?
-            // PatternIterator_init(&me->pi, pattern_toggle, M_DIM(pattern_toggle), 80, 400, 3);
-            PatternIterator_init(&me->pi, pattern_simple, M_DIM(pattern_simple), 20, 50, 15);
+            PatternIterator_init(&me->pi, pattern_toggle, M_DIM(pattern_toggle), 80, 400, 3);
+            // PatternIterator_init(&me->pi, pattern_simple, M_DIM(pattern_simple), 20, 50, 15);
             // PatternIterator_init(&me->pi, pattern_circle, M_DIM(pattern_circle), 25, 10, 5);
             break;
         case ET_AO_EXIT:

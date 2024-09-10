@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef enum { FT_NONE, FT_ACK, FT_NAK, FT_SYNC, FT_DATA } FrameType;
+typedef enum { FT_NONE, FT_ACK, FT_NAK, FT_SYNC, FT_DATA, FT_OPTIONS, FT_TOO_BIG } FrameType;
 typedef enum { PROTO_BARE, PROTO_V2020 } ProtocolVersion;
 
 typedef struct _PhysFrame PhysFrame;            // Opaque type.

@@ -11,6 +11,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "bsp_dbg.h"
 #include "controller.h"
@@ -23,7 +24,8 @@ struct _Controller {
 
 static void handleHostMessage(Controller *me, uint8_t const *msg, uint16_t nb)
 {
-    BSP_logf("%s('%s')\n", __func__, msg);
+    char nt_msg[nb + 1];
+    BSP_logf("%s('%s')\n", __func__, strncpy(nt_msg, (const char *)msg, nb));
     DataLink_sendPacket(me->datalink, (uint8_t const *)"Ok!", 3);
 }
 
@@ -40,6 +42,7 @@ Controller *Controller_new()
 void Controller_init(Controller *me, DataLink *datalink)
 {
     me->datalink = datalink;
+    BSP_logf("%s\n", __func__);
     DataLink_open(me->datalink, me, (PacketCallback)&handleHostMessage);
     DataLink_waitForSync(me->datalink);
 }

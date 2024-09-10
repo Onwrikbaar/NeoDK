@@ -91,6 +91,7 @@ typedef struct {
     uint8_t critical_section_level;
     uint8_t nr_of_serial_devices;
     uint16_t volatile adc_1_samples[3];         // Must match the number of ADC1 ranks.
+    uint16_t V_prim_mV;
     uint16_t pulse_seqnr;
     uint8_t pulse_phase;
 } BSP;
@@ -816,8 +817,18 @@ void BSP_primaryVoltageEnable(bool must_be_on)
 void BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 {
     BSP_logf("Setting Vcap to %hu mV\n", V_prim_mV);
+    bsp.V_prim_mV = V_prim_mV;
     // TODO Ensure a rising step on the buck regulator's feedback pin does not exceed 80 mV.
     DAC1->DHR12R2 = Vcap_mV_ToDacVal(V_prim_mV);
+}
+
+
+void BSP_changePrimaryVoltage_mV(int16_t delta_mV)
+{
+    int32_t soll_mV = (int32_t)bsp.V_prim_mV + delta_mV;
+    if (soll_mV < VPRIM_MIN_mV) soll_mV = VPRIM_MIN_mV;
+    else if (soll_mV > VPRIM_MAX_mV) soll_mV = VPRIM_MAX_mV;
+    BSP_setPrimaryVoltage_mV(soll_mV);
 }
 
 

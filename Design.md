@@ -14,7 +14,7 @@
 - Maximum energy into a 500 Ω load is 4 mJ per pulse.
 - Maximum pulse repetition rate is 200 Hz.
 - Maximum dutycycle is 200 µs * 200 Hz * 100% = 4%.
-- Maximum output power into a 500 Ω load is 800 mW. This corresponds to a current of 40 mA RMS.
+- Maximum average output power into a 500 Ω load is 4 mJ * 200 Hz = 800 mW. This corresponds to a current of 40 mA RMS.
 - Average current draw from the power supply or battery is less than 200 mA.
 
 ### Output configurations

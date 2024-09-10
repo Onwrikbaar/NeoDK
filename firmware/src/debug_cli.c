@@ -47,18 +47,21 @@ static void interpretCommand(CmndInterp *me, char ch)
     switch (ch)
     {
         case '?':
-            BSP_logf("Commands: /? /a /l /q /0 /1../9\n");
+            BSP_logf("Commands: /? /a /d /l /q /u /v /0 /1../9\n");
             break;
         case '0':
             BSP_primaryVoltageEnable(false);
             BSP_setPrimaryVoltage_mV(0);
             break;
         case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-            BSP_primaryVoltageEnable(true);
+            BSP_primaryVoltageEnable(true);     // Turn on the buck converter.
             BSP_setPrimaryVoltage_mV((ch - '0') * 1000U);
             break;
         case 'a':
             BSP_triggerADC();
+            break;
+        case 'd':                               // Voltage down.
+            BSP_changePrimaryVoltage_mV(-200);
             break;
         case 'l':
             BSP_toggleTheLED();
@@ -68,6 +71,12 @@ static void interpretCommand(CmndInterp *me, char ch)
             EventQueue_postEvent(me->delegate_queue, ET_POSIX_SIGNAL, (uint8_t const *)&sig, sizeof sig);
             break;
         }
+        case 'u':                               // Voltage up.
+            BSP_changePrimaryVoltage_mV(+200);
+            break;
+        case 'v':
+            BSP_logf("Firmware V0.20-beta\n");
+            break;
         default:
             BSP_logf("Unknown command '/%c'\n", ch);
     }

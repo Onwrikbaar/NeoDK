@@ -43,6 +43,7 @@ int BSP_closeSerialPort(int fd);
 // Pulse generation related functions.
 void BSP_primaryVoltageEnable(bool must_be_on);
 void BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV);
+void BSP_changePrimaryVoltage_mV(int16_t delta_mV);
 bool BSP_startPulseTrain(PulseTrain const *);
 
 // Debugging stuff.

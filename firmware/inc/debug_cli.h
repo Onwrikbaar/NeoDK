@@ -13,7 +13,6 @@
 #ifndef INC_DEBUG_CLI_H_
 #define INC_DEBUG_CLI_H_
 
-#include <stdbool.h>
 #include "eventqueue.h"
 
 
