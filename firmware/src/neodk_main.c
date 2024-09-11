@@ -120,7 +120,7 @@ static void setupAndRunApplication(Boss *me, char const *app_name)
     Controller *controller = Controller_new();
     DataLink *datalink = DataLink_new();
     Controller_init(controller, datalink);
-    CLI_init(&me->event_queue);
+    CLI_init(&me->event_queue, datalink);
     Sequencer_start(me->sequencer);
 
     Selector button_selector;

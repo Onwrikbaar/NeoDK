@@ -10,6 +10,8 @@
  *   Copyright  2024 Neostim™
  */
 
+#include <stdio.h>
+
 #include "bsp_dbg.h"
 #include "bsp_mao.h"
 #include "bsp_app.h"
@@ -24,6 +26,7 @@ typedef struct {
     uint8_t len;
     uint8_t state;
     EventQueue *delegate_queue;
+    DataLink *datalink;
 } CmndInterp;
 
 static CmndInterp my = {0};
@@ -47,7 +50,7 @@ static void interpretCommand(CmndInterp *me, char ch)
     switch (ch)
     {
         case '?':
-            BSP_logf("Commands: /? /a /d /l /q /u /v /0 /1../9\n");
+            CLI_logf("Commands: /? /a /d /l /q /u /v /0 /1../9\n");
             break;
         case '0':
             BSP_primaryVoltageEnable(false);
@@ -75,10 +78,10 @@ static void interpretCommand(CmndInterp *me, char ch)
             BSP_changePrimaryVoltage_mV(+200);
             break;
         case 'v':
-            BSP_logf("Firmware V0.20-beta\n");
+            CLI_logf("Firmware V0.21-beta\n");
             break;
         default:
-            BSP_logf("Unknown command '/%c'\n", ch);
+            CLI_logf("Unknown command '/%c'\n", ch);
     }
 }
 
@@ -100,13 +103,40 @@ static void handleConsoleInput(CmndInterp *me, char ch)
     }
 }
 
+
+static void vLogToUser(CmndInterp *me, char const *fmt, va_list args)
+{
+    char msg[80];
+    int nbw = vsnprintf(msg, sizeof msg, fmt, args);
+    if (nbw > 0) DataLink_sendPacket(me->datalink, (uint8_t const *)msg, nbw + 1);
+}
+
 /*
  * Below are the functions implementing this module's interface.
  */
 
-void CLI_init(EventQueue *dq)
+void CLI_init(EventQueue *dq, DataLink *datalink)
 {
     my.delegate_queue = dq;
+    my.datalink = datalink;
+}
+
+
+int CLI_logf(char const *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    int nbw = BSP_vlogf(fmt, args);
+    vLogToUser(&my, fmt, args);
+    va_end(args);
+    return nbw;
+}
+
+
+void CLI_handleConsoleInput(char const *cmnd, uint16_t nb)
+{
+    if (nb == 2 && cmnd[0] == '/') interpretCommand(&my, cmnd[1]);
+    else CLI_logf("%s('%s')\n", __func__, cmnd);
 }
 
 

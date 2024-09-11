@@ -14,6 +14,9 @@
 #include <string.h>
 
 #include "bsp_dbg.h"
+#include "debug_cli.h"
+
+// This module implements:
 #include "controller.h"
 
 
@@ -25,8 +28,9 @@ struct _Controller {
 static void handleHostMessage(Controller *me, uint8_t const *msg, uint16_t nb)
 {
     char nt_msg[nb + 1];
-    BSP_logf("%s('%s')\n", __func__, strncpy(nt_msg, (const char *)msg, nb));
-    DataLink_sendPacket(me->datalink, (uint8_t const *)"Ok!", 3);
+    strncpy(nt_msg, (const char *)msg, nb);
+    nt_msg[nb] = '\0';
+    CLI_handleConsoleInput(nt_msg, nb);
 }
 
 /*

@@ -14,8 +14,11 @@
 #define INC_DEBUG_CLI_H_
 
 #include "eventqueue.h"
+#include "datalink.h"
 
 
-void CLI_init(EventQueue *);
+void CLI_init(EventQueue *, DataLink *);
+int  CLI_logf(char const *fmt, ...);
+void CLI_handleConsoleInput(char const *, uint16_t nb);
 
 #endif
