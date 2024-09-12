@@ -14,6 +14,7 @@
 
 #include "bsp_dbg.h"
 #include "bsp_mao.h"
+#include "debug_cli.h"
 #include "app_event.h"
 #include "eventqueue.h"
 #include "pattern_iter.h"
@@ -81,7 +82,7 @@ static void printAdcValues(uint16_t const *v)
     uint32_t Iprim_mA = ((uint32_t)v[0] * 2063UL) / 1024;
     uint32_t Vcap_mV = ((uint32_t)v[1] * 52813UL) / 16384;
     uint32_t Vbat_mV = ((uint32_t)v[2] * 52813UL) / 16384;
-    BSP_logf("Iprim=%u mA, Vcap=%u mV, Vbat=%u mV\n", Iprim_mA, Vcap_mV, Vbat_mV);
+    CLI_logf("Iprim=%u mA, Vcap=%u mV, Vbat=%u mV\n", Iprim_mA, Vcap_mV, Vbat_mV);
 }
 
 // Forward declaration.
@@ -112,7 +113,7 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             BSP_logf("Pulse train last pulse done\n");
             break;
         case ET_BURST_EXPIRED:
-            BSP_logf("Pulse train finished\n");
+            CLI_logf("Pulse train finished\n");
             break;
         default:
             BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
@@ -132,17 +133,17 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
             BSP_logf("%s EXIT\n", __func__);
             break;
         case ET_SEQUENCER_PLAY_PAUSE:
-            BSP_logf("Resuming...\n");
+            CLI_logf("Resuming...\n");
             return &statePulsing;
         case ET_BURST_COMPLETED:
             // BSP_logf("Last pulse done\n");
             break;
         case ET_BURST_EXPIRED:
             if (PatternIterator_done(&me->pi)) {
-                BSP_logf("Last pulse train finished\n");
+                CLI_logf("Last pulse train finished\n");
                 return &stateIdle;              // Transition.
             }
-            BSP_logf("Pulse train finished - pausing\n");
+            CLI_logf("Pausing...\n");
             break;
         case ET_ADC_DATA_AVAILABLE:
             printAdcValues((uint16_t const *)AOEvent_data(evt));

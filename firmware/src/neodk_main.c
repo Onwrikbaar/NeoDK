@@ -52,7 +52,7 @@ static void Boss_finish(Boss *me)
 
 static void handlePosixSignal(Boss *me, int sig)
 {
-    BSP_logf("Received signal %d\n", sig);
+    CLI_logf("Received signal %d\n", sig);
     if (sig == 2) me->keep_running = false;
 }
 
@@ -60,7 +60,7 @@ static void handlePosixSignal(Boss *me, int sig)
 static void printTime(uint64_t app_timer_micros)
 {
     uint32_t seconds_since_boot = (uint32_t)(app_timer_micros / 1000000UL);
-    BSP_logf("Time %02u:%02u:%02u\n", seconds_since_boot / 3600, (seconds_since_boot / 60) % 60, seconds_since_boot % 60);
+    CLI_logf("Time %02u:%02u:%02u\n", seconds_since_boot / 3600, (seconds_since_boot / 60) % 60, seconds_since_boot % 60);
 }
 
 
@@ -115,7 +115,7 @@ static bool noEventsPending(Boss const *me)
 }
 
 
-static void setupAndRunApplication(Boss *me, char const *app_name)
+static void setupAndRunApplication(Boss *me)
 {
     Controller *controller = Controller_new();
     DataLink *datalink = DataLink_new();
@@ -126,11 +126,7 @@ static void setupAndRunApplication(Boss *me, char const *app_name)
     Selector button_selector;
     BSP_registerButtonHandler(Selector_init(&button_selector, (Action)&onButtonToggle, me));
 
-    BSP_logf("Starting %s on NeoDK!\n", app_name);
-    BSP_logf("Push the button to play or pause! :-)\n");
-    BSP_setPrimaryVoltage_mV(2000);
-    BSP_primaryVoltageEnable(true);
-
+    Controller_start(controller);
     while (me->keep_running) {
         if (Sequencer_handleEvent(me->sequencer)) continue;
         if (Boss_handleEvent(me)) continue;
@@ -139,7 +135,6 @@ static void setupAndRunApplication(Boss *me, char const *app_name)
 
     Sequencer_stop(me->sequencer);
     Controller_stop(controller);
-    BSP_logf("End of session\n");
     Controller_delete(controller);
     DataLink_delete(datalink);
 }
@@ -155,7 +150,7 @@ int main()
     Boss_init(&boss);
 
     BSP_registerAppTimerHandler((void (*)(void *, uint64_t))&onAppTimerTick, &boss, MICROSECONDS_PER_APP_TIMER_TICK);
-    setupAndRunApplication(&boss, "Moving Pattern Demo");
+    setupAndRunApplication(&boss);
 
     Boss_finish(&boss);
     BSP_close();

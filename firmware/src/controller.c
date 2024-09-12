@@ -14,14 +14,19 @@
 #include <string.h>
 
 #include "bsp_dbg.h"
+#include "bsp_app.h"
 #include "debug_cli.h"
 
 // This module implements:
 #include "controller.h"
 
+typedef void *(*StateFunc)(Controller *, AOEvent const *);
 
 struct _Controller {
+    EventQueue event_queue;                     // This MUST be the first member.
+    uint8_t event_storage[400];
     DataLink *datalink;
+    StateFunc state;
 };
 
 
@@ -39,7 +44,10 @@ static void handleHostMessage(Controller *me, uint8_t const *msg, uint16_t nb)
 
 Controller *Controller_new()
 {
-    return (Controller *)malloc(sizeof(Controller));
+    Controller *me = (Controller *)malloc(sizeof(Controller));
+    EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
+    // me->state = &stateIdle;
+    return me;
 }
 
 
@@ -52,9 +60,19 @@ void Controller_init(Controller *me, DataLink *datalink)
 }
 
 
+void Controller_start(Controller *me)
+{
+    BSP_logf("Starting NeoDK!\n");
+    BSP_logf("Push the button to play or pause! :-)\n");
+    BSP_setPrimaryVoltage_mV(2500);
+    BSP_primaryVoltageEnable(true);
+}
+
+
 void Controller_stop(Controller *me)
 {
-    BSP_logf("%s\n", __func__);
+    BSP_primaryVoltageEnable(false);
+    BSP_logf("End of session\n");
     DataLink_close(me->datalink);
 }
 

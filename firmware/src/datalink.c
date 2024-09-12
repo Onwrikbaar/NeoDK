@@ -230,20 +230,10 @@ void DataLink_waitForSync(DataLink *me)
 
 bool DataLink_sendPacket(DataLink *me, uint8_t const *packet, uint16_t nb)
 {
-    BSP_criticalSectionEnter();
-    if (CircBuffer_availableSpace(&me->output_buffer) < me->header_size + nb) {
-        BSP_criticalSectionExit();
-        BSP_logf("%s of size %u failed\n", __func__, nb);
-        return false;
-    }
-
     uint8_t frame_store[me->header_size + nb];
-    PhysFrame *frame = (PhysFrame *)frame_store;
-    PhysFrame_init(frame, FT_DATA, me->tx_seq_nr, packet, nb);
-    CircBuffer_write(&me->output_buffer, frame_store, sizeof frame_store);
-    BSP_criticalSectionExit();
-    BSP_logf("%s (seq=%hhu) of size %u succeeded\n", __func__, PhysFrame_seqNr(frame), nb);
-    return true;
+    PhysFrame_init((PhysFrame *)frame_store, FT_DATA, me->tx_seq_nr, packet, nb);
+    // BSP_logf("Writing frame with size %hu to buffer\n", sizeof frame_store);
+    return writeFrame(me, frame_store, sizeof frame_store) == sizeof frame_store;
 }
 
 
