@@ -50,7 +50,7 @@ static void interpretCommand(CmndInterp *me, char ch)
     switch (ch)
     {
         case '?':
-            CLI_logf("Commands: /? /a /d /l /q /u /v /0 /1../9\n");
+            CLI_logf("Commands: /? /a /b /d /l /q /u /v /0 /1../9\n");
             break;
         case '0':
             BSP_primaryVoltageEnable(false);
@@ -62,6 +62,10 @@ static void interpretCommand(CmndInterp *me, char ch)
             break;
         case 'a':
             BSP_triggerADC();
+            break;
+        case 'b':                               // Simulate a button press.
+            EventQueue_postEvent(me->delegate_queue, ET_BUTTON_PUSHED, NULL, 0);
+            EventQueue_postEvent(me->delegate_queue, ET_BUTTON_RELEASED, NULL, 0);
             break;
         case 'd':                               // Voltage down.
             BSP_changePrimaryVoltage_mV(-200);
@@ -78,7 +82,7 @@ static void interpretCommand(CmndInterp *me, char ch)
             BSP_changePrimaryVoltage_mV(+200);
             break;
         case 'v':
-            CLI_logf("Firmware V0.22-beta\n");
+            CLI_logf("Firmware V0.23-beta\n");
             break;
         default:
             CLI_logf("Unknown command '/%c'\n", ch);
@@ -136,7 +140,7 @@ int CLI_logf(char const *fmt, ...)
 void CLI_handleConsoleInput(char const *cmnd, uint16_t nb)
 {
     if (nb == 2 && cmnd[0] == '/') interpretCommand(&my, cmnd[1]);
-    else CLI_logf("%s('%s')\n", __func__, cmnd);
+    else CLI_logf("%s('%s')", __func__, cmnd);
 }
 
 

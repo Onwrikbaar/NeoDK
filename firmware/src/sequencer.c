@@ -96,9 +96,9 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
         case ET_AO_ENTRY:
             BSP_logf("%s ENTRY\n", __func__);
             // TODO Choose a different pattern each time?
-            PatternIterator_init(&me->pi, pattern_toggle, M_DIM(pattern_toggle), 80, 400, 3);
+            // PatternIterator_init(&me->pi, pattern_toggle, M_DIM(pattern_toggle), 80, 400, 3);
             // PatternIterator_init(&me->pi, pattern_simple, M_DIM(pattern_simple), 20, 50, 15);
-            // PatternIterator_init(&me->pi, pattern_circle, M_DIM(pattern_circle), 25, 10, 5);
+            PatternIterator_init(&me->pi, pattern_circle, M_DIM(pattern_circle), 25, 40, 7);
             break;
         case ET_AO_EXIT:
             BSP_logf("%s EXIT\n", __func__);
@@ -108,6 +108,7 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             break;
         case ET_SEQUENCER_PLAY_PAUSE:
             M_ASSERT(! PatternIterator_done(&me->pi));
+            CLI_logf("Starting\n");
             return &statePulsing;               // Transition.
         case ET_BURST_COMPLETED:
             BSP_logf("Pulse train last pulse done\n");
@@ -133,17 +134,17 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
             BSP_logf("%s EXIT\n", __func__);
             break;
         case ET_SEQUENCER_PLAY_PAUSE:
-            CLI_logf("Resuming...\n");
+            CLI_logf("Resuming\n");
             return &statePulsing;
         case ET_BURST_COMPLETED:
             // BSP_logf("Last pulse done\n");
             break;
         case ET_BURST_EXPIRED:
             if (PatternIterator_done(&me->pi)) {
-                CLI_logf("Last pulse train finished\n");
+                CLI_logf("Finished\n");
                 return &stateIdle;              // Transition.
             }
-            CLI_logf("Pausing...\n");
+            CLI_logf("Pausing\n");
             break;
         case ET_ADC_DATA_AVAILABLE:
             printAdcValues((uint16_t const *)AOEvent_data(evt));
