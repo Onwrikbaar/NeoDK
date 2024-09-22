@@ -10,10 +10,7 @@ Discord: @Onwrikbaar<br/>
 E: <onwrikbaar@hotmail.com>
 
 ### Status
-This is a work in progress. Updates may be few and far between.
-
-### Request
-Please send me an e-mail in case you are building this design, and let me know whether you run into any questions or problems. It will help me decide how I can best lower the threshold to replicating NeoDK. Thanks!
+This is a work in progress. The electronics are production-ready. The firmware is far from finished.
 
 ### Goals
 1. The last quarter century, innovation in the e-stim realm has been virtually nonexistent, despite massive advances in electronics and cheap computing power. Currently available commercial devices are without exception channel-oriented and produce TENS-like waveforms. Most are horrendously energy-inefficient. The time has come to unlock the potential of a more capable architecture.
