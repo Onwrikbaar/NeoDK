@@ -85,6 +85,13 @@ static void printAdcValues(uint16_t const *v)
     CLI_logf("Iprim=%u mA, Vcap=%u mV, Vbat=%u mV\n", Iprim_mA, Vcap_mV, Vbat_mV);
 }
 
+
+static void *stateNop(Sequencer *me, AOEvent const *evt)
+{
+    BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
+    return NULL;
+}
+
 // Forward declaration.
 static void *statePulsing(Sequencer *, AOEvent const *);
 
@@ -98,7 +105,7 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             // TODO Choose a different pattern each time?
             // PatternIterator_init(&me->pi, pattern_toggle, M_DIM(pattern_toggle), 80, 400, 3);
             // PatternIterator_init(&me->pi, pattern_simple, M_DIM(pattern_simple), 20, 50, 15);
-            PatternIterator_init(&me->pi, pattern_circle, M_DIM(pattern_circle), 25, 40, 7);
+            PatternIterator_init(&me->pi, pattern_circle, M_DIM(pattern_circle), 30, 40, 9);
             break;
         case ET_AO_EXIT:
             BSP_logf("%s EXIT\n", __func__);
@@ -114,7 +121,7 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             BSP_logf("Pulse train last pulse done\n");
             break;
         case ET_BURST_EXPIRED:
-            CLI_logf("Pulse train finished\n");
+            CLI_logf("Finished\n");
             break;
         default:
             BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
@@ -192,7 +199,7 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
             break;
         case ET_BURST_EXPIRED:
             if (! scheduleNextPulseTrain(me)) {
-                BSP_logf("Last pulse train finished\n");
+                CLI_logf("Finished\n");
                 return &stateIdle;              // Transition.
             }
             break;
@@ -228,7 +235,7 @@ Sequencer *Sequencer_new()
 {
     Sequencer *me = (Sequencer *)malloc(sizeof(Sequencer));
     EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
-    me->state = &stateIdle;
+    me->state = &stateNop;
     BSP_registerPulseDelegate(&me->event_queue);
     return me;
 }
@@ -248,6 +255,8 @@ void Sequencer_start(Sequencer *me)
         total_nr_of_pulses += pt.nr_of_pulses;
     }
     BSP_logf("Total number of pulses: %u\n", total_nr_of_pulses);
+
+    me->state = stateIdle;
     me->state(me, AOEvent_newEntryEvent());
 }
 
@@ -261,6 +270,8 @@ bool Sequencer_handleEvent(Sequencer *me)
 void Sequencer_stop(Sequencer *me)
 {
     BSP_primaryVoltageEnable(false);
+    me->state(me, AOEvent_newExitEvent());
+    me->state = stateNop;
 }
 
 

@@ -29,7 +29,7 @@ NeoDK is experimental, recreational, educational hardware and software. It comes
 ### Safety
 NeoDK can generate potentially lethal voltages and currents on its outputs and on internal components, even when powered from a battery. The risks associated with building, testing and using this device can be reduced but not eliminated.
 
-The NeoDK device is designed to stay well within the IEC 60601-2-10 limits. However, these limits are not necessarily maintained when the supply voltage, circuit, components or accompanying firmware are changed in any way.
+The NeoDK device is designed to stay within the IEC 60601-2-10 limits once its firmware is out of beta. However, these limits are not necessarily maintained when the supply voltage, circuit, components or accompanying firmware are changed in any way.
 
 ### Audience
 This project is intended for experienced electronics hobbyists and professionals, who possess a keen understanding of the risks associated with electrostimulation and high-voltage circuitry, and who desire one or more of the following:
@@ -47,3 +47,6 @@ NeoDK's electronics and firmware can do things no commercially available e-stim 
 
 ### Why to start simple
 "A complex system that works is invariably found to have evolved from a simple system that worked. A complex system designed from scratch never works and cannot be patched up to make it work. You have to start over with a working simple system." -- John Gall
+
+## NeoDK in the media
+Joanne's Reviews always informative and entertaining YouTube [E-stim Livestreams](https://www.youtube.com/@JoannesReviews/streams) recently featured an [item about NeoDK](https://youtu.be/giEaDksRmh0?t=1460).

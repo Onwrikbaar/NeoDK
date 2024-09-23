@@ -47,7 +47,6 @@ STM32G0xx_INC += \
   $(STM32CUBE_G0)/Drivers/CMSIS/Core/Include \
   $(STM32CUBE_G0)/Drivers/CMSIS/Device/ST/STM32G0xx/Include \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Inc \
-  $(GNU_INSTALL_ROOT)/../include \
   $(SEGGER) \
 
 # Libraries common to all targets

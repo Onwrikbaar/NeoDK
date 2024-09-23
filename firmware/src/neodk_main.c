@@ -28,7 +28,8 @@
 
 typedef struct {
     EventQueue event_queue;                     // This MUST be the first member.
-    uint8_t event_storage[400];
+    uint8_t event_storage[200];
+    Controller *controller;
     Sequencer *sequencer;
     uint64_t prev_micros;
     uint8_t keep_running;
@@ -38,6 +39,7 @@ typedef struct {
 static void Boss_init(Boss *me)
 {
     EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
+    me->controller = Controller_new();
     me->sequencer = Sequencer_new();
     me->prev_micros = 0;
     me->keep_running = true;
@@ -47,6 +49,7 @@ static void Boss_init(Boss *me)
 static void Boss_finish(Boss *me)
 {
     Sequencer_delete(me->sequencer);
+    Controller_delete(me->controller);
 }
 
 
@@ -110,32 +113,32 @@ static bool Boss_handleEvent(Boss *me)
 
 static bool noEventsPending(Boss const *me)
 {
-    return EventQueue_isEmpty(&me->event_queue)
-        && EventQueue_isEmpty((EventQueue const *)me->sequencer);
+    return EventQueue_isEmpty((EventQueue const *)me->sequencer)
+        && EventQueue_isEmpty((EventQueue const *)me->controller)
+        && EventQueue_isEmpty(&me->event_queue);
 }
 
 
 static void setupAndRunApplication(Boss *me)
 {
-    Controller *controller = Controller_new();
     DataLink *datalink = DataLink_new();
-    Controller_init(controller, datalink);
+    Controller_init(me->controller, datalink);
     CLI_init(&me->event_queue, datalink);
     Sequencer_start(me->sequencer);
 
     Selector button_selector;
     BSP_registerButtonHandler(Selector_init(&button_selector, (Action)&onButtonToggle, me));
 
-    Controller_start(controller);
+    Controller_start(me->controller);
     while (me->keep_running) {
         if (Sequencer_handleEvent(me->sequencer)) continue;
+        if (Controller_handleEvent(me->controller)) continue;
         if (Boss_handleEvent(me)) continue;
         BSP_idle((bool (*)(const void *))&noEventsPending, me);
     }
 
     Sequencer_stop(me->sequencer);
-    Controller_stop(controller);
-    Controller_delete(controller);
+    Controller_stop(me->controller);
     DataLink_delete(datalink);
 }
 

@@ -82,7 +82,7 @@ static void interpretCommand(CmndInterp *me, char ch)
             BSP_changePrimaryVoltage_mV(+200);
             break;
         case 'v':
-            CLI_logf("Firmware V0.23-beta\n");
+            CLI_logf("Firmware V0.24-beta\n");
             break;
         default:
             CLI_logf("Unknown command '/%c'\n", ch);

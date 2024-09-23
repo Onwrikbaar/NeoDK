@@ -23,6 +23,7 @@ Controller *Controller_new();
 // Instance methods.
 void Controller_init(Controller *, DataLink *);
 void Controller_start(Controller *);
+bool Controller_handleEvent(Controller *);
 void Controller_stop(Controller *);
 void Controller_delete(Controller *);
 

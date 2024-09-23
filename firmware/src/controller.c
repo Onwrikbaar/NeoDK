@@ -25,8 +25,8 @@ typedef void *(*StateFunc)(Controller *, AOEvent const *);
 struct _Controller {
     EventQueue event_queue;                     // This MUST be the first member.
     uint8_t event_storage[400];
-    DataLink *datalink;
     StateFunc state;
+    DataLink *datalink;
 };
 
 
@@ -38,6 +38,45 @@ static void handleHostMessage(Controller *me, uint8_t const *msg, uint16_t nb)
     CLI_handleConsoleInput(nt_msg, nb);
 }
 
+
+static void *stateNop(Controller *me, AOEvent const *evt)
+{
+    BSP_logf("Controller_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
+    return NULL;
+}
+
+
+static void *stateIdle(Controller *me, AOEvent const *evt)
+{
+    switch (AOEvent_type(evt))
+    {
+        case ET_AO_ENTRY:
+            BSP_logf("%s ENTRY\n", __func__);
+            break;
+        case ET_AO_EXIT:
+            BSP_logf("%s EXIT\n", __func__);
+            break;
+        default:
+            BSP_logf("Controller_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
+    }
+    return NULL;
+}
+
+// Send one event to the state machine.
+static void dispatchEvent(Controller *me, AOEvent const *evt)
+{
+    BSP_logf("%s(%u)\n", __func__, evt);
+    StateFunc new_state = me->state(me, evt);
+    if (new_state != NULL) {                    // Transition.
+        StateFunc sf = me->state(me, AOEvent_newExitEvent());
+        // No transition allowed on ENTRY and EXIT events.
+        M_ASSERT(sf == NULL);
+        me->state = new_state;
+        sf = me->state(me, AOEvent_newEntryEvent());
+        M_ASSERT(sf == NULL);
+    }
+}
+
 /*
  * Below are the functions implementing this module's interface.
  */
@@ -46,7 +85,7 @@ Controller *Controller_new()
 {
     Controller *me = (Controller *)malloc(sizeof(Controller));
     EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
-    // me->state = &stateIdle;
+    me->state = &stateIdle;
     return me;
 }
 
@@ -66,13 +105,23 @@ void Controller_start(Controller *me)
     BSP_logf("Push the button to play or pause! :-)\n");
     BSP_setPrimaryVoltage_mV(2500);
     BSP_primaryVoltageEnable(true);
+
+    me->state = stateIdle;
+    me->state(me, AOEvent_newEntryEvent());
+}
+
+
+bool Controller_handleEvent(Controller *me)
+{
+    return EventQueue_handleNextEvent(&me->event_queue, (EvtFunc)&dispatchEvent, me);
 }
 
 
 void Controller_stop(Controller *me)
 {
-    BSP_primaryVoltageEnable(false);
-    BSP_logf("End of session\n");
+    me->state(me, AOEvent_newExitEvent());
+    me->state = stateNop;
+    CLI_logf("End of session\n");
     DataLink_close(me->datalink);
 }
 

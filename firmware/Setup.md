@@ -1,11 +1,11 @@
 ## Updating the firmware without using a debugging probe
 1. Download and install STM's free [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html) programming tool.
-2. Connect NeoDK to a computer using a USB-to-3.5mm-TRS-serial cable. Suitable cables (3.3V TTL, Tip=Tx, Ring=Rx, Sleeve=GND) are readily available from various sources, like Aliexpress, for about €10 including shipping.
-3. Press and hold the pushbutton on NeoDK while switching on its power (or connecting the battery). This puts NeoDK in bootloader mode. Release the button.
-4. Open a terminal window and execute the following on the command line:<br/>
-&nbsp;&nbsp;`cd firmware`<br/>
-&nbsp;&nbsp;`STM32_Programmer_CLI -c port=/dev/tty.usbserial-0001 -w build/neodk_g071.hex -v`<br/>
-(Specify the COM port that corresponds to your USB-serial cable, in place of `/dev/tty.usbserial-0001`).<br/>
+2. Download [neodk_g071.hex](https://github.com/Onwrikbaar/NeoDK/tree/main/firmware/build/neodk_g071.hex).
+3. Connect NeoDK to a computer using a USB-to-3.5mm-TRS-serial cable. Suitable cables (3.3V TTL, Tip=Tx, Ring=Rx, Sleeve=GND) are readily available from various sources, like Aliexpress, for about €10 including shipping.
+4. Press and hold the pushbutton on NeoDK while switching on its power (or connecting the battery). This puts NeoDK in bootloader mode. Release the button.
+5. Open a terminal window and execute the following on the command line:<br/>
+&nbsp;&nbsp;`STM32_Programmer_CLI -c port=/dev/tty.usbserial-0001 -w neodk_g071.hex -v`<br/>
+Specify the COM port that corresponds to your USB-serial cable (for instance `COM7` on Windows), in place of `/dev/tty.usbserial-0001`.<br/>
 A power cycle starts the firmware; the blue LED should light up and the box is ready for use.
 
 ## Controlling NeoDK from a computer
@@ -14,7 +14,7 @@ A power cycle starts the firmware; the blue LED should light up and the box is r
 3. The following commands can be typed into the command box:
 - /? list the commands
 - /a print the instantaneous primary current and some voltages
-- /b simulate the button, to start/pause/resume the pattern
+- /b simulate the pushbutton, to start/pause/resume the pattern
 - /d primary voltage down by 200 mV
 - /l toggle the lovely blue LED
 - /u primary voltage up by 200 mV
@@ -40,6 +40,7 @@ A suitable probe is the Segger JLink or Segger JLink EDU. Other probes supportin
 3. In your home directory, create a softlink named 'SEGGER_RTT' to directory 'JLink_V792k/Samples/RTT/SEGGER_RTT_V792k/RTT' of the just installed tree.
 
 ### Checking your installation
+&nbsp;&nbsp;`cd NeoDK/firmware`<br/>
 In this directory ('firmware'), at the command prompt type
 
 &nbsp;&nbsp;`make`
