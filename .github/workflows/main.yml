@@ -1,0 +1,51 @@
+#
+#      Author  lea_calot
+#
+name: FirmwareBuild
+
+on:
+  push:
+    branches: [ ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build_firmware:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install Arm GNU Toolchain (arm-none-eabi-gcc)
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
+        with:
+          release: '11.2-2022.02'
+
+      - name: Install SEGGER J-Link RTT
+        run: |
+          wget --post-data "accept_license_agreement=accepted" -c https://www.segger.com/downloads/jlink/JLink_Linux_V792_x86_64.tgz
+          tar xvzf JLink_Linux_V792_x86_64.tgz
+          tar xvzf JLink_Linux_V792_x86_64/Samples/RTT/SEGGER_RTT_V792.tgz
+          cp SEGGER_RTT_V792/Config/SEGGER_RTT_Conf.h SEGGER_RTT_V792/RTT/
+
+      - name: Install CubeMX G0
+        run: |
+          git clone --recursive -b v1.6.0 https://github.com/STMicroelectronics/STM32CubeG0.git
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          path: NeoDK
+
+      - name: Build Firmware
+        run: |
+          echo $(pwd)
+          cd NeoDK/firmware
+          SEGGER=~/work/NeoDK/NeoDK/SEGGER_RTT_V792/RTT/ STM32CUBE_G0=~/work/NeoDK/NeoDK/STM32CubeG0 GNU_INSTALL_ROOT=$(dirname $(which arm-none-eabi-gcc))/ make
+          
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: neodk_firmware
+          compression-level: 9
+          path: |
+            NeoDK/firmware/build/neodk_g071.bin
+            NeoDK/firmware/build/neodk_g071.hex

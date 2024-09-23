@@ -11,8 +11,8 @@ MAO_LIB_SRC := maolib/src
 PROJ_DIR_INC := inc
 PROJ_DIR_SRC := src
 STM32REPO := $(HOME)/STM32Cube/Repository
-STM32CUBE_G0 := $(STM32REPO)/STM32Cube_FW_G0_V1.6.0
-SEGGER := $(HOME)/SEGGER_RTT
+STM32CUBE_G0 ?= $(STM32REPO)/STM32Cube_FW_G0_V1.6.0
+SEGGER ?= $(HOME)/SEGGER_RTT
 
 $(OUTPUT_DIRECTORY)/neodk_g071.out: \
   LINKER_SCRIPT := STM32G071_FLASH.ld
@@ -47,7 +47,7 @@ STM32G0xx_INC += \
   $(STM32CUBE_G0)/Drivers/CMSIS/Core/Include \
   $(STM32CUBE_G0)/Drivers/CMSIS/Device/ST/STM32G0xx/Include \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Inc \
-  $(HOME)/gcc-arm/arm-none-eabi/include \
+  $(GNU_INSTALL_ROOT)/../include \
   $(SEGGER) \
 
 # Libraries common to all targets
