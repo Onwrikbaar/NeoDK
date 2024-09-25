@@ -39,7 +39,7 @@ jobs:
         run: |
           echo $(pwd)
           cd NeoDK/firmware
-          SEGGER=~/work/NeoDK/NeoDK/SEGGER_RTT_V792/RTT/ STM32CUBE_G0=~/work/NeoDK/NeoDK/STM32CubeG0 GNU_INSTALL_ROOT=$(dirname $(which arm-none-eabi-gcc))/ make
+          SEGGER="${GITHUB_WORKSPACE}/SEGGER_RTT_V792/RTT/" STM32CUBE_G0="${GITHUB_WORKSPACE}"/STM32CubeG0 GNU_INSTALL_ROOT=$(dirname $(which arm-none-eabi-gcc))/ make
           
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
