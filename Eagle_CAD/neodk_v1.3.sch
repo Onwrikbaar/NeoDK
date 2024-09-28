@@ -20470,7 +20470,7 @@ conversion&lt;/p&gt;  &lt;a href="https://pricing.snapeda.com/parts/AP63203/Diod
 <technology name="">
 <attribute name="DESCRIPTION" value="Conv DC-DC 3.8V to 32V Synchronous Step Down Single-Out 3.3V 2A 6-Pin TSOT-26 T/R"/>
 <attribute name="MF" value="Diodes Zetex"/>
-<attribute name="MP" value="AP63203"/>
+<attribute name="MP" value="AP63203WU-7"/>
 <attribute name="PACKAGE" value="TSOT-26" constant="no"/>
 </technology>
 </technologies>
@@ -21402,9 +21402,9 @@ conversion&lt;/p&gt;  &lt;a href="https://pricing.snapeda.com/parts/AP63203/Diod
 <devices>
 <device name="" package="SOT23">
 <connects>
-<connect gate="G$1" pin="D" pad="2"/>
+<connect gate="G$1" pin="D" pad="3"/>
 <connect gate="G$1" pin="G" pad="1"/>
-<connect gate="G$1" pin="S" pad="3"/>
+<connect gate="G$1" pin="S" pad="2"/>
 </connects>
 <technologies>
 <technology name="">
@@ -22082,8 +22082,8 @@ conversion&lt;/p&gt;  &lt;a href="https://pricing.snapeda.com/parts/AP63203/Diod
 <part name="R6" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="300"/>
 <part name="R7" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="300"/>
 <part name="R8" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="300"/>
-<part name="R9" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="150"/>
-<part name="R1" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="150"/>
+<part name="R9" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="300"/>
+<part name="R1" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="300"/>
 <part name="R2" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-EU_" device="R0603" package3d_urn="urn:adsk.eagle:package:23555/3" value="300"/>
 <part name="SUPPLY2" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="VCC" device=""/>
 <part name="C5" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="C-EU" device="C0603" package3d_urn="urn:adsk.eagle:package:23616/2" value="100n"/>
@@ -22211,7 +22211,7 @@ conversion&lt;/p&gt;  &lt;a href="https://pricing.snapeda.com/parts/AP63203/Diod
 <text x="177.8" y="96.52" size="1.778" layer="91">Snubber</text>
 <text x="195.58" y="53.34" size="2.286" layer="91" ratio="12">Use ONLY
 this transformer.</text>
-<text x="132.08" y="48.26" size="2.286" layer="91" ratio="10">NeoDK v1.2
+<text x="132.08" y="48.26" size="2.286" layer="91" ratio="10">NeoDK v1.3
 © 2024 Neostim</text>
 <text x="91.44" y="-20.32" size="1.778" layer="91">ADC</text>
 <text x="88.9" y="-22.86" size="1.778" layer="91">ADC</text>

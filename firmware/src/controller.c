@@ -85,7 +85,7 @@ Controller *Controller_new()
 {
     Controller *me = (Controller *)malloc(sizeof(Controller));
     EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
-    me->state = &stateIdle;
+    me->state = &stateNop;
     return me;
 }
 
@@ -94,6 +94,7 @@ void Controller_init(Controller *me, DataLink *datalink)
 {
     me->datalink = datalink;
     BSP_logf("%s\n", __func__);
+    me->state = &stateIdle;
     DataLink_open(me->datalink, me, (PacketCallback)&handleHostMessage);
     DataLink_waitForSync(me->datalink);
 }

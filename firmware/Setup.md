@@ -1,6 +1,6 @@
 ## Updating the firmware without using a debugging probe
 1. Download and install STM's free [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html) programming tool.
-2. Download [neodk_g071.hex](https://github.com/Onwrikbaar/NeoDK/tree/main/firmware/build/neodk_g071.hex).
+2. Get [neodk_g071.hex](https://github.com/Onwrikbaar/NeoDK/tree/main/firmware/build/neodk_g071.hex). Click the "Download raw file" icon to download.
 3. Connect NeoDK to a computer using a USB-to-3.5mm-TRS-serial cable. Suitable cables (3.3V TTL, Tip=Tx, Ring=Rx, Sleeve=GND) are readily available from various sources, like Aliexpress, for about €10 including shipping.
 4. Press and hold the pushbutton on NeoDK while switching on its power (or connecting the battery). This puts NeoDK in bootloader mode. Release the button.
 5. Open a terminal window and execute the following on the command line:<br/>
