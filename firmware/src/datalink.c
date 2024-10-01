@@ -11,12 +11,14 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "bsp_dbg.h"
 #include "bsp_mao.h"
 #include "bsp_app.h"
 #include "circbuffer.h"
 #include "net_frame.h"
+#include "debug_cli.h"                          // Temporary.
 
 // This module implements:
 #include "datalink.h"
@@ -95,12 +97,32 @@ static uint32_t writeFrame(DataLink *me, uint8_t const *frame, uint32_t nb)
 }
 
 
-static void respondWithAckFrame(DataLink *me, uint8_t ack_nr)
+static void respondWithAckFrame(DataLink *me, uint8_t ack_nr, NetworkServiceType nst)
 {
     uint8_t ack_frame[me->header_size];
-    PhysFrame_initHeaderWithAck((PhysFrame *)ack_frame, FT_ACK, 0, ack_nr);
+    PhysFrame_initHeaderWithAck((PhysFrame *)ack_frame, FT_ACK, 0, ack_nr, nst);
     BSP_logf("%s(%hhu) to controller\n", __func__, ack_nr);
     writeFrame(me, ack_frame, sizeof ack_frame);
+}
+
+
+static void handleIncomingDataFrame(DataLink *me, PhysFrame const *frame)
+{
+    uint8_t rx_seq_nr = PhysFrame_seqNr(frame);
+    uint16_t payload_size = PhysFrame_payloadSize(frame);
+    BSP_logf("Got packet, seq_nr=%hhu, payload_size=%hu\n", rx_seq_nr, payload_size);
+    NetworkServiceType nst = PhysFrame_serviceType(frame);
+    respondWithAckFrame(me, rx_seq_nr, nst);
+
+    uint8_t const *payload = PhysFrame_payload(frame);
+    if (nst == NST_DEBUG) {
+        char zt_msg[payload_size + 1];
+        strncpy(zt_msg, (const char *)payload, payload_size);
+        zt_msg[payload_size] = '\0';
+        CLI_handleConsoleInput(zt_msg, payload_size);
+    } else {
+        me->packet_callback(me->packet_handler, payload, payload_size);
+    }
 }
 
 
@@ -115,27 +137,24 @@ static void handleIncomingFrame(DataLink *me, PhysFrame const *frame)
     if (frame_type == FT_ACK) {
         uint8_t ack_nr = PhysFrame_ackNr(frame);
         BSP_logf("Got ACK for frame %hhu\n", ack_nr);
-        me->tx_seq_nr = (ack_nr + 1) & 0xf;
+        me->tx_seq_nr = (ack_nr + 1) & 0x7;
         return;
     }
 
     uint8_t rx_seq_nr = PhysFrame_seqNr(frame);
     if (frame_type == FT_SYNC) {
         BSP_logf("Got SYNC frame, seq_nr=%hhu\n", rx_seq_nr);
-        respondWithAckFrame(me, rx_seq_nr);
+        respondWithAckFrame(me, rx_seq_nr, PhysFrame_serviceType(frame));
         return;
     }
 
     uint16_t payload_size = PhysFrame_payloadSize(frame);
     if (frame_type == FT_DATA) {
-        BSP_logf("Got packet, seq_nr=%hhu, payload_size=%hu\n", rx_seq_nr, payload_size);
-        respondWithAckFrame(me, rx_seq_nr);
-        me->packet_callback(me->packet_handler, PhysFrame_payload(frame), payload_size);
-        return;
+        handleIncomingDataFrame(me, frame);
+    } else {
+        BSP_logf("Got %s frame, seq_nr=%hhu, payload_size=%hu\n",
+                    PhysFrame_frameTypeName(frame_type), rx_seq_nr, payload_size);
     }
-
-    BSP_logf("Got %s frame, seq_nr=%hhu, payload_size=%hu\n",
-                PhysFrame_typeName(frame_type), rx_seq_nr, payload_size);
 }
 
 
@@ -143,7 +162,8 @@ static void rxCallback(DataLink *me, uint32_t ch)
 {
     if (! me->synced) {
         if (ch == '\n') {                       // Dweeb's poll character.
-            respondWithAckFrame(me, 0x7);
+            respondWithAckFrame(me, 0x7, NST_DATAGRAM);
+            me->synced = true;
         } else if (assembleIncomingFrame(me, (uint8_t)ch) == FT_SYNC) {
             // BSP_logf("Byte %2hu is 0x%02x\n", me->rx_nb, ch);
             handleIncomingFrame(me, (PhysFrame const *)me->rx_frame_buffer);
@@ -179,6 +199,15 @@ static void txCallback(DataLink *me, uint8_t *dst)
 static void txErrorCallback(DataLink *me, uint32_t tx_error)
 {
     BSP_logf("%s(%u)\n", __func__, tx_error);
+}
+
+
+static bool sendPacket(DataLink *me, NetworkServiceType nst, uint8_t const *packet, uint16_t nb)
+{
+    uint8_t frame_store[me->header_size + nb];
+    PhysFrame_init((PhysFrame *)frame_store, FT_DATA, me->tx_seq_nr, NST_DEBUG, packet, nb);
+    // BSP_logf("Writing frame with size %hu to buffer\n", sizeof frame_store);
+    return writeFrame(me, frame_store, sizeof frame_store) == sizeof frame_store;
 }
 
 /*
@@ -228,12 +257,15 @@ void DataLink_waitForSync(DataLink *me)
 }
 
 
-bool DataLink_sendPacket(DataLink *me, uint8_t const *packet, uint16_t nb)
+bool DataLink_sendDebugPacket(DataLink *me, uint8_t const *packet, uint16_t nb)
 {
-    uint8_t frame_store[me->header_size + nb];
-    PhysFrame_init((PhysFrame *)frame_store, FT_DATA, me->tx_seq_nr, packet, nb);
-    // BSP_logf("Writing frame with size %hu to buffer\n", sizeof frame_store);
-    return writeFrame(me, frame_store, sizeof frame_store) == sizeof frame_store;
+    return sendPacket(me, NST_DEBUG, packet, nb);
+}
+
+
+bool DataLink_sendDatagram(DataLink *me, uint8_t const *datagram, uint16_t nb)
+{
+    return sendPacket(me, NST_DATAGRAM, datagram, nb);
 }
 
 

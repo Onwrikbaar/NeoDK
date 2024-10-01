@@ -31,12 +31,19 @@ struct _Sequencer {
     uint8_t event_storage[400];
     StateFunc state;
     PatternIterator pi;
+    uint8_t pattern_index;
 };
 
 enum { EL_0, EL_A, EL_B, EL_C = 4, EL_AC = (EL_A | EL_C), EL_D = 8, EL_BD = (EL_B | EL_D) };
 
-static char const elset_str[][5] = {
+/*static*/ char const elset_str[][5] = {
     "None", "A", "B", "AB", "C", "AC", "BC", "ABC", "D", "AD", "BD", "ABD", "CD", "ACD", "BCD", "ABCD"
+};
+
+static uint8_t const pattern_jackhammer[][2] =
+{
+    {EL_AC, EL_BD},
+    {EL_BD, EL_AC},
 };
 
 static uint8_t const pattern_toggle[][2] =
@@ -45,12 +52,6 @@ static uint8_t const pattern_toggle[][2] =
     {EL_C, EL_D},
     {EL_B, EL_A},
     {EL_D, EL_C},
-};
-
-static uint8_t const pattern_simple[][2] =
-{
-    {EL_AC, EL_BD},
-    {EL_BD, EL_AC},
 };
 
 static uint8_t const pattern_circle[][2] =
@@ -75,6 +76,44 @@ static uint8_t const pattern_circle[][2] =
     {EL_A,  EL_BD},
     {EL_BD, EL_AC},
 };
+
+static PatternDescr const pattern_descr[] =
+{
+    {
+        .name = "Jackhammer",
+        .pattern = pattern_jackhammer,
+        .nr_of_elcons = M_DIM(pattern_jackhammer),
+        .pace_ms = 125,
+        .nr_of_steps = 3,
+        .nr_of_reps = 200,
+    },
+    {
+        .name = "Toggle",
+        .pattern = pattern_toggle,
+        .nr_of_elcons = M_DIM(pattern_toggle),
+        .pace_ms = 50,
+        .nr_of_steps = 5,
+        .nr_of_reps = 300,
+    },
+    {
+        .name = "Circle",
+        .pattern = pattern_circle,
+        .nr_of_elcons = M_DIM(pattern_circle),
+        .pace_ms = 30,
+        .nr_of_steps = 9,
+        .nr_of_reps = 40,
+    },
+};
+
+
+static void selectNextRoutine(Sequencer *me)
+{
+    BSP_setPrimaryVoltage_mV(2500);
+    if (++me->pattern_index == M_DIM(pattern_descr)) me->pattern_index = 0;
+    PatternDescr const *pd = &pattern_descr[me->pattern_index];
+    CLI_logf("Switching to pattern '%s'\n", pd->name);
+    PatternIterator_init(&me->pi, pd);
+}
 
 
 static void printAdcValues(uint16_t const *v)
@@ -101,22 +140,21 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
     switch (AOEvent_type(evt))
     {
         case ET_AO_ENTRY:
-            BSP_logf("%s ENTRY\n", __func__);
-            // TODO Choose a different pattern each time?
-            // PatternIterator_init(&me->pi, pattern_toggle, M_DIM(pattern_toggle), 80, 400, 3);
-            // PatternIterator_init(&me->pi, pattern_simple, M_DIM(pattern_simple), 20, 50, 15);
-            PatternIterator_init(&me->pi, pattern_circle, M_DIM(pattern_circle), 30, 40, 9);
+            BSP_logf("Sequencer_%s ENTRY\n", __func__);
             break;
         case ET_AO_EXIT:
-            BSP_logf("%s EXIT\n", __func__);
+            BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
         case ET_ADC_DATA_AVAILABLE:
             printAdcValues((uint16_t const *)AOEvent_data(evt));
             break;
         case ET_SEQUENCER_PLAY_PAUSE:
-            M_ASSERT(! PatternIterator_done(&me->pi));
+            PatternIterator_init(&me->pi, &pattern_descr[me->pattern_index]);
             CLI_logf("Starting\n");
             return &statePulsing;               // Transition.
+        case ET_NEXT_ROUTINE:
+            selectNextRoutine(me);
+            break;
         case ET_BURST_COMPLETED:
             BSP_logf("Pulse train last pulse done\n");
             break;
@@ -143,6 +181,9 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
         case ET_SEQUENCER_PLAY_PAUSE:
             CLI_logf("Resuming\n");
             return &statePulsing;
+        case ET_NEXT_ROUTINE:
+            selectNextRoutine(me);
+            break;
         case ET_BURST_COMPLETED:
             // BSP_logf("Last pulse done\n");
             break;
@@ -191,6 +232,9 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
             break;
         case ET_SEQUENCER_PLAY_PAUSE:
             return &statePaused;                // Transition.
+        case ET_NEXT_ROUTINE:
+            selectNextRoutine(me);
+            break;
         case ET_BURST_STARTED:
             // BSP_logf("Pulse train started\n");
             break;
@@ -215,7 +259,7 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
 // Send one event to the state machine.
 static void dispatchEvent(Sequencer *me, AOEvent const *evt)
 {
-    // BSP_logf("%s(%u)\n", __func__, evt);
+    // BSP_logf("%s(%u)\n", __func__, AOEvent_type(evt));
     StateFunc new_state = me->state(me, evt);
     if (new_state != NULL) {                    // Transition.
         StateFunc sf = me->state(me, AOEvent_newExitEvent());
@@ -236,6 +280,7 @@ Sequencer *Sequencer_new()
     Sequencer *me = (Sequencer *)malloc(sizeof(Sequencer));
     EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
     me->state = &stateNop;
+    me->pattern_index = 0;
     BSP_registerPulseDelegate(&me->event_queue);
     return me;
 }
@@ -243,19 +288,23 @@ Sequencer *Sequencer_new()
 
 void Sequencer_start(Sequencer *me)
 {
-    PatternIterator_checkPattern(pattern_toggle, M_DIM(pattern_toggle));
-    PatternIterator_checkPattern(pattern_simple, M_DIM(pattern_simple));
-    PatternIterator_checkPattern(pattern_circle, M_DIM(pattern_circle));
+    for (uint16_t i = 0; i < M_DIM(pattern_descr); i++) {
+        PatternDescr const *pd = &pattern_descr[i];
+        BSP_logf("Checking '%s'\n", pd->name);
+        PatternIterator_checkPattern(pd->pattern, pd->nr_of_elcons);
+    }
 
-    PatternIterator_init(&me->pi, pattern_circle, 8/*M_DIM(pattern_circle)*/, 40, 1, 2);
+    PatternIterator_init(&me->pi, &pattern_descr[me->pattern_index]);
+
     uint32_t total_nr_of_pulses = 0;
     PulseTrain pt;
     while (PatternIterator_getNextPulseTrain(&me->pi, &pt)) {
-        BSP_logf(" %3hu * {%s, %s}\n", pt.nr_of_pulses, elset_str[pt.elcon[0]], elset_str[pt.elcon[1]]);
+        // BSP_logf(" %3hu * {%s, %s}\n", pt.nr_of_pulses, elset_str[pt.elcon[0]], elset_str[pt.elcon[1]]);
         total_nr_of_pulses += pt.nr_of_pulses;
     }
     BSP_logf("Total number of pulses: %u\n", total_nr_of_pulses);
 
+    PatternIterator_init(&me->pi, &pattern_descr[me->pattern_index]);
     me->state = stateIdle;
     me->state(me, AOEvent_newEntryEvent());
 }

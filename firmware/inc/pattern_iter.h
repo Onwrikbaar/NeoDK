@@ -16,6 +16,15 @@
 #include "bsp_app.h"
 
 typedef struct {
+    char const *name;
+    uint8_t const (*pattern)[2];
+    uint16_t nr_of_elcons;
+    uint8_t pace_ms;
+    uint8_t nr_of_steps;
+    uint16_t nr_of_reps;
+} PatternDescr;
+
+typedef struct {
     uint8_t const (*pattern)[2];
     uint16_t nr_of_elcons, elcon_nr;
     uint8_t nr_of_steps, step_nr;
@@ -30,7 +39,7 @@ typedef struct {
 bool PatternIterator_checkPattern(uint8_t const pattern[][2], uint16_t nr_of_elcons);
 
 // Instance methods.
-void PatternIterator_init(PatternIterator *, uint8_t const pattern[][2], uint16_t nr_of_elcons, uint8_t pace_ms, uint16_t nr_of_reps, uint8_t nr_of_steps);
+void PatternIterator_init(PatternIterator *, PatternDescr const *);
 bool PatternIterator_done(PatternIterator *);
 bool PatternIterator_getNextPulseTrain(PatternIterator *, PulseTrain *);
 

@@ -76,3 +76,10 @@ The device's on-board control program (aka firmware) consists of a collection of
 Conceptually, the firmware consists of two layers:
 1. The hardware-dependent part, called the Board Support Package (BSP), which implements the _mechanisms_. This is the only module that needs to be changed when porting the application to a different processor.
 2. The hardware-independent application logic, implementing the _policies_.
+
+### About the code
+- All C modules, with the exception of the BSP, are less than 300 lines long.
+- Functions are short, or have low cyclomatic complexity.
+- There are no global variables, preventing unwanted coupling between modules and violation of invariants.
+- Most 'plumbing' is done through dependency injection.
+- Object types are opaque where possible.

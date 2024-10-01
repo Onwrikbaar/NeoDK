@@ -50,7 +50,7 @@ static void interpretCommand(CmndInterp *me, char ch)
     switch (ch)
     {
         case '?':
-            CLI_logf("Commands: /? /a /b /d /l /q /u /v /0 /1../9\n");
+            CLI_logf("Commands: /? /a /b /d /l /n /q /u /v /0 /1../9\n");
             break;
         case '0':
             BSP_primaryVoltageEnable(false);
@@ -73,6 +73,9 @@ static void interpretCommand(CmndInterp *me, char ch)
         case 'l':
             BSP_toggleTheLED();
             break;
+        case 'n':
+            EventQueue_postEvent(me->delegate_queue, ET_NEXT_ROUTINE, NULL, 0);
+            break;
         case 'q': {                             // Quit.
             int sig = 2;                        // Simulate Ctrl-C.
             EventQueue_postEvent(me->delegate_queue, ET_POSIX_SIGNAL, (uint8_t const *)&sig, sizeof sig);
@@ -82,7 +85,7 @@ static void interpretCommand(CmndInterp *me, char ch)
             BSP_changePrimaryVoltage_mV(+200);
             break;
         case 'v':
-            CLI_logf("Firmware V0.24-beta\n");
+            CLI_logf("Firmware V0.25-beta\n");
             break;
         default:
             CLI_logf("Unknown command '/%c'\n", ch);
@@ -112,7 +115,7 @@ static void vLogToUser(CmndInterp *me, char const *fmt, va_list args)
 {
     char msg[80];
     int nbw = vsnprintf(msg, sizeof msg, fmt, args);
-    if (nbw > 0) DataLink_sendPacket(me->datalink, (uint8_t const *)msg, nbw + 1);
+    if (nbw > 0) DataLink_sendDebugPacket(me->datalink, (uint8_t const *)msg, nbw + 1);
 }
 
 /*
@@ -140,7 +143,7 @@ int CLI_logf(char const *fmt, ...)
 void CLI_handleConsoleInput(char const *cmnd, uint16_t nb)
 {
     if (nb == 2 && cmnd[0] == '/') interpretCommand(&my, cmnd[1]);
-    else CLI_logf("%s('%s')", __func__, cmnd);
+    else BSP_logf("%s('%s')\n", __func__, cmnd);
 }
 
 

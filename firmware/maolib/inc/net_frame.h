@@ -22,12 +22,13 @@ extern "C" {
 
 // Class methods.
 uint16_t PhysFrame_headerSize(void);
-char const *PhysFrame_typeName(FrameType);
+char const *PhysFrame_frameTypeName(FrameType);
+char const *PhysFrame_serviceTypeName(NetworkServiceType);
 
 // Instance methods.
-PhysFrame *PhysFrame_initHeader(PhysFrame *, FrameType, uint8_t seq);
-PhysFrame *PhysFrame_initHeaderWithAck(PhysFrame *, FrameType, uint8_t seq, uint8_t ack);
-PhysFrame *PhysFrame_init(PhysFrame *, FrameType, uint8_t seq, uint8_t const *, uint16_t nb);
+PhysFrame *PhysFrame_initHeader(PhysFrame *, FrameType, uint8_t seq, NetworkServiceType);
+PhysFrame *PhysFrame_initHeaderWithAck(PhysFrame *, FrameType, uint8_t seq, uint8_t ack, NetworkServiceType);
+PhysFrame *PhysFrame_init(PhysFrame *, FrameType, uint8_t seq, NetworkServiceType, uint8_t const *, uint16_t nb);
 bool PhysFrame_hasValidHeader(PhysFrame const *);
 
 ProtocolVersion PhysFrame_protocolVersion(PhysFrame const *);

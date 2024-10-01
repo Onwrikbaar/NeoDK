@@ -25,7 +25,8 @@ DataLink *DataLink_new();
 // Instance methods.
 bool DataLink_open(DataLink *, void *packet_handler, PacketCallback);
 void DataLink_waitForSync(DataLink *);
-bool DataLink_sendPacket(DataLink *, uint8_t const *, uint16_t);
+bool DataLink_sendDebugPacket(DataLink *, uint8_t const *, uint16_t);
+bool DataLink_sendDatagram(DataLink *, uint8_t const *, uint16_t);
 void DataLink_close(DataLink *);
 void DataLink_delete(DataLink *);
 

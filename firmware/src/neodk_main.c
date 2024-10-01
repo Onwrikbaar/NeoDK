@@ -84,6 +84,9 @@ static void dispatchEvent(Boss *me, AOEvent const *evt)
         case ET_BUTTON_RELEASED:
             // Ignore for now.
             break;
+        case ET_NEXT_ROUTINE:
+            EventQueue_repostEvent((EventQueue *)me->sequencer, evt);
+            break;
         default:
             BSP_logf("%s(%hu)?\n", __func__, evt_type);
     }
