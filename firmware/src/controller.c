@@ -104,7 +104,7 @@ void Controller_start(Controller *me)
 {
     BSP_logf("Starting NeoDK!\n");
     BSP_logf("Push the button to play or pause :-)\n");
-    BSP_setPrimaryVoltage_mV(2500);
+    BSP_setPrimaryVoltage_mV(DEFAULT_PRIMARY_VOLTAGE_mV);
     BSP_primaryVoltageEnable(true);
 }
 

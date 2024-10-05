@@ -54,6 +54,14 @@ static uint8_t const pattern_toggle[][2] =
     {EL_D, EL_C},
 };
 
+static uint8_t const pattern_cross_toggle[][2] =
+{
+    {EL_A, EL_D},
+    {EL_B, EL_C},
+    {EL_C, EL_B},
+    {EL_D, EL_A},
+};
+
 static uint8_t const pattern_circle[][2] =
 {
     {EL_A,  EL_B},
@@ -96,6 +104,14 @@ static PatternDescr const pattern_descr[] =
         .nr_of_reps = 300,
     },
     {
+        .name = "CrossToggle",
+        .pattern = pattern_cross_toggle,
+        .nr_of_elcons = M_DIM(pattern_cross_toggle),
+        .pace_ms = 20,
+        .nr_of_steps = 5,
+        .nr_of_reps = 200,
+    },
+    {
         .name = "Circle",
         .pattern = pattern_circle,
         .nr_of_elcons = M_DIM(pattern_circle),
@@ -108,7 +124,7 @@ static PatternDescr const pattern_descr[] =
 
 static void selectNextRoutine(Sequencer *me)
 {
-    BSP_setPrimaryVoltage_mV(2500);
+    BSP_setPrimaryVoltage_mV(DEFAULT_PRIMARY_VOLTAGE_mV);
     if (++me->pattern_index == M_DIM(pattern_descr)) me->pattern_index = 0;
     PatternDescr const *pd = &pattern_descr[me->pattern_index];
     CLI_logf("Switching to pattern '%s'\n", pd->name);
@@ -280,7 +296,7 @@ Sequencer *Sequencer_new()
     Sequencer *me = (Sequencer *)malloc(sizeof(Sequencer));
     EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
     me->state = &stateNop;
-    me->pattern_index = 0;
+    me->pattern_index = 2;
     BSP_registerPulseDelegate(&me->event_queue);
     return me;
 }

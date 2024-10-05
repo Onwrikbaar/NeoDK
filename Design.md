@@ -78,8 +78,9 @@ Conceptually, the firmware consists of two layers:
 2. The hardware-independent application logic, implementing the _policies_.
 
 ### About the code
-- All C modules, with the exception of the BSP, are less than 300 lines long.
+- All C modules, with the exception of the BSP, are less than 400 lines long.
 - Functions are short, or have low cyclomatic complexity.
+- Functions are _pure_ whenever possible.
 - There are no global variables, preventing unwanted coupling between modules and violation of invariants.
 - Most 'plumbing' is done through dependency injection.
 - Object types are opaque where possible.

@@ -69,7 +69,7 @@ void PatternIterator_init(PatternIterator *me, PatternDescr const *pd)
     me->nr_of_reps = pd->nr_of_reps;
     me->nr_of_steps = pd->nr_of_steps;          // Length of a transition.
 
-    me->pulse_width_micros = 80;
+    me->pulse_width_micros = 120;
     me->elcon_nr = 0;
     M_ASSERT(me->nr_of_steps != 0);
     me->step_nr = 0;
