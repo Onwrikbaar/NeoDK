@@ -11,7 +11,6 @@
  */
 
 #include <stdlib.h>
-#include <string.h>
 
 #include "bsp_dbg.h"
 #include "bsp_mao.h"
@@ -109,18 +108,16 @@ static void respondWithAckFrame(DataLink *me, uint8_t ack_nr, NetworkServiceType
 static void handleIncomingDataFrame(DataLink *me, PhysFrame const *frame)
 {
     uint8_t rx_seq_nr = PhysFrame_seqNr(frame);
-    uint16_t payload_size = PhysFrame_payloadSize(frame);
-    BSP_logf("Got packet, seq_nr=%hhu, payload_size=%hu\n", rx_seq_nr, payload_size);
     NetworkServiceType nst = PhysFrame_serviceType(frame);
     respondWithAckFrame(me, rx_seq_nr, nst);
 
     uint8_t const *payload = PhysFrame_payload(frame);
+    uint16_t payload_size = PhysFrame_payloadSize(frame);
     if (nst == NST_DEBUG) {
-        char zt_msg[payload_size + 1];
-        strncpy(zt_msg, (const char *)payload, payload_size);
-        zt_msg[payload_size] = '\0';
-        CLI_handleConsoleInput(zt_msg, payload_size);
+        BSP_logf("Got debug frame, seq_nr=%hhu, command length=%hu\n", rx_seq_nr, payload_size);
+        CLI_handleRemoteInput(payload, payload_size);
     } else {
+        BSP_logf("Got network frame, seq_nr=%hhu, packet size=%hu\n", rx_seq_nr, payload_size);
         me->packet_callback(me->packet_handler, payload, payload_size);
     }
 }

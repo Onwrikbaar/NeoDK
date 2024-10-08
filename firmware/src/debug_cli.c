@@ -85,7 +85,7 @@ static void interpretCommand(CmndInterp *me, char ch)
             BSP_changePrimaryVoltage_mV(+200);
             break;
         case 'v':
-            CLI_logf("Firmware v0.26-beta\n");
+            CLI_logf("Firmware v0.27-beta\n");
             break;
         default:
             CLI_logf("Unknown command '/%c'\n", ch);
@@ -140,10 +140,17 @@ int CLI_logf(char const *fmt, ...)
 }
 
 
-void CLI_handleConsoleInput(char const *cmnd, uint16_t nb)
+void CLI_handleRemoteInput(uint8_t const *cmnd, uint16_t len)
 {
-    if (nb == 2 && cmnd[0] == '/') interpretCommand(&my, cmnd[1]);
-    else BSP_logf("%s('%s')\n", __func__, cmnd);
+    if (len == 2 && cmnd[0] == '/') {
+        interpretCommand(&my, cmnd[1]);
+    } else {
+        char response[len + 5];
+        int nc = snprintf(response, sizeof response, "'%.*s'?\n", len, cmnd);
+        if (nc > 0 && nc < sizeof response) {
+            DataLink_sendDebugPacket(my.datalink, (uint8_t const *)response, nc);
+        }
+    }
 }
 
 

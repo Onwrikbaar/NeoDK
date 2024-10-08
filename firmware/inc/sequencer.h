@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 
-#define DEFAULT_PRIMARY_VOLTAGE_mV      1500
+#define DEFAULT_PRIMARY_VOLTAGE_mV      1200
 
 typedef struct _Sequencer Sequencer;            // Opaque type.
 

@@ -19,9 +19,10 @@
 
 static void nextElconIfLastStep(PatternIterator *me)
 {
-    if (me->step_nr == me->nr_of_steps - 1) {   // Transition done.
+    PatternDescr const *pd = me->pattern_descr;
+    if (me->step_nr == pd->nr_of_steps - 1) {   // Transition done.
         me->step_nr = 0;
-        if (++me->elcon_nr == me->nr_of_elcons) {
+        if (++me->elcon_nr == pd->nr_of_elcons) {
             me->elcon_nr = 0;                   // Wrap around.
             me->nr_of_reps -= 1;
         }
@@ -31,17 +32,18 @@ static void nextElconIfLastStep(PatternIterator *me)
 
 static uint8_t const *getNextPattern(PatternIterator *me, uint8_t *nr_of_pulses)
 {
+    PatternDescr const *pd = me->pattern_descr;
     uint8_t elcon_nr = me->elcon_nr;
     if (me->segment_nr == 0) {
-        *nr_of_pulses = me->nr_of_steps - me->step_nr - 1;
+        *nr_of_pulses = pd->nr_of_steps - me->step_nr - 1;
         me->segment_nr = 1;
     } else {
-        if (++elcon_nr == me->nr_of_elcons) elcon_nr = 0;
+        if (++elcon_nr == pd->nr_of_elcons) elcon_nr = 0;
         *nr_of_pulses = ++me->step_nr;
         nextElconIfLastStep(me);
         me->segment_nr = 0;
     }
-    return me->pattern[elcon_nr];
+    return pd->pattern[elcon_nr];
 }
 
 /*
@@ -63,15 +65,11 @@ bool PatternIterator_checkPattern(uint8_t const pattern[][2], uint16_t nr_of_elc
 
 void PatternIterator_init(PatternIterator *me, PatternDescr const *pd)
 {
-    me->pattern = pd->pattern;
-    me->nr_of_elcons = pd->nr_of_elcons;
-    me->pace_ms = pd->pace_ms;
+    me->pattern_descr = pd;
     me->nr_of_reps = pd->nr_of_reps;
-    me->nr_of_steps = pd->nr_of_steps;          // Length of a transition.
-
-    me->pulse_width_micros = 120;
+    me->pulse_width_micros = 100;
     me->elcon_nr = 0;
-    M_ASSERT(me->nr_of_steps != 0);
+    M_ASSERT(pd->nr_of_steps != 0);
     me->step_nr = 0;
     me->segment_nr = 0;                         // 0 or 1.
 }
@@ -91,6 +89,6 @@ bool PatternIterator_getNextPulseTrain(PatternIterator *me, PulseTrain *pt)
     pt->elcon[0] = elcon[0];
     pt->elcon[1] = elcon[1];
     pt->pulse_width_micros = me->pulse_width_micros;
-    pt->pace_ms = me->pace_ms;                  // Yields 1000/pace_ms pulses per second.
+    pt->pace_ms = me->pattern_descr->pace_ms;   // Yields 1000/pace_ms pulses per second.
     return true;
 }

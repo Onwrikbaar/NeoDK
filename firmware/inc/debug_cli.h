@@ -19,6 +19,6 @@
 
 void CLI_init(EventQueue *, DataLink *);
 int  CLI_logf(char const *fmt, ...);
-void CLI_handleConsoleInput(char const *, uint16_t nb);
+void CLI_handleRemoteInput(uint8_t const *, uint16_t nb);
 
 #endif

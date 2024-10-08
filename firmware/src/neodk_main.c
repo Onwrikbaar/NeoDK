@@ -79,7 +79,7 @@ static void dispatchEvent(Boss *me, AOEvent const *evt)
             handlePosixSignal(me, *(int const *)AOEvent_data(evt));
             break;
         case ET_BUTTON_PUSHED:
-            EventQueue_postEvent((EventQueue *)me->sequencer, ET_SEQUENCER_PLAY_PAUSE, NULL, 0);
+            EventQueue_postEvent((EventQueue *)me->sequencer, ET_PLAY_PAUSE, NULL, 0);
             break;
         case ET_BUTTON_RELEASED:
             // Ignore for now.

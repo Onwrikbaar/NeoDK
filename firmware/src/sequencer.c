@@ -127,14 +127,14 @@ static void selectNextRoutine(Sequencer *me)
     BSP_setPrimaryVoltage_mV(DEFAULT_PRIMARY_VOLTAGE_mV);
     if (++me->pattern_index == M_DIM(pattern_descr)) me->pattern_index = 0;
     PatternDescr const *pd = &pattern_descr[me->pattern_index];
-    CLI_logf("Switching to pattern '%s'\n", pd->name);
+    CLI_logf("Switching to '%s'\n", pd->name);
     PatternIterator_init(&me->pi, pd);
 }
 
 
 static void printAdcValues(uint16_t const *v)
 {
-    uint32_t Iprim_mA = ((uint32_t)v[0] * 2063UL) / 1024;
+    uint32_t Iprim_mA = ((uint32_t)v[0] * 2063UL) /  1024;
     uint32_t Vcap_mV = ((uint32_t)v[1] * 52813UL) / 16384;
     uint32_t Vbat_mV = ((uint32_t)v[2] * 52813UL) / 16384;
     CLI_logf("Iprim=%u mA, Vcap=%u mV, Vbat=%u mV\n", Iprim_mA, Vcap_mV, Vbat_mV);
@@ -164,9 +164,9 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
         case ET_ADC_DATA_AVAILABLE:
             printAdcValues((uint16_t const *)AOEvent_data(evt));
             break;
-        case ET_SEQUENCER_PLAY_PAUSE:
+        case ET_PLAY_PAUSE:
             PatternIterator_init(&me->pi, &pattern_descr[me->pattern_index]);
-            CLI_logf("Starting\n");
+            CLI_logf("Starting '%s'\n", me->pi.pattern_descr->name);
             return &statePulsing;               // Transition.
         case ET_NEXT_ROUTINE:
             selectNextRoutine(me);
@@ -175,7 +175,7 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             BSP_logf("Pulse train last pulse done\n");
             break;
         case ET_BURST_EXPIRED:
-            CLI_logf("Finished\n");
+            CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
             break;
         default:
             BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
@@ -194,8 +194,8 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
         case ET_AO_EXIT:
             BSP_logf("%s EXIT\n", __func__);
             break;
-        case ET_SEQUENCER_PLAY_PAUSE:
-            CLI_logf("Resuming\n");
+        case ET_PLAY_PAUSE:
+            CLI_logf("Resuming '%s'\n", me->pi.pattern_descr->name);
             return &statePulsing;
         case ET_NEXT_ROUTINE:
             selectNextRoutine(me);
@@ -205,10 +205,10 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
             break;
         case ET_BURST_EXPIRED:
             if (PatternIterator_done(&me->pi)) {
-                CLI_logf("Finished\n");
+                CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
                 return &stateIdle;              // Transition.
             }
-            CLI_logf("Pausing\n");
+            CLI_logf("Pausing '%s'\n", me->pi.pattern_descr->name);
             break;
         case ET_ADC_DATA_AVAILABLE:
             printAdcValues((uint16_t const *)AOEvent_data(evt));
@@ -246,7 +246,7 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
         case ET_AO_EXIT:
             BSP_logf("%s EXIT\n", __func__);
             break;
-        case ET_SEQUENCER_PLAY_PAUSE:
+        case ET_PLAY_PAUSE:
             return &statePaused;                // Transition.
         case ET_NEXT_ROUTINE:
             selectNextRoutine(me);
@@ -259,7 +259,7 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
             break;
         case ET_BURST_EXPIRED:
             if (! scheduleNextPulseTrain(me)) {
-                CLI_logf("Finished\n");
+                CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
                 return &stateIdle;              // Transition.
             }
             break;
@@ -311,7 +311,6 @@ void Sequencer_start(Sequencer *me)
     }
 
     PatternIterator_init(&me->pi, &pattern_descr[me->pattern_index]);
-
     uint32_t total_nr_of_pulses = 0;
     PulseTrain pt;
     while (PatternIterator_getNextPulseTrain(&me->pi, &pt)) {

@@ -21,6 +21,16 @@
 // This module implements:
 #include "controller.h"
 
+typedef struct {
+    uint8_t  flags;                             // Version, etc.
+    uint8_t  reserved;                          // Hop count, etc.
+    uint16_t src_address;
+    uint16_t dst_address;
+    uint8_t  message[0];
+} PacketHeader;
+
+typedef enum { OC_NONE, OC_STATUS_RESPONSE, OC_READ_REQUEST } Opcode;
+
 typedef void *(*StateFunc)(Controller *, AOEvent const *);
 
 struct _Controller {
@@ -32,9 +42,10 @@ struct _Controller {
 };
 
 
-static void handleHostMessage(Controller *me, uint8_t const *msg, uint16_t nb)
+static void handleHostPacket(Controller *me, uint8_t const *packet, uint16_t nb)
 {
-    BSP_logf("%s, len=%hu\n", __func__, nb);
+    uint8_t const *request = packet + sizeof(PacketHeader);
+    BSP_logf("%s, transaction=%hu, opcode=0x%02hhx, attribute_id=%hu\n", __func__, *(uint16_t *)request, request[2], *(uint16_t *)(request + 4));
 }
 
 
@@ -95,7 +106,7 @@ void Controller_init(Controller *me, DataLink *datalink)
     BSP_logf("%s\n", __func__);
     me->state = &stateIdle;
     me->state(me, AOEvent_newEntryEvent());
-    DataLink_open(me->datalink, me, (PacketCallback)&handleHostMessage);
+    DataLink_open(me->datalink, me, (PacketCallback)&handleHostPacket);
     DataLink_waitForSync(me->datalink);
 }
 

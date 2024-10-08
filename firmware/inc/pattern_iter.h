@@ -25,13 +25,12 @@ typedef struct {
 } PatternDescr;
 
 typedef struct {
-    uint8_t const (*pattern)[2];
-    uint16_t nr_of_elcons, elcon_nr;
-    uint8_t nr_of_steps, step_nr;
-    uint8_t segment_nr;
+    PatternDescr const *pattern_descr;
+    uint16_t elcon_nr;
     uint8_t pulse_width_micros;
-    uint8_t pace_ms;
+    uint8_t step_nr;
     uint16_t nr_of_reps;
+    uint8_t segment_nr;
 } PatternIterator;
 
 

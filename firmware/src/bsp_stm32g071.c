@@ -401,8 +401,8 @@ static uint16_t pulsePaceMillisecondsToTicks(uint8_t pace_ms)
  * @brief   Calculate the value (0..4095) for the 12-bit DAC to set the desired primary voltage [mV].
  * @note    Assuming R15 = 115 kΩ, R18 = 13 kΩ and R19 = 42.2 kΩ (Refer to the schematic).
  */
-#define VPRIM_MIN_mV     1064   // 1202 for Tokmas instead of SGM 61410 buck chip.
-#define VPRIM_MAX_mV    10057   //10195
+#define VPRIM_MIN_mV     1202   //  1202 for Tokmas buck chip, 1064 for SGM 61410.
+#define VPRIM_MAX_mV    10195   // 10195 for Tokmas, 10057 for SGM.
 
 static uint16_t Vcap_mV_ToDacVal(uint16_t Vcap_mV)
 {
