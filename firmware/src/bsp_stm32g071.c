@@ -781,7 +781,7 @@ void BSP_doChannelAction(DeviceId device_id, ChannelAction action)
     switch (device_id)
     {
         case 1:
-            if (device_id >= 0) doUartAction(USART2, action);
+            doUartAction(USART2, action);
             break;
         default:
             BSP_logf("%s(%u): unknown device id\n", __func__, device_id);

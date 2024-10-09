@@ -24,8 +24,11 @@ typedef struct _Sequencer Sequencer;            // Opaque type.
 Sequencer *Sequencer_new(void);
 
 // Instance methods.
+Sequencer *Sequencer_init(Sequencer *);
 void Sequencer_start(Sequencer *);
 bool Sequencer_handleEvent(Sequencer *);
+uint16_t Sequencer_nrOfPatterns(Sequencer const *me);
+void Sequencer_getPatternNames(Sequencer const *, char const *[], uint16_t);
 void Sequencer_stop(Sequencer *);
 void Sequencer_delete(Sequencer *);
 

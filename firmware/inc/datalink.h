@@ -16,14 +16,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef void (*PacketCallback)(void *, uint8_t const *packet, uint16_t nb);
+#include "eventqueue.h"
+
 typedef struct _DataLink DataLink;              // Opaque type.
 
 // Class method.
 DataLink *DataLink_new();
 
 // Instance methods.
-bool DataLink_open(DataLink *, void *packet_handler, PacketCallback);
+bool DataLink_open(DataLink *, EventQueue *);
 void DataLink_waitForSync(DataLink *);
 bool DataLink_sendDebugPacket(DataLink *, uint8_t const *, uint16_t);
 bool DataLink_sendDatagram(DataLink *, uint8_t const *, uint16_t);

@@ -15,7 +15,6 @@
 #include "bsp_dbg.h"
 #include "bsp_app.h"
 #include "app_event.h"
-#include "sequencer.h"
 #include "debug_cli.h"
 
 // This module implements:
@@ -29,7 +28,9 @@ typedef struct {
     uint8_t  message[0];
 } PacketHeader;
 
-typedef enum { OC_NONE, OC_STATUS_RESPONSE, OC_READ_REQUEST } Opcode;
+typedef enum {
+    OC_NONE, OC_STATUS_RESPONSE, OC_READ_REQUEST, OC_SUBSCRIBE_REQUEST, OC_SUBSCRIBE_RESPONSE, OC_REPORT_DATA
+} Opcode;
 
 typedef void *(*StateFunc)(Controller *, AOEvent const *);
 
@@ -37,15 +38,38 @@ struct _Controller {
     EventQueue event_queue;                     // This MUST be the first member.
     uint8_t event_storage[400];
     StateFunc state;
-    DataLink *datalink;
     Sequencer *sequencer;
+    DataLink *datalink;
 };
 
 
-static void handleHostPacket(Controller *me, uint8_t const *packet, uint16_t nb)
+static void handleReadRequest(Controller *me, uint8_t const *request)
 {
-    uint8_t const *request = packet + sizeof(PacketHeader);
-    BSP_logf("%s, transaction=%hu, opcode=0x%02hhx, attribute_id=%hu\n", __func__, *(uint16_t *)request, request[2], *(uint16_t *)(request + 4));
+    uint16_t attribute_id = *(uint16_t *)(request + 4);
+    BSP_logf("Transaction %hu: read attribute %hu\n", *(uint16_t *)request, attribute_id);
+    // Assume a request for the routine names for now.
+    uint16_t nr_of_patterns = Sequencer_nrOfPatterns(me->sequencer);
+    BSP_logf("We have %u patterns:\n", nr_of_patterns);
+    char const *pattern_names[nr_of_patterns];
+    Sequencer_getPatternNames(me->sequencer, pattern_names, nr_of_patterns);
+    for (uint16_t i = 0; i < nr_of_patterns; i++) {
+        BSP_logf("  %s\n", pattern_names[i]);
+    }
+}
+
+
+static void handleRequest(Controller *me, uint8_t const *request)
+{
+    uint8_t opcode = request[2];
+    switch (opcode)
+    {
+        case OC_READ_REQUEST:
+            handleReadRequest(me, request);
+            break;
+        default:
+            BSP_logf("%s, unknown opcode 0x%02hhx\n", __func__, opcode);
+            break;
+    }
 }
 
 
@@ -65,6 +89,10 @@ static void *stateIdle(Controller *me, AOEvent const *evt)
             break;
         case ET_AO_EXIT:
             BSP_logf("Controller_%s EXIT\n", __func__);
+            break;
+        case ET_INCOMING_PACKET:
+            // Ignore the packet header for now.
+            handleRequest(me, AOEvent_data(evt) + sizeof(PacketHeader));
             break;
         default:
             BSP_logf("Controller_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
@@ -100,13 +128,14 @@ Controller *Controller_new()
 }
 
 
-void Controller_init(Controller *me, DataLink *datalink)
+void Controller_init(Controller *me, Sequencer *sequencer, DataLink *datalink)
 {
+    me->sequencer = sequencer;
     me->datalink = datalink;
     BSP_logf("%s\n", __func__);
     me->state = &stateIdle;
     me->state(me, AOEvent_newEntryEvent());
-    DataLink_open(me->datalink, me, (PacketCallback)&handleHostPacket);
+    DataLink_open(me->datalink, &me->event_queue);
     DataLink_waitForSync(me->datalink);
 }
 

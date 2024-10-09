@@ -30,6 +30,8 @@ struct _Sequencer {
     EventQueue event_queue;                     // This MUST be the first member.
     uint8_t event_storage[400];
     StateFunc state;
+    PatternDescr const *pattern_descr;
+    uint16_t nr_of_patterns;
     PatternIterator pi;
     uint8_t pattern_index;
 };
@@ -85,7 +87,7 @@ static uint8_t const pattern_circle[][2] =
     {EL_BD, EL_AC},
 };
 
-static PatternDescr const pattern_descr[] =
+static PatternDescr const pattern_descriptors[] =
 {
     {
         .name = "Jackhammer",
@@ -125,8 +127,8 @@ static PatternDescr const pattern_descr[] =
 static void selectNextRoutine(Sequencer *me)
 {
     BSP_setPrimaryVoltage_mV(DEFAULT_PRIMARY_VOLTAGE_mV);
-    if (++me->pattern_index == M_DIM(pattern_descr)) me->pattern_index = 0;
-    PatternDescr const *pd = &pattern_descr[me->pattern_index];
+    if (++me->pattern_index == me->nr_of_patterns) me->pattern_index = 0;
+    PatternDescr const *pd = &me->pattern_descr[me->pattern_index];
     CLI_logf("Switching to '%s'\n", pd->name);
     PatternIterator_init(&me->pi, pd);
 }
@@ -165,7 +167,7 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             printAdcValues((uint16_t const *)AOEvent_data(evt));
             break;
         case ET_PLAY_PAUSE:
-            PatternIterator_init(&me->pi, &pattern_descr[me->pattern_index]);
+            PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index]);
             CLI_logf("Starting '%s'\n", me->pi.pattern_descr->name);
             return &statePulsing;               // Transition.
         case ET_NEXT_ROUTINE:
@@ -295,7 +297,15 @@ Sequencer *Sequencer_new()
 {
     Sequencer *me = (Sequencer *)malloc(sizeof(Sequencer));
     EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
+    return me;
+}
+
+
+Sequencer *Sequencer_init(Sequencer *me)
+{
     me->state = &stateNop;
+    me->pattern_descr = pattern_descriptors;
+    me->nr_of_patterns = M_DIM(pattern_descriptors);
     me->pattern_index = 2;
     BSP_registerPulseDelegate(&me->event_queue);
     return me;
@@ -304,13 +314,13 @@ Sequencer *Sequencer_new()
 
 void Sequencer_start(Sequencer *me)
 {
-    for (uint16_t i = 0; i < M_DIM(pattern_descr); i++) {
-        PatternDescr const *pd = &pattern_descr[i];
+    for (uint16_t i = 0; i < me->nr_of_patterns; i++) {
+        PatternDescr const *pd = &me->pattern_descr[i];
         BSP_logf("Checking '%s'\n", pd->name);
         PatternIterator_checkPattern(pd->pattern, pd->nr_of_elcons);
     }
 
-    PatternIterator_init(&me->pi, &pattern_descr[me->pattern_index]);
+    PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index]);
     uint32_t total_nr_of_pulses = 0;
     PulseTrain pt;
     while (PatternIterator_getNextPulseTrain(&me->pi, &pt)) {
@@ -319,7 +329,7 @@ void Sequencer_start(Sequencer *me)
     }
     BSP_logf("Total number of pulses: %u\n", total_nr_of_pulses);
 
-    PatternIterator_init(&me->pi, &pattern_descr[me->pattern_index]);
+    PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index]);
     me->state = stateIdle;
     me->state(me, AOEvent_newEntryEvent());
 }
@@ -328,6 +338,21 @@ void Sequencer_start(Sequencer *me)
 bool Sequencer_handleEvent(Sequencer *me)
 {
     return EventQueue_handleNextEvent(&me->event_queue, (EvtFunc)&dispatchEvent, me);
+}
+
+
+uint16_t Sequencer_nrOfPatterns(Sequencer const *me)
+{
+    return me->nr_of_patterns;
+}
+
+
+void Sequencer_getPatternNames(Sequencer const *me, char const *names[], uint16_t cnt)
+{
+    if (cnt > me->nr_of_patterns) cnt = me->nr_of_patterns;
+    for (uint16_t i = 0; i < cnt; i++) {
+        names[i] = me->pattern_descr[i].name;
+    }
 }
 
 

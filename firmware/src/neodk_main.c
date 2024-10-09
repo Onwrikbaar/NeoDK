@@ -124,8 +124,9 @@ static bool noEventsPending(Boss const *me)
 
 static void setupAndRunApplication(Boss *me)
 {
+    Sequencer_init(me->sequencer);
     DataLink *datalink = DataLink_new();
-    Controller_init(me->controller, datalink);
+    Controller_init(me->controller, me->sequencer, datalink);
     CLI_init(&me->event_queue, datalink);
     Sequencer_start(me->sequencer);
 

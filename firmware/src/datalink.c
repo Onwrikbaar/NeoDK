@@ -15,7 +15,7 @@
 #include "bsp_dbg.h"
 #include "bsp_mao.h"
 #include "bsp_app.h"
-#include "circbuffer.h"
+#include "app_event.h"
 #include "net_frame.h"
 #include "debug_cli.h"                          // Temporary.
 
@@ -25,9 +25,8 @@
 #define MAX_PAYLOAD_SIZE     1024
 
 struct _DataLink {
+    EventQueue *delegate_queue;
     uint8_t tx_buf_store[200];
-    void *packet_handler;
-    PacketCallback packet_callback;
     CircBuffer output_buffer;
     uint8_t *rx_frame_buffer;
     uint8_t rx_nb;
@@ -37,6 +36,16 @@ struct _DataLink {
     uint8_t tx_seq_nr;
     uint8_t synced;
 };
+
+
+static void init(DataLink *me)
+{
+    me->header_size = PhysFrame_headerSize();
+    me->rx_frame_buffer = malloc(me->header_size + MAX_PAYLOAD_SIZE);
+    me->rx_nb = 0;
+    me->synced = false;
+    me->tx_seq_nr = 0;
+}
 
 
 /*static*/ void dumpBuffer(const char *prefix, const uint8_t *bbuf, uint8_t nb)
@@ -107,18 +116,16 @@ static void respondWithAckFrame(DataLink *me, uint8_t ack_nr, NetworkServiceType
 
 static void handleIncomingDataFrame(DataLink *me, PhysFrame const *frame)
 {
-    uint8_t rx_seq_nr = PhysFrame_seqNr(frame);
     NetworkServiceType nst = PhysFrame_serviceType(frame);
-    respondWithAckFrame(me, rx_seq_nr, nst);
-
+    uint8_t rx_seq_nr = PhysFrame_seqNr(frame);
     uint8_t const *payload = PhysFrame_payload(frame);
     uint16_t payload_size = PhysFrame_payloadSize(frame);
     if (nst == NST_DEBUG) {
         BSP_logf("Got debug frame, seq_nr=%hhu, command length=%hu\n", rx_seq_nr, payload_size);
         CLI_handleRemoteInput(payload, payload_size);
     } else {
-        BSP_logf("Got network frame, seq_nr=%hhu, packet size=%hu\n", rx_seq_nr, payload_size);
-        me->packet_callback(me->packet_handler, payload, payload_size);
+        BSP_logf("Got packet frame, seq_nr=%hhu, packet size=%hu\n", rx_seq_nr, payload_size);
+        EventQueue_postEvent(me->delegate_queue, ET_INCOMING_PACKET, payload, payload_size);
     }
 }
 
@@ -148,6 +155,7 @@ static void handleIncomingFrame(DataLink *me, PhysFrame const *frame)
     uint16_t payload_size = PhysFrame_payloadSize(frame);
     if (frame_type == FT_DATA) {
         handleIncomingDataFrame(me, frame);
+        respondWithAckFrame(me, rx_seq_nr, PhysFrame_serviceType(frame));
     } else {
         BSP_logf("Got %s frame, seq_nr=%hhu, payload_size=%hu\n",
                     PhysFrame_frameTypeName(frame_type), rx_seq_nr, payload_size);
@@ -199,10 +207,24 @@ static void txErrorCallback(DataLink *me, uint32_t tx_error)
 }
 
 
+static void setupChannel(DataLink *me)
+{
+    Selector rx_sel, rx_err_sel, tx_err_sel;
+    Selector_init(&rx_sel, (Action)&rxCallback, me);
+    Selector_init(&rx_err_sel, (Action)&rxErrorCallback, me);
+    Selector_init(&tx_err_sel, (Action)&txErrorCallback, me);
+    BSP_registerRxCallback(me->channel_fd, &rx_sel, &rx_err_sel);
+    BSP_registerTxCallback(me->channel_fd, (void (*)(void *, uint8_t *))&txCallback, me, &tx_err_sel);
+    BSP_doChannelAction(me->channel_fd, CA_OVERRUN_CB_ENABLE);
+    BSP_doChannelAction(me->channel_fd, CA_FRAMING_CB_ENABLE);
+    BSP_doChannelAction(me->channel_fd, CA_RX_CB_ENABLE);
+}
+
+
 static bool sendPacket(DataLink *me, NetworkServiceType nst, uint8_t const *packet, uint16_t nb)
 {
     uint8_t frame_store[me->header_size + nb];
-    PhysFrame_init((PhysFrame *)frame_store, FT_DATA, me->tx_seq_nr, NST_DEBUG, packet, nb);
+    PhysFrame_init((PhysFrame *)frame_store, FT_DATA, me->tx_seq_nr, nst, packet, nb);
     // BSP_logf("Writing frame with size %hu to buffer\n", sizeof frame_store);
     return writeFrame(me, frame_store, sizeof frame_store) == sizeof frame_store;
 }
@@ -220,29 +242,16 @@ DataLink *DataLink_new()
 }
 
 
-bool DataLink_open(DataLink *me, void *packet_handler, PacketCallback packet_callback)
+bool DataLink_open(DataLink *me, EventQueue *dq)
 {
-    M_ASSERT(me->channel_fd < 0);
-    me->header_size = PhysFrame_headerSize();
-    me->packet_handler  = packet_handler;
-    me->packet_callback = packet_callback;
-    me->rx_frame_buffer = malloc(me->header_size + MAX_PAYLOAD_SIZE);
-    me->rx_nb = 0;
-    me->synced = false;
-    me->tx_seq_nr = 0;
+    M_ASSERT(me->channel_fd < 0);               // Make sure this link is inactive.
+    me->delegate_queue = dq;
+    init(me);
 
     BSP_initComms();                            // Initialise the communication peripheral.
     if ((me->channel_fd = BSP_openSerialPort("serial_1")) < 0) return false;
 
-    Selector rx_sel, rx_err_sel, tx_err_sel;
-    Selector_init(&rx_sel, (Action)&rxCallback, me);
-    Selector_init(&rx_err_sel, (Action)&rxErrorCallback, me);
-    Selector_init(&tx_err_sel, (Action)&txErrorCallback, me);
-    BSP_registerRxCallback(me->channel_fd, &rx_sel, &rx_err_sel);
-    BSP_registerTxCallback(me->channel_fd, (void (*)(void *, uint8_t *))&txCallback, me, &tx_err_sel);
-    BSP_doChannelAction(me->channel_fd, CA_OVERRUN_CB_ENABLE);
-    BSP_doChannelAction(me->channel_fd, CA_FRAMING_CB_ENABLE);
-    BSP_doChannelAction(me->channel_fd, CA_RX_CB_ENABLE);
+    setupChannel(me);
     return true;
 }
 
