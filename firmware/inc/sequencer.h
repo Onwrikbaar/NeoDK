@@ -28,7 +28,7 @@ Sequencer *Sequencer_init(Sequencer *);
 void Sequencer_start(Sequencer *);
 bool Sequencer_handleEvent(Sequencer *);
 uint16_t Sequencer_nrOfPatterns(Sequencer const *me);
-void Sequencer_getPatternNames(Sequencer const *, char const *[], uint16_t);
+void Sequencer_getPatternNames(Sequencer const *, char const *[], uint8_t);
 void Sequencer_stop(Sequencer *);
 void Sequencer_delete(Sequencer *);
 

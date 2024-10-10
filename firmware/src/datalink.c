@@ -22,7 +22,7 @@
 // This module implements:
 #include "datalink.h"
 
-#define MAX_PAYLOAD_SIZE     1024
+#define MAX_PAYLOAD_SIZE     2048
 
 struct _DataLink {
     EventQueue *delegate_queue;
@@ -148,7 +148,9 @@ static void handleIncomingFrame(DataLink *me, PhysFrame const *frame)
     uint8_t rx_seq_nr = PhysFrame_seqNr(frame);
     if (frame_type == FT_SYNC) {
         BSP_logf("Got SYNC frame, seq_nr=%hhu\n", rx_seq_nr);
-        respondWithAckFrame(me, rx_seq_nr, PhysFrame_serviceType(frame));
+        NetworkServiceType nst = PhysFrame_serviceType(frame);
+        respondWithAckFrame(me, rx_seq_nr, nst);
+        EventQueue_postEvent(me->delegate_queue, nst == NST_DEBUG ? ET_DEBUG_SYNC : ET_DATAGRAM_SYNC, NULL, 0);
         return;
     }
 
@@ -269,9 +271,9 @@ bool DataLink_sendDebugPacket(DataLink *me, uint8_t const *packet, uint16_t nb)
 }
 
 
-bool DataLink_sendDatagram(DataLink *me, uint8_t const *datagram, uint16_t nb)
+bool DataLink_sendDatagram(DataLink *me, uint8_t const *packet, uint16_t nb)
 {
-    return sendPacket(me, NST_DATAGRAM, datagram, nb);
+    return sendPacket(me, NST_DATAGRAM, packet, nb);
 }
 
 

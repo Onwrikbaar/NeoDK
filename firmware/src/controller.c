@@ -11,11 +11,12 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
+#include <stddef.h>
 
 #include "bsp_dbg.h"
 #include "bsp_app.h"
 #include "app_event.h"
-#include "debug_cli.h"
 
 // This module implements:
 #include "controller.h"
@@ -29,8 +30,31 @@ typedef struct {
 } PacketHeader;
 
 typedef enum {
-    OC_NONE, OC_STATUS_RESPONSE, OC_READ_REQUEST, OC_SUBSCRIBE_REQUEST, OC_SUBSCRIBE_RESPONSE, OC_REPORT_DATA
+    OC_NONE, OC_STATUS_RESPONSE, OC_READ_REQUEST, OC_SUBSCRIBE_REQUEST, OC_SUBSCRIBE_RESPONSE, OC_REPORT_DATA,
+    OC_WRITE_REQUEST, OC_WRITE_RESPONSE, OC_INVOKE_REQUEST, OC_INVOKE_RESPONSE, OC_TIMED_REQUEST
 } Opcode;
+
+typedef enum {
+    EE_SIGNED_INT_1, EE_SIGNED_INT_2, EE_SIGNED_INT_4, EE_SIGNED_INT_8,
+    EE_UNSIGNED_INT_1, EE_UNSIGNED_INT_2, EE_UNSIGNED_INT_4, EE_UNSIGNED_INT_8,
+    EE_BOOLEAN_FALSE, EE_BOOLEAN_TRUE, EE_FLOAT_4, EE_FLOAT_8,
+    EE_UTF8_1LEN, EE_UTF8_2LEN, EE_UTF8_4LEN, EE_UTF8_8LEN,
+    EE_BYTE_1LEN, EE_BYTE_2LEN, EE_BYTE_4LEN, EE_BYTE_8LEN,
+    EE_NULL, EE_STRUCT, EE_ARRAY, EE_LIST, EE_END_OF_CONTAINER
+} ElementEncoding;
+
+typedef enum {
+    AI_PATTERN_NAMES = 5,
+} AttributeId;
+
+typedef struct {
+    uint16_t transaction_id;
+    uint8_t opcode;
+    uint8_t reserved;
+    uint16_t attribute_id;
+    uint8_t data[0];
+} AttributeAction;
+
 
 typedef void *(*StateFunc)(Controller *, AOEvent const *);
 
@@ -43,31 +67,87 @@ struct _Controller {
 };
 
 
-static void handleReadRequest(Controller *me, uint8_t const *request)
+static uint8_t const welcome_msg[] = "Push the button to play or pause :-)\n";
+
+
+static uint16_t encodeString(uint8_t dst[], char const *str)
 {
-    uint16_t attribute_id = *(uint16_t *)(request + 4);
-    BSP_logf("Transaction %hu: read attribute %hu\n", *(uint16_t *)request, attribute_id);
-    // Assume a request for the routine names for now.
-    uint16_t nr_of_patterns = Sequencer_nrOfPatterns(me->sequencer);
-    BSP_logf("We have %u patterns:\n", nr_of_patterns);
+    uint16_t nbe = 0;
+    dst[nbe++] = EE_UTF8_1LEN;
+    uint8_t str_len = strlen(str);
+    dst[nbe++] = str_len;
+    memcpy(dst + nbe, str, str_len);
+    return nbe + str_len;
+}
+
+
+static uint16_t encodeStringArray(uint8_t dst[], char const *strings[], uint8_t nr_of_strings)
+{
+    uint16_t nbe = 0;
+    dst[nbe++] = EE_ARRAY;
+    for (uint8_t i = 0; i < nr_of_strings; i++) {
+        nbe += encodeString(dst + nbe, strings[i]);
+    }
+    dst[nbe++] = EE_END_OF_CONTAINER;
+    return nbe;
+}
+
+// Yeah, this function will be refactored :-)
+static void readPatternNames(Controller *me, AttributeAction const *aa)
+{
+    uint8_t nr_of_patterns = Sequencer_nrOfPatterns(me->sequencer);
     char const *pattern_names[nr_of_patterns];
     Sequencer_getPatternNames(me->sequencer, pattern_names, nr_of_patterns);
-    for (uint16_t i = 0; i < nr_of_patterns; i++) {
-        BSP_logf("  %s\n", pattern_names[i]);
+    uint16_t total_bytes = 0;
+    for (uint8_t i = 0; i < nr_of_patterns; i++) {
+        total_bytes += strlen(pattern_names[i]);
     }
+    uint16_t nbw = sizeof(PacketHeader) + sizeof(AttributeAction);
+    uint16_t packet_size = nbw + 2 + nr_of_patterns * 2 + total_bytes;
+    // TODO Check for max payload size.
+    uint8_t packet[packet_size];
+    PacketHeader *ph = (PacketHeader *)packet;
+    // TODO Fill in the packet header.
+    AttributeAction *rsp_aa = (AttributeAction *)ph->message;
+    *rsp_aa = *aa;
+    rsp_aa->opcode = OC_REPORT_DATA;
+    nbw += encodeStringArray(packet + nbw, pattern_names, nr_of_patterns);
+    DataLink_sendDatagram(me->datalink, packet, nbw);
+}
+
+
+static void handleReadRequest(Controller *me, AttributeAction const *aa)
+{
+    if (aa->attribute_id == AI_PATTERN_NAMES) {
+        readPatternNames(me, aa);
+    } else {
+        BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
+        // TODO Respond with NOT_FOUND code.
+    }
+}
+
+
+static void handleWriteRequest(Controller *me, AttributeAction const *aa)
+{
+    // TODO Implement.
 }
 
 
 static void handleRequest(Controller *me, uint8_t const *request)
 {
-    uint8_t opcode = request[2];
-    switch (opcode)
+    AttributeAction const *aa = (AttributeAction const *)request;
+    switch (aa->opcode)
     {
         case OC_READ_REQUEST:
-            handleReadRequest(me, request);
+            BSP_logf("Transaction %hu: read attribute %hu\n", aa->transaction_id, aa->attribute_id);
+            handleReadRequest(me, aa);
+            break;
+        case OC_WRITE_REQUEST:
+            BSP_logf("Transaction %hu: write attribute %hu\n", aa->transaction_id, aa->attribute_id);
+            handleWriteRequest(me, aa);
             break;
         default:
-            BSP_logf("%s, unknown opcode 0x%02hhx\n", __func__, opcode);
+            BSP_logf("%s, unknown opcode 0x%02hhx\n", __func__, aa->opcode);
             break;
     }
 }
@@ -89,6 +169,9 @@ static void *stateIdle(Controller *me, AOEvent const *evt)
             break;
         case ET_AO_EXIT:
             BSP_logf("Controller_%s EXIT\n", __func__);
+            break;
+        case ET_DEBUG_SYNC:
+            DataLink_sendDebugPacket(me->datalink, welcome_msg, sizeof welcome_msg);
             break;
         case ET_INCOMING_PACKET:
             // Ignore the packet header for now.
@@ -131,7 +214,7 @@ Controller *Controller_new()
 void Controller_init(Controller *me, Sequencer *sequencer, DataLink *datalink)
 {
     me->sequencer = sequencer;
-    me->datalink = datalink;
+    me->datalink  = datalink;
     BSP_logf("%s\n", __func__);
     me->state = &stateIdle;
     me->state(me, AOEvent_newEntryEvent());
@@ -143,7 +226,7 @@ void Controller_init(Controller *me, Sequencer *sequencer, DataLink *datalink)
 void Controller_start(Controller *me)
 {
     BSP_logf("Starting NeoDK!\n");
-    BSP_logf("Push the button to play or pause :-)\n");
+    BSP_logf("%s", welcome_msg);
     BSP_setPrimaryVoltage_mV(DEFAULT_PRIMARY_VOLTAGE_mV);
     BSP_primaryVoltageEnable(true);
 }
@@ -159,7 +242,7 @@ void Controller_stop(Controller *me)
 {
     me->state(me, AOEvent_newExitEvent());
     me->state = stateNop;
-    CLI_logf("End of session\n");
+    BSP_logf("End of session\n");
     DataLink_close(me->datalink);
 }
 

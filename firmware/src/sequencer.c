@@ -31,8 +31,8 @@ struct _Sequencer {
     uint8_t event_storage[400];
     StateFunc state;
     PatternDescr const *pattern_descr;
-    uint16_t nr_of_patterns;
     PatternIterator pi;
+    uint8_t nr_of_patterns;
     uint8_t pattern_index;
 };
 
@@ -229,7 +229,7 @@ static bool scheduleNextPulseTrain(Sequencer *me)
         if (pt.pulse_width_micros > MAX_PULSE_WIDTH_MICROS) {
             pt.pulse_width_micros = MAX_PULSE_WIDTH_MICROS;
         }
-        BSP_logf("Pulse width is %hu µs\n", pt.pulse_width_micros);
+        // BSP_logf("Pulse width is %hu µs\n", pt.pulse_width_micros);
         return BSP_startPulseTrain(&pt);
     }
 
@@ -314,7 +314,7 @@ Sequencer *Sequencer_init(Sequencer *me)
 
 void Sequencer_start(Sequencer *me)
 {
-    for (uint16_t i = 0; i < me->nr_of_patterns; i++) {
+    for (uint8_t i = 0; i < me->nr_of_patterns; i++) {
         PatternDescr const *pd = &me->pattern_descr[i];
         BSP_logf("Checking '%s'\n", pd->name);
         PatternIterator_checkPattern(pd->pattern, pd->nr_of_elcons);
@@ -347,10 +347,10 @@ uint16_t Sequencer_nrOfPatterns(Sequencer const *me)
 }
 
 
-void Sequencer_getPatternNames(Sequencer const *me, char const *names[], uint16_t cnt)
+void Sequencer_getPatternNames(Sequencer const *me, char const *names[], uint8_t cnt)
 {
     if (cnt > me->nr_of_patterns) cnt = me->nr_of_patterns;
-    for (uint16_t i = 0; i < cnt; i++) {
+    for (uint8_t i = 0; i < cnt; i++) {
         names[i] = me->pattern_descr[i].name;
     }
 }

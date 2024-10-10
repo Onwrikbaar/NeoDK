@@ -496,12 +496,12 @@ void TIM1_CC_IRQHandler(void)
     if ((pulse_timer->DIER & TIM_DIER_CC1IE) && (pulse_timer->SR & TIM_SR_CC1IF)) {
         pulse_timer->SR &= ~TIM_SR_CC1IF;
         bsp.pulse_seqnr += 1;
-        BSP_logf("CC1 %hu\n", bsp.pulse_seqnr);
+        // BSP_logf("CC1 %hu\n", bsp.pulse_seqnr);
     }
     if ((pulse_timer->DIER & TIM_DIER_CC2IE) && (pulse_timer->SR & TIM_SR_CC2IF)) {
         pulse_timer->SR &= ~TIM_SR_CC2IF;
         bsp.pulse_seqnr += 1;
-        BSP_logf("CC2 %hu\n", bsp.pulse_seqnr);
+        // BSP_logf("CC2 %hu\n", bsp.pulse_seqnr);
     }
     if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
         EventQueue_postEvent(bsp.pulse_delegate_queue, ET_BURST_COMPLETED, NULL, 0);
