@@ -341,7 +341,7 @@ bool Sequencer_handleEvent(Sequencer *me)
 }
 
 
-uint16_t Sequencer_nrOfPatterns(Sequencer const *me)
+uint16_t Sequencer_getNrOfPatterns(Sequencer const *me)
 {
     return me->nr_of_patterns;
 }
@@ -353,6 +353,19 @@ void Sequencer_getPatternNames(Sequencer const *me, char const *names[], uint8_t
     for (uint8_t i = 0; i < cnt; i++) {
         names[i] = me->pattern_descr[i].name;
     }
+}
+
+
+char const *Sequencer_getCurrentPatternName(Sequencer const *me)
+{
+    return me->pattern_descr[me->pattern_index].name;
+}
+
+
+uint8_t Sequencer_getIntensityPercentage(Sequencer const *me)
+{
+    // TODO Return the actual value.
+    return 33;
 }
 
 

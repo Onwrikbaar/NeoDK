@@ -16,6 +16,7 @@
 
 #include "bsp_dbg.h"
 #include "bsp_app.h"
+#include "matter.h"
 #include "app_event.h"
 
 // This module implements:
@@ -29,22 +30,9 @@ typedef struct {
     uint8_t  message[0];
 } PacketHeader;
 
-typedef enum {
-    OC_NONE, OC_STATUS_RESPONSE, OC_READ_REQUEST, OC_SUBSCRIBE_REQUEST, OC_SUBSCRIBE_RESPONSE, OC_REPORT_DATA,
-    OC_WRITE_REQUEST, OC_WRITE_RESPONSE, OC_INVOKE_REQUEST, OC_INVOKE_RESPONSE, OC_TIMED_REQUEST
-} Opcode;
 
 typedef enum {
-    EE_SIGNED_INT_1, EE_SIGNED_INT_2, EE_SIGNED_INT_4, EE_SIGNED_INT_8,
-    EE_UNSIGNED_INT_1, EE_UNSIGNED_INT_2, EE_UNSIGNED_INT_4, EE_UNSIGNED_INT_8,
-    EE_BOOLEAN_FALSE, EE_BOOLEAN_TRUE, EE_FLOAT_4, EE_FLOAT_8,
-    EE_UTF8_1LEN, EE_UTF8_2LEN, EE_UTF8_4LEN, EE_UTF8_8LEN,
-    EE_BYTE_1LEN, EE_BYTE_2LEN, EE_BYTE_4LEN, EE_BYTE_8LEN,
-    EE_NULL, EE_STRUCT, EE_ARRAY, EE_LIST, EE_END_OF_CONTAINER
-} ElementEncoding;
-
-typedef enum {
-    AI_PATTERN_NAMES = 5,
+    AI_ALL_PATTERN_NAMES = 5, AI_CURRENT_PATTERN_NAME, AI_INTENSITY
 } AttributeId;
 
 typedef struct {
@@ -70,14 +58,63 @@ struct _Controller {
 static uint8_t const welcome_msg[] = "Push the button to play or pause :-)\n";
 
 
+static uint16_t encodedIntegerLength(uint8_t nr_of_octets)
+{
+    return 1 + nr_of_octets;
+}
+
+
+static uint16_t encodeUnsignedInteger(uint8_t dst[], uint8_t const *src, uint8_t nr_of_octets)
+{
+    switch (nr_of_octets)
+    {
+        case 1: dst[0] = EE_UNSIGNED_INT_1; break;
+        case 2: dst[0] = EE_UNSIGNED_INT_2; break;
+        case 4: dst[0] = EE_UNSIGNED_INT_4; break;
+        case 8: dst[0] = EE_UNSIGNED_INT_8; break;
+        default:
+            nr_of_octets = 1;
+            dst[0] = EE_UNSIGNED_INT_1;
+    }
+    uint16_t nbe = 1;
+    for (uint8_t i = 0; i < nr_of_octets; i++) {
+        dst[nbe++] = src[i];
+    }
+    return nbe;
+}
+
+
+static uint16_t encodedStringLength(char const *str)
+{
+    uint16_t nbe = strlen(str);
+    return nbe + (nbe < 256 ? 2 : 3);
+}
+
+
 static uint16_t encodeString(uint8_t dst[], char const *str)
 {
     uint16_t nbe = 0;
-    dst[nbe++] = EE_UTF8_1LEN;
-    uint8_t str_len = strlen(str);
-    dst[nbe++] = str_len;
+    uint16_t str_len = strlen(str);
+    if (str_len < 256) {
+        dst[nbe++] = EE_UTF8_1LEN;
+        dst[nbe++] = str_len;
+    } else {
+        dst[nbe++] = EE_UTF8_2LEN;
+        dst[nbe++] = str_len;
+        dst[nbe++] = str_len >> 8;
+    }
     memcpy(dst + nbe, str, str_len);
     return nbe + str_len;
+}
+
+
+static uint16_t encodedStringArrayLength(char const *strings[], uint8_t nr_of_strings)
+{
+    uint16_t nbe = 2;                           // 2 bytes to encode array.
+    for (uint8_t i = 0; i < nr_of_strings; i++) {
+        nbe += encodedStringLength(strings[i]);
+    }
+    return nbe;
 }
 
 
@@ -92,50 +129,94 @@ static uint16_t encodeStringArray(uint8_t dst[], char const *strings[], uint8_t 
     return nbe;
 }
 
-// Yeah, this function will be refactored :-)
+
+static void initResponsePacket(PacketHeader *ph, AttributeAction const *req_aa)
+{
+    ph->flags = 0x00;
+    ph->dst_address = ph->src_address;
+    ph->src_address = 0x0000;                   // TODO Use our real address.
+    ph->reserved = 0x00;
+    AttributeAction *rsp_aa = (AttributeAction *)ph->message;
+    *rsp_aa = *req_aa;                          // Copy the request.
+    rsp_aa->opcode = OC_REPORT_DATA;            // Only change the opcode.
+}
+
+
 static void readPatternNames(Controller *me, AttributeAction const *aa)
 {
-    uint8_t nr_of_patterns = Sequencer_nrOfPatterns(me->sequencer);
-    char const *pattern_names[nr_of_patterns];
+    uint8_t nr_of_patterns = Sequencer_getNrOfPatterns(me->sequencer);
+    char const *pattern_names[nr_of_patterns];  // Reserve enough space.
     Sequencer_getPatternNames(me->sequencer, pattern_names, nr_of_patterns);
-    uint16_t total_bytes = 0;
-    for (uint8_t i = 0; i < nr_of_patterns; i++) {
-        total_bytes += strlen(pattern_names[i]);
-    }
-    uint16_t nbw = sizeof(PacketHeader) + sizeof(AttributeAction);
-    uint16_t packet_size = nbw + 2 + nr_of_patterns * 2 + total_bytes;
-    // TODO Check for max payload size.
+    uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
+    uint16_t packet_size = nbtw + encodedStringArrayLength(pattern_names, nr_of_patterns);
+    // TODO Ensure packet_size does not exceed max frame payload size.
     uint8_t packet[packet_size];
-    PacketHeader *ph = (PacketHeader *)packet;
-    // TODO Fill in the packet header.
-    AttributeAction *rsp_aa = (AttributeAction *)ph->message;
-    *rsp_aa = *aa;
-    rsp_aa->opcode = OC_REPORT_DATA;
-    nbw += encodeStringArray(packet + nbw, pattern_names, nr_of_patterns);
-    DataLink_sendDatagram(me->datalink, packet, nbw);
+    initResponsePacket((PacketHeader *)packet, aa);
+    nbtw += encodeStringArray(packet + nbtw, pattern_names, nr_of_patterns);
+    DataLink_sendDatagram(me->datalink, packet, nbtw);
+}
+
+
+static void readCurrentPatternName(Controller *me, AttributeAction const *aa)
+{
+    char const *cpn = Sequencer_getCurrentPatternName(me->sequencer);
+    uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
+    uint16_t packet_size = nbtw + encodedStringLength(cpn);
+    uint8_t packet[packet_size];
+    initResponsePacket((PacketHeader *)packet, aa);
+    nbtw += encodeString(packet + nbtw, cpn);
+    DataLink_sendDatagram(me->datalink, packet, nbtw);
+}
+
+
+static void readIntensityPercentage(Controller *me, AttributeAction const *aa)
+{
+    uint8_t intensity_perc = Sequencer_getIntensityPercentage(me->sequencer);
+    uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
+    uint16_t packet_size = nbtw + encodedIntegerLength(sizeof intensity_perc);
+    uint8_t packet[packet_size];
+    initResponsePacket((PacketHeader *)packet, aa);
+    nbtw += encodeUnsignedInteger(packet + nbtw, &intensity_perc, sizeof intensity_perc);
+    DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
 
 
 static void handleReadRequest(Controller *me, AttributeAction const *aa)
 {
-    if (aa->attribute_id == AI_PATTERN_NAMES) {
-        readPatternNames(me, aa);
-    } else {
-        BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
-        // TODO Respond with NOT_FOUND code.
+    switch (aa->attribute_id)
+    {
+        case AI_ALL_PATTERN_NAMES:
+            readPatternNames(me, aa);
+            break;
+        case AI_CURRENT_PATTERN_NAME:
+            readCurrentPatternName(me, aa);
+            break;
+        case AI_INTENSITY:
+            readIntensityPercentage(me, aa);
+            break;
+        default:
+            BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
+            // TODO Respond with NOT_FOUND code.
     }
 }
 
 
 static void handleWriteRequest(Controller *me, AttributeAction const *aa)
 {
-    // TODO Implement.
+    switch (aa->attribute_id)
+    {
+        case AI_INTENSITY:
+            // TODO Send the new intensity to the sequencer.
+            break;
+        default:
+            BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
+            // TODO Respond with NOT_FOUND code.
+    }
 }
 
 
-static void handleRequest(Controller *me, uint8_t const *request)
+static void handleRequest(Controller *me, AttributeAction const *aa)
 {
-    AttributeAction const *aa = (AttributeAction const *)request;
     switch (aa->opcode)
     {
         case OC_READ_REQUEST:
@@ -175,7 +256,7 @@ static void *stateIdle(Controller *me, AOEvent const *evt)
             break;
         case ET_INCOMING_PACKET:
             // Ignore the packet header for now.
-            handleRequest(me, AOEvent_data(evt) + sizeof(PacketHeader));
+            handleRequest(me, (AttributeAction const *)(AOEvent_data(evt) + sizeof(PacketHeader)));
             break;
         default:
             BSP_logf("Controller_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
