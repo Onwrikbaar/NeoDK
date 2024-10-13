@@ -1,5 +1,5 @@
 /*
- * controller.c
+ * controller.c -- the interface to the controlling client
  *
  *  NOTICE (do not remove):
  *      This file is part of project NeoDK (https://github.com/Onwrikbaar/NeoDK).
@@ -12,7 +12,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <stddef.h>
 
 #include "bsp_dbg.h"
 #include "bsp_app.h"
@@ -30,9 +29,8 @@ typedef struct {
     uint8_t  message[0];
 } PacketHeader;
 
-
 typedef enum {
-    AI_ALL_PATTERN_NAMES = 5, AI_CURRENT_PATTERN_NAME, AI_INTENSITY
+    AI_ALL_PATTERN_NAMES = 5, AI_CURRENT_PATTERN_NAME, AI_INTENSITY_PERCENT, AI_PLAY_PAUSE_STOP
 } AttributeId;
 
 typedef struct {
@@ -58,78 +56,6 @@ struct _Controller {
 static uint8_t const welcome_msg[] = "Push the button to play or pause :-)\n";
 
 
-static uint16_t encodedIntegerLength(uint8_t nr_of_octets)
-{
-    return 1 + nr_of_octets;
-}
-
-
-static uint16_t encodeUnsignedInteger(uint8_t dst[], uint8_t const *src, uint8_t nr_of_octets)
-{
-    switch (nr_of_octets)
-    {
-        case 1: dst[0] = EE_UNSIGNED_INT_1; break;
-        case 2: dst[0] = EE_UNSIGNED_INT_2; break;
-        case 4: dst[0] = EE_UNSIGNED_INT_4; break;
-        case 8: dst[0] = EE_UNSIGNED_INT_8; break;
-        default:
-            nr_of_octets = 1;
-            dst[0] = EE_UNSIGNED_INT_1;
-    }
-    uint16_t nbe = 1;
-    for (uint8_t i = 0; i < nr_of_octets; i++) {
-        dst[nbe++] = src[i];
-    }
-    return nbe;
-}
-
-
-static uint16_t encodedStringLength(char const *str)
-{
-    uint16_t nbe = strlen(str);
-    return nbe + (nbe < 256 ? 2 : 3);
-}
-
-
-static uint16_t encodeString(uint8_t dst[], char const *str)
-{
-    uint16_t nbe = 0;
-    uint16_t str_len = strlen(str);
-    if (str_len < 256) {
-        dst[nbe++] = EE_UTF8_1LEN;
-        dst[nbe++] = str_len;
-    } else {
-        dst[nbe++] = EE_UTF8_2LEN;
-        dst[nbe++] = str_len;
-        dst[nbe++] = str_len >> 8;
-    }
-    memcpy(dst + nbe, str, str_len);
-    return nbe + str_len;
-}
-
-
-static uint16_t encodedStringArrayLength(char const *strings[], uint8_t nr_of_strings)
-{
-    uint16_t nbe = 2;                           // 2 bytes to encode array.
-    for (uint8_t i = 0; i < nr_of_strings; i++) {
-        nbe += encodedStringLength(strings[i]);
-    }
-    return nbe;
-}
-
-
-static uint16_t encodeStringArray(uint8_t dst[], char const *strings[], uint8_t nr_of_strings)
-{
-    uint16_t nbe = 0;
-    dst[nbe++] = EE_ARRAY;
-    for (uint8_t i = 0; i < nr_of_strings; i++) {
-        nbe += encodeString(dst + nbe, strings[i]);
-    }
-    dst[nbe++] = EE_END_OF_CONTAINER;
-    return nbe;
-}
-
-
 static void initResponsePacket(PacketHeader *ph, AttributeAction const *req_aa)
 {
     ph->flags = 0x00;
@@ -148,11 +74,11 @@ static void readPatternNames(Controller *me, AttributeAction const *aa)
     char const *pattern_names[nr_of_patterns];  // Reserve enough space.
     Sequencer_getPatternNames(me->sequencer, pattern_names, nr_of_patterns);
     uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
-    uint16_t packet_size = nbtw + encodedStringArrayLength(pattern_names, nr_of_patterns);
+    uint16_t packet_size = nbtw + Matter_encodedStringArrayLength(pattern_names, nr_of_patterns);
     // TODO Ensure packet_size does not exceed max frame payload size.
     uint8_t packet[packet_size];
     initResponsePacket((PacketHeader *)packet, aa);
-    nbtw += encodeStringArray(packet + nbtw, pattern_names, nr_of_patterns);
+    nbtw += Matter_encodeStringArray(packet + nbtw, pattern_names, nr_of_patterns);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
 
@@ -161,22 +87,22 @@ static void readCurrentPatternName(Controller *me, AttributeAction const *aa)
 {
     char const *cpn = Sequencer_getCurrentPatternName(me->sequencer);
     uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
-    uint16_t packet_size = nbtw + encodedStringLength(cpn);
+    uint16_t packet_size = nbtw + Matter_encodedStringLength(cpn);
     uint8_t packet[packet_size];
     initResponsePacket((PacketHeader *)packet, aa);
-    nbtw += encodeString(packet + nbtw, cpn);
+    nbtw += Matter_encodeString(packet + nbtw, cpn);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
 
 
 static void readIntensityPercentage(Controller *me, AttributeAction const *aa)
 {
-    uint8_t intensity_perc = Sequencer_getIntensityPercentage(me->sequencer);
+    uint8_t intensity_percent = Sequencer_getIntensityPercentage(me->sequencer);
     uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
-    uint16_t packet_size = nbtw + encodedIntegerLength(sizeof intensity_perc);
+    uint16_t packet_size = nbtw + Matter_encodedIntegerLength(sizeof intensity_percent);
     uint8_t packet[packet_size];
     initResponsePacket((PacketHeader *)packet, aa);
-    nbtw += encodeUnsignedInteger(packet + nbtw, &intensity_perc, sizeof intensity_perc);
+    nbtw += Matter_encodeUnsignedInteger(packet + nbtw, &intensity_percent, sizeof intensity_percent);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
 
@@ -191,7 +117,7 @@ static void handleReadRequest(Controller *me, AttributeAction const *aa)
         case AI_CURRENT_PATTERN_NAME:
             readCurrentPatternName(me, aa);
             break;
-        case AI_INTENSITY:
+        case AI_INTENSITY_PERCENT:
             readIntensityPercentage(me, aa);
             break;
         default:
@@ -201,17 +127,39 @@ static void handleReadRequest(Controller *me, AttributeAction const *aa)
 }
 
 
+static EventType eventTypeForCommand(uint8_t const *cs, uint16_t len)
+{
+    if (len == 4 && memcmp(cs, "play",  len) == 0) return ET_PLAY;
+    if (len == 5 && memcmp(cs, "pause", len) == 0) return ET_PAUSE;
+    if (len == 4 && memcmp(cs, "stop",  len) == 0) return ET_STOP;
+    return ET_UNKNOWN_COMMAND;
+}
+
+
 static void handleWriteRequest(Controller *me, AttributeAction const *aa)
 {
     switch (aa->attribute_id)
     {
-        case AI_INTENSITY:
-            // TODO Send the new intensity to the sequencer.
+        case AI_INTENSITY_PERCENT:
+            if (aa->data[0] == EE_UNSIGNED_INT_1) {
+                EventQueue_postEvent((EventQueue *)me->sequencer, ET_SET_INTENSITY, &aa->data[1], sizeof aa->data[1]);
+            }
+            break;
+        case AI_PLAY_PAUSE_STOP:
+            if (aa->data[0] == EE_UTF8_1LEN) {
+                EventQueue_postEvent((EventQueue *)me->sequencer, eventTypeForCommand(aa->data + 2, aa->data[1]), NULL, 0);
+            }
             break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
             // TODO Respond with NOT_FOUND code.
     }
+}
+
+
+static void handleInvokeRequest(Controller *me, AttributeAction const *aa)
+{
+    BSP_logf("%s not implemented yet\n", __func__);
 }
 
 
@@ -226,6 +174,10 @@ static void handleRequest(Controller *me, AttributeAction const *aa)
         case OC_WRITE_REQUEST:
             BSP_logf("Transaction %hu: write attribute %hu\n", aa->transaction_id, aa->attribute_id);
             handleWriteRequest(me, aa);
+            break;
+        case OC_INVOKE_REQUEST:
+            BSP_logf("Transaction %hu: invoke %hu\n", aa->transaction_id, aa->attribute_id);
+            handleInvokeRequest(me, aa);
             break;
         default:
             BSP_logf("%s, unknown opcode 0x%02hhx\n", __func__, aa->opcode);
@@ -308,8 +260,6 @@ void Controller_start(Controller *me)
 {
     BSP_logf("Starting NeoDK!\n");
     BSP_logf("%s", welcome_msg);
-    BSP_setPrimaryVoltage_mV(DEFAULT_PRIMARY_VOLTAGE_mV);
-    BSP_primaryVoltageEnable(true);
 }
 
 

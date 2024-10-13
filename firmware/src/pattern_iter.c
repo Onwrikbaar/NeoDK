@@ -63,11 +63,11 @@ bool PatternIterator_checkPattern(uint8_t const pattern[][2], uint16_t nr_of_elc
 }
 
 
-void PatternIterator_init(PatternIterator *me, PatternDescr const *pd)
+void PatternIterator_init(PatternIterator *me, PatternDescr const *pd, uint8_t pulse_width)
 {
     me->pattern_descr = pd;
     me->nr_of_reps = pd->nr_of_reps;
-    me->pulse_width_micros = 100;
+    me->pulse_width_micros = pulse_width;
     me->elcon_nr = 0;
     M_ASSERT(pd->nr_of_steps != 0);
     me->step_nr = 0;

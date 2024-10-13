@@ -28,7 +28,7 @@
 
 typedef struct {
     EventQueue event_queue;                     // This MUST be the first member.
-    uint8_t event_storage[200];
+    uint8_t event_storage[100];
     Controller *controller;
     Sequencer *sequencer;
     uint64_t prev_micros;
@@ -79,12 +79,13 @@ static void dispatchEvent(Boss *me, AOEvent const *evt)
             handlePosixSignal(me, *(int const *)AOEvent_data(evt));
             break;
         case ET_BUTTON_PUSHED:
-            EventQueue_postEvent((EventQueue *)me->sequencer, ET_PLAY_PAUSE, NULL, 0);
+            EventQueue_postEvent((EventQueue *)me->sequencer, ET_TOGGLE_PLAY_PAUSE, NULL, 0);
             break;
         case ET_BUTTON_RELEASED:
             // Ignore for now.
             break;
         case ET_NEXT_ROUTINE:
+        case ET_SET_PULSE_WIDTH:
             EventQueue_repostEvent((EventQueue *)me->sequencer, evt);
             break;
         default:
@@ -140,9 +141,8 @@ static void setupAndRunApplication(Boss *me)
         if (Boss_handleEvent(me)) continue;
         BSP_idle((bool (*)(const void *))&noEventsPending, me);
     }
-
-    Sequencer_stop(me->sequencer);
     Controller_stop(me->controller);
+    Sequencer_stop(me->sequencer);
     DataLink_delete(datalink);
 }
 

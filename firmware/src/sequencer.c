@@ -23,6 +23,7 @@
 #include "sequencer.h"
 
 #define MAX_PULSE_WIDTH_MICROS           200
+#define DEFAULT_INTENSITY_PERCENT         10
 
 typedef void *(*StateFunc)(Sequencer *, AOEvent const *);
 
@@ -34,6 +35,8 @@ struct _Sequencer {
     PatternIterator pi;
     uint8_t nr_of_patterns;
     uint8_t pattern_index;
+    uint8_t intensity_percent;
+    uint8_t pulse_width;
 };
 
 enum { EL_0, EL_A, EL_B, EL_C = 4, EL_AC = (EL_A | EL_C), EL_D = 8, EL_BD = (EL_B | EL_D) };
@@ -124,13 +127,29 @@ static PatternDescr const pattern_descriptors[] =
 };
 
 
+static void setPulseWidth(Sequencer *me, uint8_t width_µs)
+{
+    BSP_logf("Setting pulse width to %hhu µs\n", width_µs);
+    me->pulse_width = width_µs;
+}
+
+
+static void setIntensityPercentage(Sequencer *me, uint8_t perc)
+{
+    BSP_logf("Setting intensity to %hhu%%\n", perc);
+    me->intensity_percent = perc;
+    BSP_setPrimaryVoltage_mV(perc * 100);
+    setPulseWidth(me, 40 + perc);
+}
+
+
 static void selectNextRoutine(Sequencer *me)
 {
-    BSP_setPrimaryVoltage_mV(DEFAULT_PRIMARY_VOLTAGE_mV);
+    setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
     if (++me->pattern_index == me->nr_of_patterns) me->pattern_index = 0;
     PatternDescr const *pd = &me->pattern_descr[me->pattern_index];
     CLI_logf("Switching to '%s'\n", pd->name);
-    PatternIterator_init(&me->pi, pd);
+    PatternIterator_init(&me->pi, pd, me->pulse_width);
 }
 
 
@@ -149,6 +168,29 @@ static void *stateNop(Sequencer *me, AOEvent const *evt)
     return NULL;
 }
 
+
+static void *stateCanopy(Sequencer *me, AOEvent const *evt)
+{
+    switch (AOEvent_type(evt))
+    {
+        case ET_ADC_DATA_AVAILABLE:
+            printAdcValues((uint16_t const *)AOEvent_data(evt));
+            break;
+        case ET_NEXT_ROUTINE:
+            selectNextRoutine(me);
+            break;
+        case ET_SET_INTENSITY:
+            setIntensityPercentage(me, *(uint8_t const *)AOEvent_data(evt));
+            break;
+        case ET_SET_PULSE_WIDTH:
+            setPulseWidth(me, *(uint8_t const *)AOEvent_data(evt));
+            break;
+        default:
+            BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
+    }
+    return NULL;
+}
+
 // Forward declaration.
 static void *statePulsing(Sequencer *, AOEvent const *);
 
@@ -163,24 +205,19 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
         case ET_AO_EXIT:
             BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
-        case ET_ADC_DATA_AVAILABLE:
-            printAdcValues((uint16_t const *)AOEvent_data(evt));
-            break;
-        case ET_PLAY_PAUSE:
-            PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index]);
+        case ET_TOGGLE_PLAY_PAUSE:
+        case ET_PLAY:
+            PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index], me->pulse_width);
             CLI_logf("Starting '%s'\n", me->pi.pattern_descr->name);
             return &statePulsing;               // Transition.
-        case ET_NEXT_ROUTINE:
-            selectNextRoutine(me);
-            break;
         case ET_BURST_COMPLETED:
-            BSP_logf("Pulse train last pulse done\n");
+            BSP_logf("Last pulse done\n");
             break;
         case ET_BURST_EXPIRED:
             CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
             break;
         default:
-            BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
+            return stateCanopy(me, evt);
     }
     return NULL;
 }
@@ -196,12 +233,13 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
         case ET_AO_EXIT:
             BSP_logf("%s EXIT\n", __func__);
             break;
-        case ET_PLAY_PAUSE:
+        case ET_TOGGLE_PLAY_PAUSE:
             CLI_logf("Resuming '%s'\n", me->pi.pattern_descr->name);
+            // Fall through.
+        case ET_PLAY:
             return &statePulsing;
-        case ET_NEXT_ROUTINE:
-            selectNextRoutine(me);
-            break;
+        case ET_STOP:
+            return &stateIdle;
         case ET_BURST_COMPLETED:
             // BSP_logf("Last pulse done\n");
             break;
@@ -212,11 +250,8 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
             }
             CLI_logf("Pausing '%s'\n", me->pi.pattern_descr->name);
             break;
-        case ET_ADC_DATA_AVAILABLE:
-            printAdcValues((uint16_t const *)AOEvent_data(evt));
-            break;
         default:
-            BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
+            return stateCanopy(me, evt);
     }
     return NULL;
 }
@@ -248,11 +283,10 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
         case ET_AO_EXIT:
             BSP_logf("%s EXIT\n", __func__);
             break;
-        case ET_PLAY_PAUSE:
+        case ET_TOGGLE_PLAY_PAUSE:
             return &statePaused;                // Transition.
-        case ET_NEXT_ROUTINE:
-            selectNextRoutine(me);
-            break;
+        case ET_STOP:
+            return &stateIdle;                  // Transition.
         case ET_BURST_STARTED:
             // BSP_logf("Pulse train started\n");
             break;
@@ -265,11 +299,8 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
                 return &stateIdle;              // Transition.
             }
             break;
-        case ET_ADC_DATA_AVAILABLE:
-            printAdcValues((uint16_t const *)AOEvent_data(evt));
-            break;
         default:
-            BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
+            return stateCanopy(me, evt);
     }
     return NULL;
 }
@@ -307,6 +338,7 @@ Sequencer *Sequencer_init(Sequencer *me)
     me->pattern_descr = pattern_descriptors;
     me->nr_of_patterns = M_DIM(pattern_descriptors);
     me->pattern_index = 2;
+    me->intensity_percent = 0;
     BSP_registerPulseDelegate(&me->event_queue);
     return me;
 }
@@ -320,18 +352,11 @@ void Sequencer_start(Sequencer *me)
         PatternIterator_checkPattern(pd->pattern, pd->nr_of_elcons);
     }
 
-    PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index]);
-    uint32_t total_nr_of_pulses = 0;
-    PulseTrain pt;
-    while (PatternIterator_getNextPulseTrain(&me->pi, &pt)) {
-        // BSP_logf(" %3hu * {%s, %s}\n", pt.nr_of_pulses, elset_str[pt.elcon[0]], elset_str[pt.elcon[1]]);
-        total_nr_of_pulses += pt.nr_of_pulses;
-    }
-    BSP_logf("Total number of pulses: %u\n", total_nr_of_pulses);
-
-    PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index]);
+    PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index], me->pulse_width);
     me->state = stateIdle;
     me->state(me, AOEvent_newEntryEvent());
+    setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
+    BSP_primaryVoltageEnable(true);
 }
 
 
@@ -364,8 +389,7 @@ char const *Sequencer_getCurrentPatternName(Sequencer const *me)
 
 uint8_t Sequencer_getIntensityPercentage(Sequencer const *me)
 {
-    // TODO Return the actual value.
-    return 33;
+    return me->intensity_percent;
 }
 
 

@@ -22,11 +22,12 @@
 
 
 typedef struct {
-    uint8_t buf[30];
-    uint8_t len;
-    uint8_t state;
+    uint8_t buf[20];
     EventQueue *delegate_queue;
     DataLink *datalink;
+    uint16_t V_prim_mV;
+    uint8_t state;
+    uint8_t len;
 } CmndInterp;
 
 static CmndInterp my = {0};
@@ -42,6 +43,23 @@ static void gatherInputCharacters(CmndInterp *me, char ch)
     }
 }
 
+
+static void setPrimaryVoltage_mV(CmndInterp *me, uint16_t mV)
+{
+    me->V_prim_mV = BSP_setPrimaryVoltage_mV(mV);
+    uint8_t pulse_width = 40 + me->V_prim_mV / 100;
+    EventQueue_postEvent(me->delegate_queue, ET_SET_PULSE_WIDTH, &pulse_width, sizeof pulse_width);
+}
+
+
+static void changePrimaryVoltage_mV(CmndInterp *me, int16_t delta_mV)
+{
+    int32_t soll_mV = (int32_t)me->V_prim_mV + delta_mV;
+    if (soll_mV < 1000) soll_mV = 1000;
+    else if (soll_mV > 10200) soll_mV = 10200;
+    setPrimaryVoltage_mV(me, soll_mV);
+}
+
 /**
  * @brief   Console commands for interactive testing.
  */
@@ -54,11 +72,11 @@ static void interpretCommand(CmndInterp *me, char ch)
             break;
         case '0':
             BSP_primaryVoltageEnable(false);
-            BSP_setPrimaryVoltage_mV(0);
+            setPrimaryVoltage_mV(me, 0);
             break;
         case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
             BSP_primaryVoltageEnable(true);     // Turn on the buck converter.
-            BSP_setPrimaryVoltage_mV((ch - '0') * 1000U);
+            setPrimaryVoltage_mV(me, (ch - '0') * 1000U);
             break;
         case 'a':
             BSP_triggerADC();
@@ -67,8 +85,8 @@ static void interpretCommand(CmndInterp *me, char ch)
             EventQueue_postEvent(me->delegate_queue, ET_BUTTON_PUSHED, NULL, 0);
             EventQueue_postEvent(me->delegate_queue, ET_BUTTON_RELEASED, NULL, 0);
             break;
-        case 'd':                               // Voltage down.
-            BSP_changePrimaryVoltage_mV(-200);
+        case 'd':                               // Intensity down.
+            changePrimaryVoltage_mV(me, -100);
             break;
         case 'l':
             BSP_toggleTheLED();
@@ -81,11 +99,11 @@ static void interpretCommand(CmndInterp *me, char ch)
             EventQueue_postEvent(me->delegate_queue, ET_POSIX_SIGNAL, (uint8_t const *)&sig, sizeof sig);
             break;
         }
-        case 'u':                               // Voltage up.
-            BSP_changePrimaryVoltage_mV(+200);
+        case 'u':                               // Intensity up.
+            changePrimaryVoltage_mV(me, +100);
             break;
         case 'v':
-            CLI_logf("Firmware v0.30-beta\n");
+            CLI_logf("Firmware v0.31-beta\n");
             break;
         default:
             CLI_logf("Unknown command '/%c'\n", ch);

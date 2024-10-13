@@ -824,15 +824,6 @@ uint16_t BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 }
 
 
-uint16_t BSP_changePrimaryVoltage_mV(int16_t delta_mV)
-{
-    int32_t soll_mV = (int32_t)bsp.V_prim_mV + delta_mV;
-    if (soll_mV < VPRIM_MIN_mV) soll_mV = VPRIM_MIN_mV;
-    else if (soll_mV > VPRIM_MAX_mV) soll_mV = VPRIM_MAX_mV;
-    return BSP_setPrimaryVoltage_mV(soll_mV);
-}
-
-
 bool BSP_startPulseTrain(PulseTrain const *pt)
 {
     M_ASSERT(pt->pace_ms >= 5);                 // Repetition rate <= 200 Hz.

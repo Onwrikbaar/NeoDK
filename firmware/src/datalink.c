@@ -109,7 +109,7 @@ static void respondWithAckFrame(DataLink *me, uint8_t ack_nr, NetworkServiceType
 {
     uint8_t ack_frame[me->header_size];
     PhysFrame_initHeaderWithAck((PhysFrame *)ack_frame, FT_ACK, 0, ack_nr, nst);
-    BSP_logf("%s(%hhu) to controller\n", __func__, ack_nr);
+    // BSP_logf("%s(%hhu) to controller\n", __func__, ack_nr);
     writeFrame(me, ack_frame, sizeof ack_frame);
 }
 
@@ -117,14 +117,13 @@ static void respondWithAckFrame(DataLink *me, uint8_t ack_nr, NetworkServiceType
 static void handleIncomingDataFrame(DataLink *me, PhysFrame const *frame)
 {
     NetworkServiceType nst = PhysFrame_serviceType(frame);
-    uint8_t rx_seq_nr = PhysFrame_seqNr(frame);
     uint8_t const *payload = PhysFrame_payload(frame);
     uint16_t payload_size = PhysFrame_payloadSize(frame);
     if (nst == NST_DEBUG) {
-        BSP_logf("Got debug frame, seq_nr=%hhu, command length=%hu\n", rx_seq_nr, payload_size);
+        // BSP_logf("Got debug frame, seq_nr=%hhu, command length=%hu\n", PhysFrame_seqNr(frame), payload_size);
         CLI_handleRemoteInput(payload, payload_size);
     } else {
-        BSP_logf("Got packet frame, seq_nr=%hhu, packet size=%hu\n", rx_seq_nr, payload_size);
+        // BSP_logf("Got packet frame, seq_nr=%hhu, packet size=%hu\n", PhysFrame_seqNr(frame), payload_size);
         EventQueue_postEvent(me->delegate_queue, ET_INCOMING_PACKET, payload, payload_size);
     }
 }
@@ -140,7 +139,7 @@ static void handleIncomingFrame(DataLink *me, PhysFrame const *frame)
     FrameType frame_type = PhysFrame_type(frame);
     if (frame_type == FT_ACK) {
         uint8_t ack_nr = PhysFrame_ackNr(frame);
-        BSP_logf("Got ACK for frame %hhu\n", ack_nr);
+        // BSP_logf("Got ACK for frame %hhu\n", ack_nr);
         me->tx_seq_nr = (ack_nr + 1) & 0x7;
         return;
     }

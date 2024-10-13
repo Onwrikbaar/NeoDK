@@ -41,6 +41,7 @@ PROJ_COMMON_SRC += \
   $(PROJ_DIR_SRC)/pattern_iter.c \
   $(PROJ_DIR_SRC)/datalink.c \
   $(PROJ_DIR_SRC)/debug_cli.c \
+  $(PROJ_DIR_SRC)/matter.c \
 
 # Target-dependent include folders.
 STM32G0xx_INC += \
