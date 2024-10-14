@@ -11,6 +11,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "bsp_dbg.h"
 #include "bsp_mao.h"
@@ -127,6 +128,19 @@ static PatternDescr const pattern_descriptors[] =
 };
 
 
+void selectPatternByName(Sequencer *me, char const *name, EventSize len)
+{
+    for (uint8_t i = 0; i < me->nr_of_patterns; i++) {
+        char const *pattern_name = me->pattern_descr[i].name;
+        if (len == strlen(pattern_name) && memcmp(name, pattern_name, len) == 0) {
+            BSP_logf("%s '%s'\n", __func__, pattern_name);
+            me->pattern_index = i;
+            return;
+        }
+    }
+}
+
+
 static void setPulseWidth(Sequencer *me, uint8_t width_µs)
 {
     BSP_logf("Setting pulse width to %hhu µs\n", width_µs);
@@ -143,11 +157,10 @@ static void setIntensityPercentage(Sequencer *me, uint8_t perc)
 }
 
 
-static void selectNextRoutine(Sequencer *me)
+static void switchPattern(Sequencer *me)
 {
-    setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
-    if (++me->pattern_index == me->nr_of_patterns) me->pattern_index = 0;
     PatternDescr const *pd = &me->pattern_descr[me->pattern_index];
+    setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
     CLI_logf("Switching to '%s'\n", pd->name);
     PatternIterator_init(&me->pi, pd, me->pulse_width);
 }
@@ -176,8 +189,13 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
         case ET_ADC_DATA_AVAILABLE:
             printAdcValues((uint16_t const *)AOEvent_data(evt));
             break;
-        case ET_NEXT_ROUTINE:
-            selectNextRoutine(me);
+        case ET_SELECT_NEXT_PATTERN:
+            if (++me->pattern_index == me->nr_of_patterns) me->pattern_index = 0;
+            switchPattern(me);
+            break;
+        case ET_SELECT_PATTERN_BY_NAME:
+            selectPatternByName(me, (char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
+            switchPattern(me);
             break;
         case ET_SET_INTENSITY:
             setIntensityPercentage(me, *(uint8_t const *)AOEvent_data(evt));
@@ -284,6 +302,7 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
             BSP_logf("%s EXIT\n", __func__);
             break;
         case ET_TOGGLE_PLAY_PAUSE:
+        case ET_PAUSE:
             return &statePaused;                // Transition.
         case ET_STOP:
             return &stateIdle;                  // Transition.

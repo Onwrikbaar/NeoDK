@@ -68,15 +68,15 @@ static void interpretCommand(CmndInterp *me, char ch)
     switch (ch)
     {
         case '?':
-            CLI_logf("Commands: /? /a /b /d /l /n /q /u /v /0 /1../9\n");
+            CLI_logf("Commands: /? /a /b /d /l /n /q /u /v /w /0 /1../9\n");
             break;
         case '0':
             BSP_primaryVoltageEnable(false);
             setPrimaryVoltage_mV(me, 0);
             break;
         case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-            BSP_primaryVoltageEnable(true);     // Turn on the buck converter.
             setPrimaryVoltage_mV(me, (ch - '0') * 1000U);
+            BSP_primaryVoltageEnable(true);     // Turn on the buck converter.
             break;
         case 'a':
             BSP_triggerADC();
@@ -92,7 +92,7 @@ static void interpretCommand(CmndInterp *me, char ch)
             BSP_toggleTheLED();
             break;
         case 'n':
-            EventQueue_postEvent(me->delegate_queue, ET_NEXT_ROUTINE, NULL, 0);
+            EventQueue_postEvent(me->delegate_queue, ET_SELECT_NEXT_PATTERN, NULL, 0);
             break;
         case 'q': {                             // Quit.
             int sig = 2;                        // Simulate Ctrl-C.
@@ -103,7 +103,10 @@ static void interpretCommand(CmndInterp *me, char ch)
             changePrimaryVoltage_mV(me, +100);
             break;
         case 'v':
-            CLI_logf("Firmware v0.31-beta\n");
+            CLI_logf("Firmware v0.32-beta\n");
+            break;
+        case 'w':                               // Allow rediscovery by Dweeb.
+            DataLink_waitForSync(me->datalink);
             break;
         default:
             CLI_logf("Unknown command '/%c'\n", ch);

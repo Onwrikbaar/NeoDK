@@ -41,7 +41,7 @@ static void Boss_init(Boss *me)
     EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
     me->controller = Controller_new();
     me->sequencer = Sequencer_new();
-    me->prev_micros = 0;
+    me->prev_micros = 0ULL;
     me->keep_running = true;
 }
 
@@ -84,7 +84,7 @@ static void dispatchEvent(Boss *me, AOEvent const *evt)
         case ET_BUTTON_RELEASED:
             // Ignore for now.
             break;
-        case ET_NEXT_ROUTINE:
+        case ET_SELECT_NEXT_PATTERN:
         case ET_SET_PULSE_WIDTH:
             EventQueue_repostEvent((EventQueue *)me->sequencer, evt);
             break;

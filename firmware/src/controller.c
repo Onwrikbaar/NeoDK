@@ -97,12 +97,12 @@ static void readCurrentPatternName(Controller *me, AttributeAction const *aa)
 
 static void readIntensityPercentage(Controller *me, AttributeAction const *aa)
 {
-    uint8_t intensity_percent = Sequencer_getIntensityPercentage(me->sequencer);
+    uint8_t intensity = Sequencer_getIntensityPercentage(me->sequencer);
     uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
-    uint16_t packet_size = nbtw + Matter_encodedIntegerLength(sizeof intensity_percent);
+    uint16_t packet_size = nbtw + Matter_encodedIntegerLength(sizeof intensity);
     uint8_t packet[packet_size];
     initResponsePacket((PacketHeader *)packet, aa);
-    nbtw += Matter_encodeUnsignedInteger(packet + nbtw, &intensity_percent, sizeof intensity_percent);
+    nbtw += Matter_encodeUnsignedInteger(packet + nbtw, &intensity, sizeof intensity);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
 
@@ -143,6 +143,11 @@ static void handleWriteRequest(Controller *me, AttributeAction const *aa)
         case AI_INTENSITY_PERCENT:
             if (aa->data[0] == EE_UNSIGNED_INT_1) {
                 EventQueue_postEvent((EventQueue *)me->sequencer, ET_SET_INTENSITY, &aa->data[1], sizeof aa->data[1]);
+            }
+            break;
+        case AI_CURRENT_PATTERN_NAME:
+            if (aa->data[0] == EE_UTF8_1LEN) {
+                EventQueue_postEvent((EventQueue *)me->sequencer, ET_SELECT_PATTERN_BY_NAME, aa->data + 2, aa->data[1]);
             }
             break;
         case AI_PLAY_PAUSE_STOP:
@@ -248,18 +253,16 @@ void Controller_init(Controller *me, Sequencer *sequencer, DataLink *datalink)
 {
     me->sequencer = sequencer;
     me->datalink  = datalink;
-    BSP_logf("%s\n", __func__);
-    me->state = &stateIdle;
-    me->state(me, AOEvent_newEntryEvent());
-    DataLink_open(me->datalink, &me->event_queue);
-    DataLink_waitForSync(me->datalink);
 }
 
 
 void Controller_start(Controller *me)
 {
-    BSP_logf("Starting NeoDK!\n");
-    BSP_logf("%s", welcome_msg);
+    me->state = &stateIdle;
+    me->state(me, AOEvent_newEntryEvent());
+    DataLink_open(me->datalink, &me->event_queue);
+    DataLink_waitForSync(me->datalink);
+    BSP_logf("Starting NeoDK!\n%s", welcome_msg);
 }
 
 

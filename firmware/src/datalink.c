@@ -22,12 +22,13 @@
 // This module implements:
 #include "datalink.h"
 
-#define MAX_PAYLOAD_SIZE     2048
+#define MAX_PAYLOAD_SIZE    256
 
 struct _DataLink {
     EventQueue *delegate_queue;
     uint8_t tx_buf_store[200];
     CircBuffer output_buffer;
+    uint32_t frame_timestamp_µs[8];
     uint8_t *rx_frame_buffer;
     uint8_t rx_nb;
     DeviceId channel_fd;
@@ -138,9 +139,10 @@ static void handleIncomingFrame(DataLink *me, PhysFrame const *frame)
 
     FrameType frame_type = PhysFrame_type(frame);
     if (frame_type == FT_ACK) {
-        uint8_t ack_nr = PhysFrame_ackNr(frame);
-        // BSP_logf("Got ACK for frame %hhu\n", ack_nr);
-        me->tx_seq_nr = (ack_nr + 1) & 0x7;
+        // uint8_t ack_nr = PhysFrame_ackNr(frame);
+        // uint32_t ack_delay = BSP_microsecondsSinceBoot() - me->frame_timestamp_µs[ack_nr];
+        // BSP_logf("Got ACK for frame %hhu after %u µs\n", ack_nr, ack_delay);
+        // TODO Slide the window.
         return;
     }
 
@@ -226,6 +228,8 @@ static bool sendPacket(DataLink *me, NetworkServiceType nst, uint8_t const *pack
 {
     uint8_t frame_store[me->header_size + nb];
     PhysFrame_init((PhysFrame *)frame_store, FT_DATA, me->tx_seq_nr, nst, packet, nb);
+    me->frame_timestamp_µs[me->tx_seq_nr] = BSP_microsecondsSinceBoot();
+    me->tx_seq_nr = (me->tx_seq_nr + 1) & 0x7;
     // BSP_logf("Writing frame with size %hu to buffer\n", sizeof frame_store);
     return writeFrame(me, frame_store, sizeof frame_store) == sizeof frame_store;
 }
