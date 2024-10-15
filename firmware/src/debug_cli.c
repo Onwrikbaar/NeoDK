@@ -23,9 +23,9 @@
 
 typedef struct {
     uint8_t buf[20];
-    EventQueue *delegate_queue;
+    EventQueue *delegate;
+    Sequencer *sequencer;
     DataLink *datalink;
-    uint16_t V_prim_mV;
     uint8_t state;
     uint8_t len;
 } CmndInterp;
@@ -44,20 +44,18 @@ static void gatherInputCharacters(CmndInterp *me, char ch)
 }
 
 
-static void setPrimaryVoltage_mV(CmndInterp *me, uint16_t mV)
+static void setIntensity(CmndInterp *me, uint8_t intensity_perc)
 {
-    me->V_prim_mV = BSP_setPrimaryVoltage_mV(mV);
-    uint8_t pulse_width = 40 + me->V_prim_mV / 100;
-    EventQueue_postEvent(me->delegate_queue, ET_SET_PULSE_WIDTH, &pulse_width, sizeof pulse_width);
+    EventQueue_postEvent(me->delegate, ET_SET_INTENSITY, &intensity_perc, sizeof intensity_perc);
 }
 
 
-static void changePrimaryVoltage_mV(CmndInterp *me, int16_t delta_mV)
+static void changeIntensity(CmndInterp *me, int8_t delta_perc)
 {
-    int32_t soll_mV = (int32_t)me->V_prim_mV + delta_mV;
-    if (soll_mV < 1000) soll_mV = 1000;
-    else if (soll_mV > 10200) soll_mV = 10200;
-    setPrimaryVoltage_mV(me, soll_mV);
+    int16_t soll_perc = (int16_t)Sequencer_getIntensityPercentage(me->sequencer) + delta_perc;
+    if (soll_perc < 10) soll_perc = 10;
+    else if (soll_perc > 100) soll_perc = 100;
+    setIntensity(me, soll_perc);
 }
 
 /**
@@ -72,38 +70,38 @@ static void interpretCommand(CmndInterp *me, char ch)
             break;
         case '0':
             BSP_primaryVoltageEnable(false);
-            setPrimaryVoltage_mV(me, 0);
+            setIntensity(me, 0);
             break;
         case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-            setPrimaryVoltage_mV(me, (ch - '0') * 1000U);
+            setIntensity(me, (ch - '0') * 10);  // 0..90%.
             BSP_primaryVoltageEnable(true);     // Turn on the buck converter.
             break;
         case 'a':
             BSP_triggerADC();
             break;
         case 'b':                               // Simulate a button press.
-            EventQueue_postEvent(me->delegate_queue, ET_BUTTON_PUSHED, NULL, 0);
-            EventQueue_postEvent(me->delegate_queue, ET_BUTTON_RELEASED, NULL, 0);
+            EventQueue_postEvent(me->delegate, ET_BUTTON_PUSHED, NULL, 0);
+            EventQueue_postEvent(me->delegate, ET_BUTTON_RELEASED, NULL, 0);
             break;
         case 'd':                               // Intensity down.
-            changePrimaryVoltage_mV(me, -100);
+            changeIntensity(me, -2);
             break;
         case 'l':
             BSP_toggleTheLED();
             break;
         case 'n':
-            EventQueue_postEvent(me->delegate_queue, ET_SELECT_NEXT_PATTERN, NULL, 0);
+            EventQueue_postEvent(me->delegate, ET_SELECT_NEXT_PATTERN, NULL, 0);
             break;
         case 'q': {                             // Quit.
             int sig = 2;                        // Simulate Ctrl-C.
-            EventQueue_postEvent(me->delegate_queue, ET_POSIX_SIGNAL, (uint8_t const *)&sig, sizeof sig);
+            EventQueue_postEvent(me->delegate, ET_POSIX_SIGNAL, (uint8_t const *)&sig, sizeof sig);
             break;
         }
         case 'u':                               // Intensity up.
-            changePrimaryVoltage_mV(me, +100);
+            changeIntensity(me, +2);
             break;
         case 'v':
-            CLI_logf("Firmware v0.32-beta\n");
+            CLI_logf("Firmware v0.33-beta\n");
             break;
         case 'w':                               // Allow rediscovery by Dweeb.
             DataLink_waitForSync(me->datalink);
@@ -143,9 +141,10 @@ static void vLogToUser(CmndInterp *me, char const *fmt, va_list args)
  * Below are the functions implementing this module's interface.
  */
 
-void CLI_init(EventQueue *dq, DataLink *datalink)
+void CLI_init(EventQueue *dq, Sequencer *sequencer, DataLink *datalink)
 {
-    my.delegate_queue = dq;
+    my.delegate = dq;
+    my.sequencer = sequencer;
     my.datalink = datalink;
 }
 

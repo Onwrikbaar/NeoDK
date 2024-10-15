@@ -85,7 +85,7 @@ static void dispatchEvent(Boss *me, AOEvent const *evt)
             // Ignore for now.
             break;
         case ET_SELECT_NEXT_PATTERN:
-        case ET_SET_PULSE_WIDTH:
+        case ET_SET_INTENSITY:
             EventQueue_repostEvent((EventQueue *)me->sequencer, evt);
             break;
         default:
@@ -128,7 +128,7 @@ static void setupAndRunApplication(Boss *me)
     Sequencer_init(me->sequencer);
     DataLink *datalink = DataLink_new();
     Controller_init(me->controller, me->sequencer, datalink);
-    CLI_init(&me->event_queue, datalink);
+    CLI_init(&me->event_queue, me->sequencer, datalink);
     Sequencer_start(me->sequencer);
 
     Selector button_selector;

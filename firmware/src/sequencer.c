@@ -17,6 +17,7 @@
 #include "bsp_mao.h"
 #include "debug_cli.h"
 #include "app_event.h"
+#include "attributes.h"
 #include "eventqueue.h"
 #include "pattern_iter.h"
 
@@ -38,6 +39,7 @@ struct _Sequencer {
     uint8_t pattern_index;
     uint8_t intensity_percent;
     uint8_t pulse_width;
+    uint8_t play_state;
 };
 
 enum { EL_0, EL_A, EL_B, EL_C = 4, EL_AC = (EL_A | EL_C), EL_D = 8, EL_BD = (EL_B | EL_D) };
@@ -128,12 +130,22 @@ static PatternDescr const pattern_descriptors[] =
 };
 
 
-void selectPatternByName(Sequencer *me, char const *name, EventSize len)
+static void checkAllPatterns(Sequencer *me)
+{
+    for (uint8_t i = 0; i < me->nr_of_patterns; i++) {
+        PatternDescr const *pd = &me->pattern_descr[i];
+        BSP_logf("Checking '%s'\n", pd->name);
+        PatternIterator_checkPattern(pd->pattern, pd->nr_of_elcons);
+    }
+}
+
+
+static void selectPatternByName(Sequencer *me, char const *name, EventSize len)
 {
     for (uint8_t i = 0; i < me->nr_of_patterns; i++) {
         char const *pattern_name = me->pattern_descr[i].name;
         if (len == strlen(pattern_name) && memcmp(name, pattern_name, len) == 0) {
-            BSP_logf("%s '%s'\n", __func__, pattern_name);
+            // BSP_logf("%s '%s'\n", __func__, pattern_name);
             me->pattern_index = i;
             return;
         }
@@ -152,6 +164,8 @@ static void setIntensityPercentage(Sequencer *me, uint8_t perc)
 {
     BSP_logf("Setting intensity to %hhu%%\n", perc);
     me->intensity_percent = perc;
+    // TODO Ramp up?
+    Attribute_changed(AI_INTENSITY_PERCENT, &me->intensity_percent, sizeof me->intensity_percent);
     BSP_setPrimaryVoltage_mV(perc * 100);
     setPulseWidth(me, 40 + perc);
 }
@@ -160,9 +174,17 @@ static void setIntensityPercentage(Sequencer *me, uint8_t perc)
 static void switchPattern(Sequencer *me)
 {
     PatternDescr const *pd = &me->pattern_descr[me->pattern_index];
-    setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
     CLI_logf("Switching to '%s'\n", pd->name);
+    Attribute_changed(AI_CURRENT_PATTERN_NAME, (uint8_t const *)pd->name, strlen(pd->name));
+    setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
     PatternIterator_init(&me->pi, pd, me->pulse_width);
+}
+
+
+static void setPlayState(Sequencer *me, PlayState play_state)
+{
+    me->play_state = play_state;
+    Attribute_changed(AI_PLAY_PAUSE_STOP, &me->play_state, sizeof me->play_state);
 }
 
 
@@ -200,9 +222,6 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
         case ET_SET_INTENSITY:
             setIntensityPercentage(me, *(uint8_t const *)AOEvent_data(evt));
             break;
-        case ET_SET_PULSE_WIDTH:
-            setPulseWidth(me, *(uint8_t const *)AOEvent_data(evt));
-            break;
         default:
             BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
     }
@@ -219,6 +238,7 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
     {
         case ET_AO_ENTRY:
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
+            setPlayState(me, PS_IDLE);
             break;
         case ET_AO_EXIT:
             BSP_logf("Sequencer_%s EXIT\n", __func__);
@@ -247,6 +267,7 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
     {
         case ET_AO_ENTRY:
             BSP_logf("%s ENTRY\n", __func__);
+            setPlayState(me, PS_PAUSED);
             break;
         case ET_AO_EXIT:
             BSP_logf("%s EXIT\n", __func__);
@@ -296,6 +317,7 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
     {
         case ET_AO_ENTRY:
             BSP_logf("%s ENTRY\n", __func__);
+            setPlayState(me, PS_PLAYING);
             scheduleNextPulseTrain(me);
             break;
         case ET_AO_EXIT:
@@ -358,6 +380,7 @@ Sequencer *Sequencer_init(Sequencer *me)
     me->nr_of_patterns = M_DIM(pattern_descriptors);
     me->pattern_index = 2;
     me->intensity_percent = 0;
+    me->play_state = PS_UNKNOWN;
     BSP_registerPulseDelegate(&me->event_queue);
     return me;
 }
@@ -365,12 +388,7 @@ Sequencer *Sequencer_init(Sequencer *me)
 
 void Sequencer_start(Sequencer *me)
 {
-    for (uint8_t i = 0; i < me->nr_of_patterns; i++) {
-        PatternDescr const *pd = &me->pattern_descr[i];
-        BSP_logf("Checking '%s'\n", pd->name);
-        PatternIterator_checkPattern(pd->pattern, pd->nr_of_elcons);
-    }
-
+    checkAllPatterns(me);
     PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index], me->pulse_width);
     me->state = stateIdle;
     me->state(me, AOEvent_newEntryEvent());

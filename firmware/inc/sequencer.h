@@ -17,6 +17,8 @@
 
 typedef struct _Sequencer Sequencer;            // Opaque type.
 
+typedef enum { PS_UNKNOWN, PS_IDLE, PS_PAUSED, PS_PLAYING } PlayState;
+
 // Class method.
 Sequencer *Sequencer_new(void);
 

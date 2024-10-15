@@ -16,6 +16,7 @@
 #include "bsp_dbg.h"
 #include "bsp_app.h"
 #include "matter.h"
+#include "attributes.h"
 #include "app_event.h"
 
 // This module implements:
@@ -29,10 +30,6 @@ typedef struct {
     uint8_t  message[0];
 } PacketHeader;
 
-typedef enum {
-    AI_ALL_PATTERN_NAMES = 5, AI_CURRENT_PATTERN_NAME, AI_INTENSITY_PERCENT, AI_PLAY_PAUSE_STOP
-} AttributeId;
-
 typedef struct {
     uint16_t transaction_id;
     uint8_t opcode;
@@ -43,7 +40,6 @@ typedef struct {
 
 
 typedef void *(*StateFunc)(Controller *, AOEvent const *);
-
 struct _Controller {
     EventQueue event_queue;                     // This MUST be the first member.
     uint8_t event_storage[400];
@@ -56,13 +52,17 @@ struct _Controller {
 static uint8_t const welcome_msg[] = "Push the button to play or pause :-)\n";
 
 
-static void initResponsePacket(PacketHeader *ph, AttributeAction const *req_aa)
+static void initResponsePacket(PacketHeader *ph)
 {
     ph->flags = 0x00;
     ph->dst_address = ph->src_address;
     ph->src_address = 0x0000;                   // TODO Use our real address.
     ph->reserved = 0x00;
-    AttributeAction *rsp_aa = (AttributeAction *)ph->message;
+}
+
+
+static void initAttributeAction(AttributeAction *rsp_aa, AttributeAction const *req_aa)
+{
     *rsp_aa = *req_aa;                          // Copy the request.
     rsp_aa->opcode = OC_REPORT_DATA;            // Only change the opcode.
 }
@@ -77,7 +77,8 @@ static void readPatternNames(Controller *me, AttributeAction const *aa)
     uint16_t packet_size = nbtw + Matter_encodedStringArrayLength(pattern_names, nr_of_patterns);
     // TODO Ensure packet_size does not exceed max frame payload size.
     uint8_t packet[packet_size];
-    initResponsePacket((PacketHeader *)packet, aa);
+    initResponsePacket((PacketHeader *)packet);
+    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), aa);
     nbtw += Matter_encodeStringArray(packet + nbtw, pattern_names, nr_of_patterns);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
@@ -89,7 +90,8 @@ static void readCurrentPatternName(Controller *me, AttributeAction const *aa)
     uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
     uint16_t packet_size = nbtw + Matter_encodedStringLength(cpn);
     uint8_t packet[packet_size];
-    initResponsePacket((PacketHeader *)packet, aa);
+    initResponsePacket((PacketHeader *)packet);
+    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), aa);
     nbtw += Matter_encodeString(packet + nbtw, cpn);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
@@ -101,8 +103,27 @@ static void readIntensityPercentage(Controller *me, AttributeAction const *aa)
     uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
     uint16_t packet_size = nbtw + Matter_encodedIntegerLength(sizeof intensity);
     uint8_t packet[packet_size];
-    initResponsePacket((PacketHeader *)packet, aa);
+    initResponsePacket((PacketHeader *)packet);
+    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), aa);
     nbtw += Matter_encodeUnsignedInteger(packet + nbtw, &intensity, sizeof intensity);
+    DataLink_sendDatagram(me->datalink, packet, nbtw);
+}
+
+
+static void attributeChanged(Controller *me, AttributeId ai, ElementEncoding enc, uint8_t const *data, uint16_t data_size)
+{
+    // BSP_logf("Controller_%s(%hu) size=%hu\n", __func__, ai, data_size);
+    uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
+    uint16_t packet_size = nbtw + Matter_encodedDataLength(enc, data_size);
+    uint8_t packet[packet_size];
+    initResponsePacket((PacketHeader *)packet);
+    AttributeAction *aa = (AttributeAction *)(packet + sizeof(PacketHeader));
+    aa->transaction_id = 0;
+    aa->opcode = OC_REPORT_DATA;
+    aa->reserved = 0;
+    aa->attribute_id = ai;
+    // TODO Add subscription Id?
+    nbtw += Matter_encodeData(packet + nbtw, enc, data, data_size);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
 
@@ -262,6 +283,10 @@ void Controller_start(Controller *me)
     me->state(me, AOEvent_newEntryEvent());
     DataLink_open(me->datalink, &me->event_queue);
     DataLink_waitForSync(me->datalink);
+    // In practice these subscriptions will be made by the controlling client.
+    Attribute_subscribe(AI_CURRENT_PATTERN_NAME, EE_UTF8_1LEN,   (AttrNotifier)&attributeChanged, me);
+    Attribute_subscribe(AI_INTENSITY_PERCENT, EE_UNSIGNED_INT_1, (AttrNotifier)&attributeChanged, me);
+    Attribute_subscribe(AI_PLAY_PAUSE_STOP, EE_UNSIGNED_INT_1,   (AttrNotifier)&attributeChanged, me);
     BSP_logf("Starting NeoDK!\n%s", welcome_msg);
 }
 

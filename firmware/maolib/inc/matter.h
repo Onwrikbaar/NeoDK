@@ -39,6 +39,8 @@ uint16_t Matter_encodedStringLength(char const *str);
 uint16_t Matter_encodeString(uint8_t dst[], char const *str);
 uint16_t Matter_encodedStringArrayLength(char const *strings[], uint8_t nr_of_strings);
 uint16_t Matter_encodeStringArray(uint8_t dst[], char const *strings[], uint8_t nr_of_strings);
+uint16_t Matter_encodedDataLength(ElementEncoding enc, uint16_t nr_of_octets);
+uint16_t Matter_encodeData(uint8_t dst[], ElementEncoding, uint8_t const *src, uint16_t nr_of_octets);
 
 #ifdef __cplusplus
 }

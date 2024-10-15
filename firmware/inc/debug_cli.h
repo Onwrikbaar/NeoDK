@@ -14,10 +14,11 @@
 #define INC_DEBUG_CLI_H_
 
 #include "eventqueue.h"
+#include "sequencer.h"
 #include "datalink.h"
 
 
-void CLI_init(EventQueue *, DataLink *);
+void CLI_init(EventQueue *, Sequencer *, DataLink *);
 int  CLI_logf(char const *fmt, ...);
 void CLI_handleRemoteInput(uint8_t const *, uint16_t nb);
 
