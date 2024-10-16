@@ -42,25 +42,24 @@ static Subscription const *findSubForId(AttributeId ai)
  * Below are the functions implementing this module's interface.
  */
 
-bool Attribute_subscribe(AttributeId ai, ElementEncoding enc, AttrNotifier notify, void *target)
+SubscriptionId Attribute_subscribe(AttributeId ai, AttrNotifier notify, void *target)
 {
-    BSP_logf("%s for id=%hu\n", __func__, ai);
-    if (nr_of_subs == M_DIM(subscriptions)) return false;
+    // BSP_logf("%s for id=%hu\n", __func__, ai);
+    if (nr_of_subs == M_DIM(subscriptions)) return 0;
 
-    Subscription *sub = &subscriptions[nr_of_subs++];
+    Subscription *sub = &subscriptions[nr_of_subs];
     sub->ai = ai;
-    sub->encoding = enc;
     sub->notify = notify;
     sub->target = target;
-    return true;
+    return 256 + nr_of_subs++;
 }
 
 
-void Attribute_changed(AttributeId ai, uint8_t const *data, uint16_t size)
+void Attribute_changed(AttributeId ai, ElementEncoding enc, uint8_t const *data, uint16_t size)
 {
     // BSP_logf("%s(%hu)\n", __func__, ai);
     Subscription const *sub = findSubForId(ai);
     if (sub != NULL) {
-        sub->notify(sub->target, ai, sub->encoding, data, size);
+        sub->notify(sub->target, ai, enc, data, size);
     }
 }

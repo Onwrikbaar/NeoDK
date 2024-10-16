@@ -84,32 +84,6 @@ static void readPatternNames(Controller *me, AttributeAction const *aa)
 }
 
 
-static void readCurrentPatternName(Controller *me, AttributeAction const *aa)
-{
-    char const *cpn = Sequencer_getCurrentPatternName(me->sequencer);
-    uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
-    uint16_t packet_size = nbtw + Matter_encodedStringLength(cpn);
-    uint8_t packet[packet_size];
-    initResponsePacket((PacketHeader *)packet);
-    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), aa);
-    nbtw += Matter_encodeString(packet + nbtw, cpn);
-    DataLink_sendDatagram(me->datalink, packet, nbtw);
-}
-
-
-static void readIntensityPercentage(Controller *me, AttributeAction const *aa)
-{
-    uint8_t intensity = Sequencer_getIntensityPercentage(me->sequencer);
-    uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
-    uint16_t packet_size = nbtw + Matter_encodedIntegerLength(sizeof intensity);
-    uint8_t packet[packet_size];
-    initResponsePacket((PacketHeader *)packet);
-    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), aa);
-    nbtw += Matter_encodeUnsignedInteger(packet + nbtw, &intensity, sizeof intensity);
-    DataLink_sendDatagram(me->datalink, packet, nbtw);
-}
-
-
 static void attributeChanged(Controller *me, AttributeId ai, ElementEncoding enc, uint8_t const *data, uint16_t data_size)
 {
     // BSP_logf("Controller_%s(%hu) size=%hu\n", __func__, ai, data_size);
@@ -123,7 +97,7 @@ static void attributeChanged(Controller *me, AttributeId ai, ElementEncoding enc
     aa->reserved = 0;
     aa->attribute_id = ai;
     // TODO Add subscription Id?
-    nbtw += Matter_encodeData(packet + nbtw, enc, data, data_size);
+    nbtw += Matter_encodeScalarData(packet + nbtw, enc, data, data_size);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
 
@@ -136,10 +110,13 @@ static void handleReadRequest(Controller *me, AttributeAction const *aa)
             readPatternNames(me, aa);
             break;
         case AI_CURRENT_PATTERN_NAME:
-            readCurrentPatternName(me, aa);
+            Sequencer_notifyPattern(me->sequencer);
             break;
         case AI_INTENSITY_PERCENT:
-            readIntensityPercentage(me, aa);
+            Sequencer_notifyIntensity(me->sequencer);
+            break;
+        case AI_PLAY_PAUSE_STOP:
+            Sequencer_notifyPlayState(me->sequencer);
             break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
@@ -183,6 +160,13 @@ static void handleWriteRequest(Controller *me, AttributeAction const *aa)
 }
 
 
+static void handleSubscribeRequest(Controller *me, AttributeAction const *aa)
+{
+    Attribute_subscribe(aa->attribute_id, (AttrNotifier)&attributeChanged, me);
+    handleReadRequest(me, aa);
+}
+
+
 static void handleInvokeRequest(Controller *me, AttributeAction const *aa)
 {
     BSP_logf("%s not implemented yet\n", __func__);
@@ -200,6 +184,10 @@ static void handleRequest(Controller *me, AttributeAction const *aa)
         case OC_WRITE_REQUEST:
             BSP_logf("Transaction %hu: write attribute %hu\n", aa->transaction_id, aa->attribute_id);
             handleWriteRequest(me, aa);
+            break;
+        case OC_SUBSCRIBE_REQUEST:
+            BSP_logf("Transaction %hu: subscribe to attribute %hu\n", aa->transaction_id, aa->attribute_id);
+            handleSubscribeRequest(me, aa);
             break;
         case OC_INVOKE_REQUEST:
             BSP_logf("Transaction %hu: invoke %hu\n", aa->transaction_id, aa->attribute_id);
@@ -283,10 +271,6 @@ void Controller_start(Controller *me)
     me->state(me, AOEvent_newEntryEvent());
     DataLink_open(me->datalink, &me->event_queue);
     DataLink_waitForSync(me->datalink);
-    // In practice these subscriptions will be made by the controlling client.
-    Attribute_subscribe(AI_CURRENT_PATTERN_NAME, EE_UTF8_1LEN,   (AttrNotifier)&attributeChanged, me);
-    Attribute_subscribe(AI_INTENSITY_PERCENT, EE_UNSIGNED_INT_1, (AttrNotifier)&attributeChanged, me);
-    Attribute_subscribe(AI_PLAY_PAUSE_STOP, EE_UNSIGNED_INT_1,   (AttrNotifier)&attributeChanged, me);
     BSP_logf("Starting NeoDK!\n%s", welcome_msg);
 }
 

@@ -816,8 +816,10 @@ void BSP_primaryVoltageEnable(bool must_be_on)
 
 uint16_t BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 {
-    BSP_logf("Setting Vcap to %hu mV\n", V_prim_mV);
-    bsp.V_prim_mV = V_prim_mV;
+    if (bsp.V_prim_mV != V_prim_mV) {
+        BSP_logf("Setting Vcap to %hu mV\n", V_prim_mV);
+        bsp.V_prim_mV = V_prim_mV;
+    }
     // TODO Ensure a rising step on the buck regulator's feedback pin does not exceed 80 mV.
     DAC1->DHR12R2 = Vcap_mV_ToDacVal(V_prim_mV);
     return bsp.V_prim_mV;

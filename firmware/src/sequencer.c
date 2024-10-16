@@ -165,7 +165,7 @@ static void setIntensityPercentage(Sequencer *me, uint8_t perc)
     BSP_logf("Setting intensity to %hhu%%\n", perc);
     me->intensity_percent = perc;
     // TODO Ramp up?
-    Attribute_changed(AI_INTENSITY_PERCENT, &me->intensity_percent, sizeof me->intensity_percent);
+    Sequencer_notifyIntensity(me);
     BSP_setPrimaryVoltage_mV(perc * 100);
     setPulseWidth(me, 40 + perc);
 }
@@ -175,7 +175,7 @@ static void switchPattern(Sequencer *me)
 {
     PatternDescr const *pd = &me->pattern_descr[me->pattern_index];
     CLI_logf("Switching to '%s'\n", pd->name);
-    Attribute_changed(AI_CURRENT_PATTERN_NAME, (uint8_t const *)pd->name, strlen(pd->name));
+    Sequencer_notifyPattern(me);
     setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
     PatternIterator_init(&me->pi, pd, me->pulse_width);
 }
@@ -184,7 +184,7 @@ static void switchPattern(Sequencer *me)
 static void setPlayState(Sequencer *me, PlayState play_state)
 {
     me->play_state = play_state;
-    Attribute_changed(AI_PLAY_PAUSE_STOP, &me->play_state, sizeof me->play_state);
+    Sequencer_notifyPlayState(me);
 }
 
 
@@ -418,15 +418,28 @@ void Sequencer_getPatternNames(Sequencer const *me, char const *names[], uint8_t
 }
 
 
-char const *Sequencer_getCurrentPatternName(Sequencer const *me)
-{
-    return me->pattern_descr[me->pattern_index].name;
-}
-
-
 uint8_t Sequencer_getIntensityPercentage(Sequencer const *me)
 {
     return me->intensity_percent;
+}
+
+
+void Sequencer_notifyIntensity(Sequencer const *me)
+{
+    Attribute_changed(AI_INTENSITY_PERCENT, EE_UNSIGNED_INT_1, &me->intensity_percent, sizeof me->intensity_percent);
+}
+
+
+void Sequencer_notifyPattern(Sequencer const *me)
+{
+    PatternDescr const *pd = &me->pattern_descr[me->pattern_index];
+    Attribute_changed(AI_CURRENT_PATTERN_NAME, EE_UTF8_1LEN, (uint8_t const *)pd->name, strlen(pd->name));
+}
+
+
+void Sequencer_notifyPlayState(Sequencer const *me)
+{
+    Attribute_changed(AI_PLAY_PAUSE_STOP, EE_UNSIGNED_INT_1, &me->play_state, sizeof me->play_state);
 }
 
 

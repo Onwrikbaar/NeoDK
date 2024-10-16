@@ -26,10 +26,15 @@ Sequencer *Sequencer_new(void);
 Sequencer *Sequencer_init(Sequencer *);
 void Sequencer_start(Sequencer *);
 bool Sequencer_handleEvent(Sequencer *);
-uint16_t Sequencer_getNrOfPatterns(Sequencer const *me);
+
+uint16_t Sequencer_getNrOfPatterns(Sequencer const *);
 void Sequencer_getPatternNames(Sequencer const *, char const *[], uint8_t);
-char const *Sequencer_getCurrentPatternName(Sequencer const *);
 uint8_t Sequencer_getIntensityPercentage(Sequencer const *);
+
+void Sequencer_notifyIntensity(Sequencer const *);
+void Sequencer_notifyPattern(Sequencer const *);
+void Sequencer_notifyPlayState(Sequencer const *);
+
 void Sequencer_stop(Sequencer *);
 void Sequencer_delete(Sequencer *);
 

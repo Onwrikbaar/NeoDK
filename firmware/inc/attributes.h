@@ -23,7 +23,7 @@ typedef enum {
 typedef void (*AttrNotifier)(void *target, AttributeId, ElementEncoding, uint8_t const *data, uint16_t size);
 
 
-bool Attribute_subscribe(AttributeId, ElementEncoding, AttrNotifier, void *target);
-void Attribute_changed(AttributeId, uint8_t const *data, uint16_t size);
+SubscriptionId Attribute_subscribe(AttributeId, AttrNotifier, void *target);
+void Attribute_changed(AttributeId, ElementEncoding, uint8_t const *data, uint16_t size);
 
 #endif
