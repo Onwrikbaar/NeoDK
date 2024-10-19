@@ -32,20 +32,20 @@ typedef struct {
 
 typedef struct {
     uint16_t transaction_id;
-    uint8_t opcode;
-    uint8_t reserved;
+    uint8_t  opcode;
+    uint8_t  reserved;
     uint16_t attribute_id;
-    uint8_t data[0];
+    uint8_t  data[0];
 } AttributeAction;
 
-
 typedef void *(*StateFunc)(Controller *, AOEvent const *);
+
 struct _Controller {
     EventQueue event_queue;                     // This MUST be the first member.
-    uint8_t event_storage[400];
-    StateFunc state;
+    uint8_t    event_storage[400];
+    StateFunc  state;
     Sequencer *sequencer;
-    DataLink *datalink;
+    DataLink  *datalink;
 };
 
 
@@ -163,13 +163,22 @@ static void handleWriteRequest(Controller *me, AttributeAction const *aa)
 static void handleSubscribeRequest(Controller *me, AttributeAction const *aa)
 {
     Attribute_subscribe(aa->attribute_id, (AttrNotifier)&attributeChanged, me);
-    handleReadRequest(me, aa);
 }
 
 
 static void handleInvokeRequest(Controller *me, AttributeAction const *aa)
 {
-    BSP_logf("%s not implemented yet\n", __func__);
+    switch (aa->attribute_id)
+    {
+        case AI_CURRENT_PATTERN_NAME:
+            if (aa->data[0] == EE_UTF8_1LEN) {
+                EventQueue_postEvent((EventQueue *)me->sequencer, ET_SELECT_PATTERN_BY_NAME, aa->data + 2, aa->data[1]);
+            }
+            break;
+        default:
+            BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
+            // TODO Respond with NOT_FOUND code.
+    }
 }
 
 
@@ -188,6 +197,7 @@ static void handleRequest(Controller *me, AttributeAction const *aa)
         case OC_SUBSCRIBE_REQUEST:
             BSP_logf("Transaction %hu: subscribe to attribute %hu\n", aa->transaction_id, aa->attribute_id);
             handleSubscribeRequest(me, aa);
+            handleReadRequest(me, aa);
             break;
         case OC_INVOKE_REQUEST:
             BSP_logf("Transaction %hu: invoke %hu\n", aa->transaction_id, aa->attribute_id);

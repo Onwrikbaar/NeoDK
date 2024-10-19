@@ -44,9 +44,9 @@ static Subscription const *findSubForId(AttributeId ai)
 
 SubscriptionId Attribute_subscribe(AttributeId ai, AttrNotifier notify, void *target)
 {
-    // BSP_logf("%s for id=%hu\n", __func__, ai);
     if (nr_of_subs == M_DIM(subscriptions)) return 0;
 
+    BSP_logf("%s for id=%hu\n", __func__, ai);
     Subscription *sub = &subscriptions[nr_of_subs];
     sub->ai = ai;
     sub->notify = notify;
