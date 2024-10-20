@@ -3,11 +3,14 @@
  *
  *  Created on: 29 Feb 2020
  *      Author: mark
- *   Copyright  2020..2024 Neostim
+ *   Copyright  2020..2024 Neostim™
  */
 
 #include <stdbool.h>
 #include <stdint.h>
+
+#define FRAME_HEADER_SIZE       8
+#define NR_OF_FRAME_SEQ_NRS     8
 
 // ProtocolVersion (2 bits) determines size and interpretation of the frame header.
 typedef enum { PROTO_FIXED, PROTO_VAR } ProtocolVersion;
@@ -21,7 +24,6 @@ extern "C" {
 #endif
 
 // Class methods.
-uint16_t PhysFrame_headerSize(void);
 char const *PhysFrame_frameTypeName(FrameType);
 char const *PhysFrame_serviceTypeName(NetworkServiceType);
 

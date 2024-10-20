@@ -125,8 +125,8 @@ static bool noEventsPending(Boss const *me)
 
 static void setupAndRunApplication(Boss *me)
 {
-    Sequencer_init(me->sequencer);
     DataLink *datalink = DataLink_new();
+    Sequencer_init(me->sequencer);
     Controller_init(me->controller, me->sequencer, datalink);
     CLI_init(&me->event_queue, me->sequencer, datalink);
     Sequencer_start(me->sequencer);
@@ -153,7 +153,7 @@ int main()
     BSP_logf("Initialising...\n");
     BSP_init();                                 // Get the hardware ready.
 
-    Boss boss;
+    Boss boss;                                  // The supervisor object.
     Boss_init(&boss);
 
     BSP_registerAppTimerHandler((void (*)(void *, uint64_t))&onAppTimerTick, &boss, MICROSECONDS_PER_APP_TIMER_TICK);

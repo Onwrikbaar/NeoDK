@@ -22,17 +22,21 @@
 // This module implements:
 #include "datalink.h"
 
-#define MAX_PAYLOAD_SIZE    256
+#define MAX_PAYLOAD_SIZE    512
+
+typedef struct {
+    uint8_t  frame[FRAME_HEADER_SIZE + MAX_PAYLOAD_SIZE];
+    uint32_t frame_timestamp_µs;
+} TxFrameInfo;
 
 struct _DataLink {
     EventQueue *delegate_queue;
-    uint8_t tx_buf_store[200];
+    TxFrameInfo tx_frame_info[NR_OF_FRAME_SEQ_NRS];
     CircBuffer output_buffer;
-    uint32_t frame_timestamp_µs[8];
-    uint8_t *rx_frame_buffer;
+    uint8_t tx_buf_store[200];
+    uint8_t rx_frame_buffer[FRAME_HEADER_SIZE + MAX_PAYLOAD_SIZE];
     uint8_t rx_nb;
     DeviceId channel_fd;
-    uint16_t header_size;
     uint16_t rx_payload_size;
     uint8_t tx_seq_nr;
     uint8_t synced;
@@ -41,15 +45,13 @@ struct _DataLink {
 
 static void init(DataLink *me)
 {
-    me->header_size = PhysFrame_headerSize();
-    me->rx_frame_buffer = malloc(me->header_size + MAX_PAYLOAD_SIZE);
     me->rx_nb = 0;
     me->synced = false;
     me->tx_seq_nr = 0;
 }
 
-
-/*static*/ void dumpBuffer(const char *prefix, const uint8_t *bbuf, uint8_t nb)
+__attribute__((unused))
+static void dumpBuffer(const char *prefix, const uint8_t *bbuf, uint8_t nb)
 {
     if (prefix != NULL) BSP_logf("%s", prefix);
     for (uint8_t i = 0; i < nb; i++) {
@@ -71,11 +73,11 @@ static FrameType assembleIncomingFrame(DataLink *me, uint8_t ch)
 {
     me->rx_frame_buffer[me->rx_nb++] = ch;
     // Just collect bytes until we have a full header.
-    if (me->rx_nb < me->header_size) return FT_NONE;
+    if (me->rx_nb < FRAME_HEADER_SIZE) return FT_NONE;
 
     PhysFrame const *frame = (PhysFrame const *)me->rx_frame_buffer;
     // Shift/append the input buffer until it contains a valid header.
-    if (me->rx_nb == me->header_size) {
+    if (me->rx_nb == FRAME_HEADER_SIZE) {
         if (! PhysFrame_hasValidHeader(frame)) {
             makeRoomForNextByte(me);
             return FT_NONE;
@@ -88,7 +90,7 @@ static FrameType assembleIncomingFrame(DataLink *me, uint8_t ch)
             return FT_NONE;
         }
     }
-    if (me->rx_nb == me->header_size + me->rx_payload_size) {
+    if (me->rx_nb == FRAME_HEADER_SIZE + me->rx_payload_size) {
         me->rx_nb = 0;                          // Prepare for the next frame.
         return PhysFrame_type(frame);
     }
@@ -108,7 +110,9 @@ static uint32_t writeFrame(DataLink *me, uint8_t const *frame, uint32_t nb)
 
 static void respondWithAckFrame(DataLink *me, uint8_t ack_nr, NetworkServiceType nst)
 {
-    uint8_t ack_frame[me->header_size];
+    uint8_t ack_frame[FRAME_HEADER_SIZE];
+    // TODO Check whether we have an outbound frame queued that
+    // we can piggyback on instead of sending a separate ACK frame.
     PhysFrame_initHeaderWithAck((PhysFrame *)ack_frame, FT_ACK, 0, ack_nr, nst);
     // BSP_logf("%s(%hhu) to controller\n", __func__, ack_nr);
     writeFrame(me, ack_frame, sizeof ack_frame);
@@ -119,7 +123,7 @@ static void handleIncomingDataFrame(DataLink *me, PhysFrame const *frame)
 {
     NetworkServiceType nst = PhysFrame_serviceType(frame);
     uint8_t const *payload = PhysFrame_payload(frame);
-    uint16_t payload_size = PhysFrame_payloadSize(frame);
+    uint16_t payload_size  = PhysFrame_payloadSize(frame);
     if (nst == NST_DEBUG) {
         // BSP_logf("Got debug frame, seq_nr=%hhu, command length=%hu\n", PhysFrame_seqNr(frame), payload_size);
         CLI_handleRemoteInput(payload, payload_size);
@@ -130,17 +134,32 @@ static void handleIncomingDataFrame(DataLink *me, PhysFrame const *frame)
 }
 
 
+static void setFrameQueuedTimestamp(DataLink *me)
+{
+    me->tx_frame_info[me->tx_seq_nr].frame_timestamp_µs = BSP_microsecondsSinceBoot();
+}
+
+
+static uint32_t getFrameAckDelay(DataLink *me, uint8_t ack_nr)
+{
+    return BSP_microsecondsSinceBoot() - me->tx_frame_info[ack_nr].frame_timestamp_µs;
+}
+
+
 static void handleIncomingFrame(DataLink *me, PhysFrame const *frame)
 {
     if (! PhysFrame_isIntact(frame)) {
         BSP_logf("%s: bad frame\n", __func__);
+        // Do not ACK, wait for retransmission.
+        // Can also NAK if the header is correct but payload corrupt.
         return;
     }
 
     FrameType frame_type = PhysFrame_type(frame);
     if (frame_type == FT_ACK) {
-        // uint8_t ack_nr = PhysFrame_ackNr(frame);
-        // uint32_t ack_delay = BSP_microsecondsSinceBoot() - me->frame_timestamp_µs[ack_nr];
+        uint8_t ack_nr = PhysFrame_ackNr(frame);
+        __attribute__((unused))                 // Temporary.
+        uint32_t ack_delay = getFrameAckDelay(me, ack_nr);
         // BSP_logf("Got ACK for frame %hhu after %u µs\n", ack_nr, ack_delay);
         // TODO Slide the window.
         return;
@@ -226,12 +245,14 @@ static void setupChannel(DataLink *me)
 
 static bool sendPacket(DataLink *me, NetworkServiceType nst, uint8_t const *packet, uint16_t nb)
 {
-    uint8_t frame_store[me->header_size + nb];
+    uint8_t *frame_store = me->tx_frame_info[me->tx_seq_nr].frame;
     PhysFrame_init((PhysFrame *)frame_store, FT_DATA, me->tx_seq_nr, nst, packet, nb);
-    me->frame_timestamp_µs[me->tx_seq_nr] = BSP_microsecondsSinceBoot();
-    me->tx_seq_nr = (me->tx_seq_nr + 1) & 0x7;
-    // BSP_logf("Writing frame with size %hu to buffer\n", sizeof frame_store);
-    return writeFrame(me, frame_store, sizeof frame_store) == sizeof frame_store;
+    if (writeFrame(me, frame_store, FRAME_HEADER_SIZE + nb) == FRAME_HEADER_SIZE + nb) {
+        setFrameQueuedTimestamp(me);
+        me->tx_seq_nr = (me->tx_seq_nr + 1) & 0x7;
+        return true;
+    }
+    return false;
 }
 
 /*
@@ -283,7 +304,6 @@ bool DataLink_sendDatagram(DataLink *me, uint8_t const *packet, uint16_t nb)
 void DataLink_close(DataLink *me)
 {
     BSP_doChannelAction(me->channel_fd, CA_CLOSE);
-    free(me->rx_frame_buffer);
     me->channel_fd = -1;
 }
 
