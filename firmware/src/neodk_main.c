@@ -16,10 +16,8 @@
 #include "bsp_mao.h"
 #include "bsp_app.h"
 #include "app_event.h"
-#include "eventqueue.h"
 #include "controller.h"
 #include "debug_cli.h"
-#include "sequencer.h"
 
 
 #ifndef MICROSECONDS_PER_APP_TIMER_TICK
@@ -55,7 +53,7 @@ static void Boss_finish(Boss *me)
 
 static void handlePosixSignal(Boss *me, int sig)
 {
-    CLI_logf("Received signal %d\n", sig);
+    BSP_logf("Received signal %d\n", sig);
     if (sig == 2) me->keep_running = false;
 }
 
@@ -136,6 +134,7 @@ static void setupAndRunApplication(Boss *me)
 
     Controller_start(me->controller);
     while (me->keep_running) {
+        // Service the worker objects in order of decreasing priority.
         if (Sequencer_handleEvent(me->sequencer)) continue;
         if (Controller_handleEvent(me->controller)) continue;
         if (Boss_handleEvent(me)) continue;
@@ -155,11 +154,10 @@ int main()
 
     Boss boss;                                  // The supervisor object.
     Boss_init(&boss);
-
     BSP_registerAppTimerHandler((void (*)(void *, uint64_t))&onAppTimerTick, &boss, MICROSECONDS_PER_APP_TIMER_TICK);
     setupAndRunApplication(&boss);
-
     Boss_finish(&boss);
+
     BSP_close();
     BSP_logf("Bye!\n");
     BSP_closeDebug();

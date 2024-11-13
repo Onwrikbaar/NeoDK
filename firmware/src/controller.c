@@ -88,8 +88,7 @@ static void attributeChanged(Controller *me, AttributeId ai, ElementEncoding enc
 {
     // BSP_logf("Controller_%s(%hu) size=%hu\n", __func__, ai, data_size);
     uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
-    uint16_t packet_size = nbtw + Matter_encodedDataLength(enc, data_size);
-    uint8_t packet[packet_size];
+    uint8_t packet[nbtw + Matter_encodedDataLength(enc, data_size)];
     initResponsePacket((PacketHeader *)packet);
     AttributeAction *aa = (AttributeAction *)(packet + sizeof(PacketHeader));
     aa->transaction_id = 0;
@@ -99,6 +98,12 @@ static void attributeChanged(Controller *me, AttributeId ai, ElementEncoding enc
     // TODO Add subscription Id?
     nbtw += Matter_encodeScalarData(packet + nbtw, enc, data, data_size);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
+}
+
+
+static void logTransaction(AttributeAction const *aa, char const *action_str)
+{
+    BSP_logf("Transaction %hu: %s attribute %hu\n", aa->transaction_id, action_str, aa->attribute_id);
 }
 
 
@@ -187,20 +192,20 @@ static void handleRequest(Controller *me, AttributeAction const *aa)
     switch (aa->opcode)
     {
         case OC_READ_REQUEST:
-            BSP_logf("Transaction %hu: read attribute %hu\n", aa->transaction_id, aa->attribute_id);
+            logTransaction(aa, "read");
             handleReadRequest(me, aa);
             break;
         case OC_WRITE_REQUEST:
-            BSP_logf("Transaction %hu: write attribute %hu\n", aa->transaction_id, aa->attribute_id);
+            logTransaction(aa, "write");
             handleWriteRequest(me, aa);
             break;
         case OC_SUBSCRIBE_REQUEST:
-            BSP_logf("Transaction %hu: subscribe to attribute %hu\n", aa->transaction_id, aa->attribute_id);
+            logTransaction(aa, "subscribe to");
             handleSubscribeRequest(me, aa);
             handleReadRequest(me, aa);
             break;
         case OC_INVOKE_REQUEST:
-            BSP_logf("Transaction %hu: invoke %hu\n", aa->transaction_id, aa->attribute_id);
+            logTransaction(aa, "invoke");
             handleInvokeRequest(me, aa);
             break;
         default:

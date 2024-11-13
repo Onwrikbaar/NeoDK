@@ -70,7 +70,7 @@ For safety, it is best to power NeoDK from a battery, like a 3S (nominally 11.1V
 The device is controlled through a standard serial UART interface using 3.3V TTL signal levels at 115200 bps. Suitable USB-to-serial cables (3.3V TTL, Tip=Tx, Ring=Rx, Sleeve=GND) are readily available from various sources, like Aliexpress, for about €10 including shipping.
 
 ## Firmware
-The device's on-board control program (aka firmware) consists of a collection of collaborating state machines. The firmware is event-driven and 100% nonblocking.
+The device's on-board control program (aka firmware) consists of a collection of collaborating hierarchical state machines. The firmware is event-driven and 100% nonblocking.
 
 ### Structure
 Conceptually, the firmware consists of two layers:

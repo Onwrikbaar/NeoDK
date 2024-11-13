@@ -3,7 +3,7 @@
  *
  *  Created on: 14 Oct 2020
  *      Author: mark
- *   Copyright  2020..2024 Neostim
+ *   Copyright  2020..2024 Neostim™
  */
 
 #ifndef INC_CONVENIENCE_H_
@@ -18,23 +18,20 @@
 
 #define M_DIM(arr)      (sizeof arr / sizeof arr[0])
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef int8_t DeviceId;
 #define UNDEFINED_DEVICE_ID     ((DeviceId)(-1))
 
-
 typedef int (*CompareFunc)(const void *, const void *);
 typedef void (*Action)(void *target, uint32_t);
-
 typedef struct {
     Action action;
     void *target;
     uint32_t nr_of_times_invoked;
 } Selector;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 Selector *Selector_init(Selector *, Action, void *target);
 void invokeSelector(Selector *, uint32_t);

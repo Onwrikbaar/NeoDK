@@ -101,7 +101,7 @@ static void interpretCommand(CmndInterp *me, char ch)
             changeIntensity(me, +2);
             break;
         case 'v':
-            CLI_logf("Firmware v0.36-beta\n");
+            CLI_logf("Firmware v0.37-beta\n");
             break;
         case 'w':                               // Allow rediscovery by Dweeb.
             DataLink_waitForSync(me->datalink);

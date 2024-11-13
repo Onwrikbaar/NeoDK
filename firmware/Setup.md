@@ -10,17 +10,7 @@ A power cycle starts the firmware; the blue LED should light up and the box is r
 
 ## Controlling NeoDK from a computer
 1. Connect NeoDK to a computer using a USB-to-3.5mm-TRS-serial cable (3.3V TTL, Tip=Tx, Ring=Rx, Sleeve=GND).
-2. Open a Chrome, Edge or Opera browser window and point it to the [NUUI](https://deviceweb.org/neostim) (Neostim Ugly User Interface).
-3. The following commands can be typed into the command box:
-- /? list the commands
-- /a print the instantaneous primary current and some voltages
-- /b simulate the pushbutton, to start/pause/resume the pattern
-- /d primary voltage down by 200 mV
-- /l toggle the lovely blue LED
-- /u primary voltage up by 200 mV
-- /v print firmware version
-- /0 (zero) turn off the primary voltage
-- /1../9 set the primary voltage to 1..9 Volt (be careful what you wish for)
+2. Open a Chrome, Edge or Opera browser window and point it to [@edger477's colorful UI](https://edger477.github.io/neodk-ui/).
 
 ## Developing code for NeoDK
 ### Debugging probe

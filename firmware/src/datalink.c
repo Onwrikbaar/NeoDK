@@ -33,7 +33,7 @@ struct _DataLink {
     EventQueue *delegate_queue;
     TxFrameInfo tx_frame_info[NR_OF_FRAME_SEQ_NRS];
     CircBuffer output_buffer;
-    uint8_t tx_buf_store[200];
+    uint8_t tx_buf_store[600];
     uint8_t rx_frame_buffer[FRAME_HEADER_SIZE + MAX_PAYLOAD_SIZE];
     uint8_t rx_nb;
     DeviceId channel_fd;
@@ -151,7 +151,7 @@ static void handleIncomingFrame(DataLink *me, PhysFrame const *frame)
     if (! PhysFrame_isIntact(frame)) {
         BSP_logf("%s: bad frame\n", __func__);
         // Do not ACK, wait for retransmission.
-        // Can also NAK if the header is correct but payload corrupt.
+        // Can also NAK if the header is valid but payload corrupt.
         return;
     }
 
@@ -166,9 +166,9 @@ static void handleIncomingFrame(DataLink *me, PhysFrame const *frame)
     }
 
     uint8_t rx_seq_nr = PhysFrame_seqNr(frame);
+    NetworkServiceType nst = PhysFrame_serviceType(frame);
     if (frame_type == FT_SYNC) {
         BSP_logf("Got SYNC frame, seq_nr=%hhu\n", rx_seq_nr);
-        NetworkServiceType nst = PhysFrame_serviceType(frame);
         respondWithAckFrame(me, rx_seq_nr, nst);
         EventQueue_postEvent(me->delegate_queue, nst == NST_DEBUG ? ET_DEBUG_SYNC : ET_DATAGRAM_SYNC, NULL, 0);
         return;
@@ -177,7 +177,7 @@ static void handleIncomingFrame(DataLink *me, PhysFrame const *frame)
     uint16_t payload_size = PhysFrame_payloadSize(frame);
     if (frame_type == FT_DATA) {
         handleIncomingDataFrame(me, frame);
-        respondWithAckFrame(me, rx_seq_nr, PhysFrame_serviceType(frame));
+        respondWithAckFrame(me, rx_seq_nr, nst);
     } else {
         BSP_logf("Got %s frame, seq_nr=%hhu, payload_size=%hu\n",
                     PhysFrame_frameTypeName(frame_type), rx_seq_nr, payload_size);
@@ -252,6 +252,7 @@ static bool sendPacket(DataLink *me, NetworkServiceType nst, uint8_t const *pack
         me->tx_seq_nr = (me->tx_seq_nr + 1) & 0x7;
         return true;
     }
+    // TODO Schedule for retry.
     return false;
 }
 

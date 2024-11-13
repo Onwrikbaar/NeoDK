@@ -18,8 +18,8 @@
 #include "debug_cli.h"
 #include "app_event.h"
 #include "attributes.h"
-#include "eventqueue.h"
 #include "pattern_iter.h"
+#include "burst.h"
 
 // This module implements:
 #include "sequencer.h"
@@ -44,7 +44,8 @@ struct _Sequencer {
 
 enum { EL_0, EL_A, EL_B, EL_C = 4, EL_AC = (EL_A | EL_C), EL_D = 8, EL_BD = (EL_B | EL_D) };
 
-/*static*/ char const elset_str[][5] = {
+__attribute__((unused))
+static char const elset_str[][5] = {
     "None", "A", "B", "AB", "C", "AC", "BC", "ABC", "D", "AD", "BD", "ABD", "CD", "ACD", "BCD", "ABCD"
 };
 
@@ -164,7 +165,7 @@ static void setIntensityPercentage(Sequencer *me, uint8_t perc)
 {
     BSP_logf("Setting intensity to %hhu%%\n", perc);
     me->intensity_percent = perc;
-    // TODO Ramp up?
+    // TODO Ramp up to the previous intensity?
     Sequencer_notifyIntensity(me);
     BSP_setPrimaryVoltage_mV(perc * 100);
     setPulseWidth(me, 40 + perc);
@@ -175,8 +176,8 @@ static void switchPattern(Sequencer *me)
 {
     PatternDescr const *pd = &me->pattern_descr[me->pattern_index];
     CLI_logf("Switching to '%s'\n", pd->name);
-    Sequencer_notifyPattern(me);
     setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
+    Sequencer_notifyPattern(me);
     PatternIterator_init(&me->pi, pd, me->pulse_width);
 }
 
@@ -222,6 +223,9 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
         case ET_SET_INTENSITY:
             setIntensityPercentage(me, *(uint8_t const *)AOEvent_data(evt));
             break;
+        case ET_BURST_COMPLETED:
+            // BSP_logf("Last pulse done\n");
+            break;
         default:
             BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
     }
@@ -248,9 +252,6 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index], me->pulse_width);
             CLI_logf("Starting '%s'\n", me->pi.pattern_descr->name);
             return &statePulsing;               // Transition.
-        case ET_BURST_COMPLETED:
-            BSP_logf("Last pulse done\n");
-            break;
         case ET_BURST_EXPIRED:
             CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
             break;
@@ -279,9 +280,6 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
             return &statePulsing;
         case ET_STOP:
             return &stateIdle;
-        case ET_BURST_COMPLETED:
-            // BSP_logf("Last pulse done\n");
-            break;
         case ET_BURST_EXPIRED:
             if (PatternIterator_done(&me->pi)) {
                 CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
@@ -330,9 +328,6 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
             return &stateIdle;                  // Transition.
         case ET_BURST_STARTED:
             // BSP_logf("Pulse train started\n");
-            break;
-        case ET_BURST_COMPLETED:
-            // BSP_logf("Last pulse done\n");
             break;
         case ET_BURST_EXPIRED:
             if (! scheduleNextPulseTrain(me)) {
