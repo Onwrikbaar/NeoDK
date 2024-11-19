@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoDK control panel</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/style.css">
+    <script type="importmap">
+        { "imports": {
+            "vue":        "https://cdnjs.cloudflare.com/ajax/libs/vue/3.2.41/vue.esm-browser.prod.js"
+        } }
+      </script>
+</head>
+
+<body data-bs-theme="dark">
+    <div id="app" class="container my-5">
+
+        <div v-if="!isBrowserSupported">
+            <h1>Sorry, your browser does not support WebSerial API. Please try in different browser.</h1>
+        </div>
+        <template v-else>
+
+            <div>
+                <!-- Welcome Page -->
+                <h1>NeoDK control panel</h1>
+                <div class="mb-3">
+                    <label for="port" class="form-label">Add NeoDK device:
+                        <button @click="connect" class="btn btn-primary">Connect</button>
+                    </label>
+                </div>
+            </div>
+
+            <div v-if="devices.length > 0">
+                <!-- Volume Control Page -->
+                <div class="flex-row mb-3 align-items-baseline">
+                    <div class="d-inline-flex p-2">
+                        <p class="h1">Connected devices: {{ devices.length }}</p>
+                    </div>
+                </div>
+                <div v-for="device in devices" :key="device.id" class="my-3 container">
+                    <h2 class="d-inline-block my-2" style="height: 60px;">
+                        NeoDK ({{ device.state.PlayState }} | {{ device.state.Intensity }}% )</h2>
+                    <div class="progress my-2" role="progressbar"
+                        v-bind:aria-valuenow="parseInt(Math.round(device.state.Intensity))" aria-valuemin="0"
+                        aria-valuemax="100" style="height: 3em">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                            v-bind:style=" { width: parseInt(Math.round(device.state.Intensity))+'%' }" v-bind:class="{
+                                        'bg-info': (device.state.Intensity) < 50, 
+                                        'bg-warning': (device.state.Intensity) > 49,
+                                        'bg-danger': (device.state.Intensity) > 64
+                                        }">
+                            <span class="h3"> {{ device.state.Intensity }} </span>
+                        </div>
+                    </div>
+                    <!-- <div class="progress-stacked  my-2" style="height: 1em">
+                        <div class="progress" role="progressbar"
+                            v-bind:aria-valuenow="parseInt(Math.round(device.vcap))" aria-valuemin="0"
+                            aria-valuemax="1200" v-bind:style=" { width: parseInt(Math.round(device.vcap/120)) +'%' }">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info">
+                            </div>
+                        </div>
+                        <div class="progress" role="progressbar"
+                            v-bind:aria-valuenow="parseInt(Math.round(device.vbat))" aria-valuemin="0"
+                            aria-valuemax="1200"
+                            v-bind:style=" { width: parseInt(Math.round((device.vbat - device.vcap)/120)) +'%' }">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning">
+                            </div>
+                        </div>
+                    </div> -->
+                    <!-- <div class="row my-2">
+                        <div class="col">
+                            Voltage: {{ device.vcap }} | {{ device.vbat }}
+                        </div>
+                    </div> -->
+                    <div class="clearfix">&nbsp;</div>
+                    <div class="row">
+                        <div class="mx-2 col">
+                            <div class="row my-1">
+                                <button @click="device.changeIntensity(1)"
+                                    :disabled="device.state.Intensity > 98 || device.paused"
+                                    class="btn btn-primary mx-1 col">+ 1</button>
+                                <button @click="device.changeIntensity(5)"
+                                    :disabled="device.state.Intensity > 98 || device.paused"
+                                    class="btn btn-primary mx-1 col">+ 5</button>
+                                <button @click="device.changeIntensity(10)"
+                                    :disabled="device.state.Intensity > 98 || device.paused"
+                                    class="btn btn-primary mx-1 col">+ 10</button>
+                            </div>
+                            <div class="row my-1">
+                                <button @click="device.setIntensity(0)" class="btn btn-success mx-1 col">0</button>
+                                <button @click="device.setIntensity(10)" class="btn btn-success mx-1 col">10</button>
+                                <button @click="device.setIntensity(20)" class="btn btn-success mx-1 col"
+                                    :disabled="device.paused">20</button>
+                                <button @click="device.setIntensity(30)" class="btn btn-success mx-1 col"
+                                    :disabled="device.paused">30</button>
+                                <button @click="device.setIntensity(40)" class="btn btn-warning mx-1 col"
+                                    :disabled="device.paused">40</button>
+                            </div>
+                            <div class="row my-1">
+                                <button @click="device.changeIntensity(-1)" :disabled="device.state.Intensity < 1"
+                                    class="btn btn-primary mx-1 col">- 1</button>
+                                <button @click="device.changeIntensity(-5)" :disabled="device.state.Intensity < 5"
+                                    class="btn btn-primary mx-1 col">- 5</button>
+                                <button @click="device.changeIntensity(-10)" :disabled="device.state.Intensity < 10"
+                                    class="btn btn-primary mx-1 col">- 10</button>
+                            </div>
+                            <div class="row my-1">
+                                <fieldset>
+                                    <legend>Break</legend>
+                                </fieldset>
+                                <button v-if="!device.paused" @click="device.pause()" :disabled="device.paused"
+                                    class="btn btn-secondary btn-warning mx-1 col">Pause</button>
+                                <button v-if="device.paused" @click="device.resume()" :disabled="!device.paused"
+                                    class="btn btn-secondary btn-success mx-1 col">Play</button>
+                                <button @click="device.stop()"
+                                    class="btn btn-secondary btn-danger mx-1 col">Stop</button>
+                            </div>
+                        </div>
+                        <div class="mx-2 col">
+                            <div class="row">
+                                <fieldset class="callout callout-danger">
+                                    <legend class="danger">Pattern: {{ device.state.CurrentPattern }}
+                                    </legend>
+                                    <button v-for="pattern in device.state.AvailablePatterns"
+                                        @click="device.selectPattern(pattern)" class="btn btn-primary mx-2"
+                                        v-bind:class="{ 'btn-success': (device.state.CurrentPattern == pattern) }">
+                                        {{ pattern }}
+                                    </button>
+                                </fieldset>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+    <script type="module" src="./script.js"></script>
+</body>
+
+</html>
