@@ -18,8 +18,8 @@
 
 
 typedef struct {
-    uint16_t active;
     AttributeId ai;                             // Key.
+    uint16_t active;
     AttrNotifier notify;
     void *target;
 } Subscription;
@@ -43,7 +43,7 @@ static Subscription *findSubForId(AttributeId ai)
 static SubscriptionId setSubForId(AttributeId ai, AttrNotifier notify, void *target, uint16_t count)
 {
     Subscription *sub = findSubForId(ai);
-    if (sub == NULL) {
+    if (sub == NULL) {                          // Not present, add it if there is room.
         if (nr_of_subs == M_DIM(subscriptions)) return 0;
         sub = &subscriptions[nr_of_subs++];
         sub->ai = ai;
@@ -60,7 +60,7 @@ static SubscriptionId setSubForId(AttributeId ai, AttrNotifier notify, void *tar
 
 SubscriptionId Attribute_awaitRead(AttributeId ai, AttrNotifier notify, void *target)
 {
-    BSP_logf("%s for id=%hu)\n", __func__, ai);
+    BSP_logf("%s for id=%hu\n", __func__, ai);
     return setSubForId(ai, notify, target, 1);
 }
 
@@ -74,7 +74,7 @@ SubscriptionId Attribute_subscribe(AttributeId ai, AttrNotifier notify, void *ta
 
 void Attribute_changed(AttributeId ai, ElementEncoding enc, uint8_t const *data, uint16_t size)
 {
-    BSP_logf("%s(%hu)\n", __func__, ai);
+    // BSP_logf("%s(%hu)\n", __func__, ai);
     Subscription *sub = findSubForId(ai);
     if (sub != NULL && sub->active) {
         sub->notify(sub->target, ai, enc, data, size);
