@@ -33,11 +33,17 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      - name: Upload artifact
+      - name: Move Files to Root
+        run: |
+          mv UI/* ./
+          mv UI/.* ./ || true
+
+      - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload UI directory
-          path: 'UI/'
+          # Deploy only the files moved to root
+          path: './'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
