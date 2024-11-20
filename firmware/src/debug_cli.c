@@ -46,7 +46,7 @@ static void gatherInputCharacters(CmndInterp *me, char ch)
 
 static void setIntensity(CmndInterp *me, uint8_t intensity_perc)
 {
-    EventQueue_postEvent(me->delegate, ET_SET_INTENSITY, &intensity_perc, sizeof intensity_perc);
+    EventQueue_postEvent((EventQueue *)me->sequencer, ET_SET_INTENSITY, &intensity_perc, sizeof intensity_perc);
 }
 
 
@@ -90,7 +90,7 @@ static void interpretCommand(CmndInterp *me, char ch)
             BSP_toggleTheLED();
             break;
         case 'n':
-            EventQueue_postEvent(me->delegate, ET_SELECT_NEXT_PATTERN, NULL, 0);
+            EventQueue_postEvent((EventQueue *)me->sequencer, ET_SELECT_NEXT_PATTERN, NULL, 0);
             break;
         case 'q': {                             // Quit.
             int sig = 2;                        // Simulate Ctrl-C.
@@ -101,7 +101,7 @@ static void interpretCommand(CmndInterp *me, char ch)
             changeIntensity(me, +2);
             break;
         case 'v':
-            CLI_logf("Firmware v0.39-beta\n");
+            CLI_logf("Firmware %s\n", BSP_firmwareVersion());
             break;
         case 'w':                               // Allow rediscovery by Dweeb.
             DataLink_waitForSync(me->datalink);

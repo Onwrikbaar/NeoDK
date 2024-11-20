@@ -115,7 +115,7 @@ static IRQn_Type const app_timer_irq = TIM2_IRQn;
 
 static BSP bsp = {0};
 
-// A couple of functions from STM's infamous HAL.
+// Using a couple of functions from STM's infamous HAL.
 extern HAL_StatusTypeDef HAL_InitTick(uint32_t);
 extern void HAL_IncTick(void);
 
@@ -640,6 +640,12 @@ void BSP_init()
     LL_ADC_Enable(ADC1);
 
     bsp.nr_of_serial_devices = 1;               // Device 0 is the SEGGER console.
+}
+
+
+char const *BSP_firmwareVersion()
+{
+    return "v0.40-beta";
 }
 
 

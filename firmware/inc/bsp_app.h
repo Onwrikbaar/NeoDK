@@ -49,6 +49,7 @@ bool BSP_startPulseTrain(PulseTrain const *);
 void BSP_triggerADC(void);
 
 // Firmware update.
+char const *BSP_firmwareVersion();
 void BSP_gotoDfuMode(void);
 
 // Close any communication ports and release resources, if applicable.

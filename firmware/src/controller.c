@@ -112,9 +112,11 @@ static void handleReadRequest(Controller *me, AttributeAction const *aa)
 {
     switch (aa->attribute_id)
     {
-        case AI_FIRMWARE_VERSION:
-            // TODO Implement.
+        case AI_FIRMWARE_VERSION: {
+            char const *fw_version = BSP_firmwareVersion();
+            attributeChanged(me, AI_FIRMWARE_VERSION, EE_UTF8_1LEN, (uint8_t const *)fw_version, strlen(fw_version));
             break;
+        }
         case AI_VOLTAGES:
             Attribute_awaitRead(aa->attribute_id, (AttrNotifier)&attributeChanged, me);
             BSP_triggerADC();
@@ -301,7 +303,7 @@ Controller *Controller_new()
 
 void Controller_init(Controller *me, Sequencer *sequencer, DataLink *datalink)
 {
-    strncpy(me->box_name, "My first Neostim box", sizeof me->box_name - 1);
+    strncpy(me->box_name, "Mean Machine", sizeof me->box_name - 1);
     me->sequencer = sequencer;
     me->datalink  = datalink;
 }
