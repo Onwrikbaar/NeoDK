@@ -76,6 +76,10 @@ class NeoDK {
         this.#sendAttrWriteRequest(this.#the_writer, NeoDK.#AttributeId.IntensityPercent, new Uint8Array([NeoDK.#Encoding.UnsignedInt1, intensity]));
     }
 
+    refreshVoltages(){
+        this.#sendAttrReadRequest(this.#the_writer, NeoDK.#AttributeId.Voltages);
+    }
+
     /**
      * Method to get the port from browser
      * User will be prompted to select a port that box is connected to
@@ -102,16 +106,49 @@ class NeoDK {
         return await this.#usePort(port);
     }
 
+    static BoxPower = class NeoDKBoxPower {
+        /**
+         *
+         */
+        constructor() {
+            this._batteryVoltage = 0;
+            this._capacitorVoltage = 0;
+            this._primaryCurrent = 0;
+        }
+
+        get BatteryVoltage() {
+            return this._batteryVoltage;
+        }
+        set BatteryVoltage(value) {
+            this._batteryVoltage = value;
+        }
+
+        get CapacitorVoltage() {
+            return this._capacitorVoltage;
+        }
+        set CapacitorVoltage(value) {
+            this._capacitorVoltage = value;
+        }
+
+        get PrimaryCurrent() {
+            return this._primaryCurrent;
+        }
+        set PrimaryCurrent(value) {
+            this._primaryCurrent = value;
+        }
+
+    }
 
     /**
      * Structure that represents play state of NeoDK
      */
-    static State = class {
+    static State = class NeoDKState {
         constructor() {
             this._playState = NeoDK.#playStates[0];
             this._intensity = 0;
             this._currentPattern = '';
             this._availablePatterns = [];
+            this.power = new NeoDK.BoxPower();
         }
 
 
@@ -190,10 +227,12 @@ class NeoDK {
      * @readonly
      */
     static #AttributeId = {
+        Voltages: 3,
         AllPatternNames: 5,
         CurrentPatternName: 6,
         IntensityPercent: 7,
-        PlayPauseStop: 8
+        PlayPauseStop: 8,
+        BoxName: 9
     };
 
     /**
@@ -205,6 +244,7 @@ class NeoDK {
     static #Encoding = {
         UnsignedInt1: 4,
         UTF8_1Len: 12,
+        Bytes_1Len: 16,
         Array: 22,
         EndOfContainer: 24
     }
@@ -358,6 +398,17 @@ class NeoDK {
         let offset = NeoDK.#StructureSize.AttributeAction;
         const data_length = aa.length - offset;
         switch (attribute_id) {
+            case NeoDK.#AttributeId.Voltages:
+                if (data_length >= 8 && aa[offset] == NeoDK.#Encoding.Bytes_1Len) {
+                    const Vbat_mV = aa[offset + 2] | ((aa[offset + 3]) << 8);
+                    const Vcap_mV = aa[offset + 4] | ((aa[offset + 5]) << 8);
+                    const Ipri_mA = aa[offset + 6] | ((aa[offset + 7]) << 8);
+                    this.state.power.BatteryVoltage = Vbat_mV / 1000;
+                    this.state.power.CapacitorVoltage = Vcap_mV / 1000;
+                    this.state.power.PrimaryCurrent = Ipri_mA / 1000;
+                    this.logger.log('Vbat=' + Vbat_mV + ' mV, Vcap=' + Vcap_mV + ' mV, Ipri=' + Ipri_mA + ' mA');
+                }
+                break;
             case NeoDK.#AttributeId.AllPatternNames:
                 if (data_length >= 2 && aa[offset] == NeoDK.#Encoding.Array) {
                     this.logger.log('Available patterns:');
@@ -484,6 +535,8 @@ class NeoDK {
 
             // We have one readable attribute and three we can subscribe to.
             this.#sendAttrReadRequest(this.#the_writer, NeoDK.#AttributeId.AllPatternNames);
+            this.#sendAttrReadRequest(this.#the_writer, NeoDK.#AttributeId.Voltages);
+            this.#sendAttrReadRequest(this.#the_writer, NeoDK.#AttributeId.BoxName);
             this.#sendAttrSubscribeRequest(this.#the_writer, NeoDK.#AttributeId.CurrentPatternName);
             this.#sendAttrSubscribeRequest(this.#the_writer, NeoDK.#AttributeId.IntensityPercent);
             this.#sendAttrSubscribeRequest(this.#the_writer, NeoDK.#AttributeId.PlayPauseStop);
@@ -515,3 +568,4 @@ class NeoDK {
 }
 
 export default NeoDK;
+

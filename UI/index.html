@@ -41,7 +41,7 @@
                 </div>
                 <div v-for="device in devices" :key="device.id" class="my-3 container">
                     <h2 class="d-inline-block my-2" style="height: 60px;">
-                        NeoDK ({{ device.state.PlayState }} | {{ device.state.Intensity }}% )</h2>
+                        NeoDK ({{ device.state.PlayState }} | {{ device.state.Intensity }}% ) | Battery Voltage: {{ device.state.power.BatteryVoltage }}V</h2>
                     <div class="progress my-2" role="progressbar"
                         v-bind:aria-valuenow="parseInt(Math.round(device.state.Intensity))" aria-valuemin="0"
                         aria-valuemax="100" style="height: 3em">
@@ -54,26 +54,6 @@
                             <span class="h3"> {{ device.state.Intensity }} </span>
                         </div>
                     </div>
-                    <!-- <div class="progress-stacked  my-2" style="height: 1em">
-                        <div class="progress" role="progressbar"
-                            v-bind:aria-valuenow="parseInt(Math.round(device.vcap))" aria-valuemin="0"
-                            aria-valuemax="1200" v-bind:style=" { width: parseInt(Math.round(device.vcap/120)) +'%' }">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info">
-                            </div>
-                        </div>
-                        <div class="progress" role="progressbar"
-                            v-bind:aria-valuenow="parseInt(Math.round(device.vbat))" aria-valuemin="0"
-                            aria-valuemax="1200"
-                            v-bind:style=" { width: parseInt(Math.round((device.vbat - device.vcap)/120)) +'%' }">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning">
-                            </div>
-                        </div>
-                    </div> -->
-                    <!-- <div class="row my-2">
-                        <div class="col">
-                            Voltage: {{ device.vcap }} | {{ device.vbat }}
-                        </div>
-                    </div> -->
                     <div class="clearfix">&nbsp;</div>
                     <div class="row">
                         <div class="mx-2 col">
@@ -124,7 +104,7 @@
                                     <legend class="danger">Pattern: {{ device.state.CurrentPattern }}
                                     </legend>
                                     <button v-for="pattern in device.state.AvailablePatterns"
-                                        @click="device.selectPattern(pattern)" class="btn btn-primary mx-2"
+                                        @click="device.selectPattern(pattern)" class="btn btn-primary mx-1 my-1"
                                         v-bind:class="{ 'btn-success': (device.state.CurrentPattern == pattern) }">
                                         {{ pattern }}
                                     </button>
