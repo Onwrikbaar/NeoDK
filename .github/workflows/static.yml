@@ -38,7 +38,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           # Deploy UI folder
-          path: './UI'
+          path: './UI/'
 
       - name: Deploy to GitHub Pages
         id: deployment
