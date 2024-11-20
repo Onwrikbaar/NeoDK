@@ -74,6 +74,16 @@ class NeoDKStateVM extends NeoDK.State {
 }
 
 class NeoDKVM extends NeoDK {
+
+    /**
+     *
+     */
+    constructor(...args) {
+        super(...args);
+        this.changingName = ref(false);
+        this.newName = '';
+    }
+
     setIntensity = (intensity) => super.setIntensity(intensity);
 
     selectPattern = (pattern) => super.selectPattern(pattern);
@@ -85,6 +95,16 @@ class NeoDKVM extends NeoDK {
     stop = () => super.setPlayState(NeoDK.ChangeStateCommand.stop);
 
     paused = computed(() => ['paused', 'stopped'].includes(this.state.PlayState));
+
+    changeName = () => { 
+        this.changingName.value = true; 
+        this.newName = this.Name;
+    }
+
+    saveName = () => {
+        this.Name = this.newName;
+        this.changingName.value = false;
+    }
 }
 
 const app = createApp({

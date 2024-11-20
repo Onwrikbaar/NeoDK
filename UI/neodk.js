@@ -19,6 +19,7 @@ class NeoDK {
 
         this.logger = logger;
         this.state = state;
+        this._name = '';
     }
 
     /**
@@ -41,17 +42,20 @@ class NeoDK {
 
     // Public methods
 
+    get Name() {
+        return this._name;
+    }
+    set Name(value) {
+        this._name = value;
+        this.#writeString(value, NeoDK.#AttributeId.BoxName)
+    }
     /**
      * Method to select pattern to play
      * @public
      * @param {string} name name of the pattern to select
      */
     selectPattern(name) {
-        let enc_name = new TextEncoder().encode(name);
-        const array = Array.from(enc_name); // Convert to regular array
-        array.unshift(NeoDK.#Encoding.UTF8_1Len, enc_name.length); // Use unshift
-        enc_name = Uint8Array.from(array);
-        this.#sendAttrWriteRequest(this.#the_writer, NeoDK.#AttributeId.CurrentPatternName, enc_name);
+        this.#writeString(name, NeoDK.#AttributeId.CurrentPatternName);
     }
 
     /**
@@ -60,11 +64,7 @@ class NeoDK {
      * @param {ChangeStateCommand} state one of the accepted play states from ChangeStateCommand
      */
     setPlayState(state) {
-        let enc_state = new TextEncoder().encode(state);
-        const array = Array.from(enc_state); // Convert to regular array
-        array.unshift(NeoDK.#Encoding.UTF8_1Len, enc_state.length); // Use unshift
-        enc_state = Uint8Array.from(array);
-        this.#sendAttrWriteRequest(this.#the_writer, NeoDK.#AttributeId.PlayPauseStop, enc_state);
+        this.#writeString(state, NeoDK.#AttributeId.PlayPauseStop);
     }
 
     /**
@@ -76,7 +76,7 @@ class NeoDK {
         this.#sendAttrWriteRequest(this.#the_writer, NeoDK.#AttributeId.IntensityPercent, new Uint8Array([NeoDK.#Encoding.UnsignedInt1, intensity]));
     }
 
-    refreshVoltages(){
+    refreshVoltages() {
         this.#sendAttrReadRequest(this.#the_writer, NeoDK.#AttributeId.Voltages);
     }
 
@@ -288,6 +288,14 @@ class NeoDK {
 
     // private methods
 
+    #writeString(value, attribute) {
+        let enc_value = new TextEncoder().encode(value);
+        const array = Array.from(enc_value); // Convert to regular array
+        array.unshift(NeoDK.#Encoding.UTF8_1Len, enc_value.length); // Use unshift
+        enc_value = Uint8Array.from(array);
+        this.#sendAttrWriteRequest(this.#the_writer, attribute, enc_value);
+    }
+
     #initFrame(payload_size, frame_type, service_type, seq) {
         const frame = new Uint8Array(NeoDK.#StructureSize.FrameHeader + payload_size);
         frame[0] = (service_type << 4) | (frame_type << 1);
@@ -435,6 +443,13 @@ class NeoDK {
                     if (play_state >= 4) play_state = 0;
                     this.state.PlayState = NeoDK.#playStates[play_state];
                     this.logger.log('NeoDK is ' + NeoDK.#playStates[play_state]);
+                }
+                break;
+            case NeoDK.#AttributeId.BoxName:
+                if (aa[offset] == NeoDK.#Encoding.UTF8_1Len) {
+                    const name = new TextDecoder().decode(aa.slice(offset + 2));
+                    this._name = name;
+                    this.logger.log('Box name is ' + name);
                 }
                 break;
             default:

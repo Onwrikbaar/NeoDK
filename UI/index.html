@@ -40,8 +40,15 @@
                     </div>
                 </div>
                 <div v-for="device in devices" :key="device.id" class="my-3 container">
-                    <h2 class="d-inline-block my-2" style="height: 60px;">
-                        NeoDK ({{ device.state.PlayState }} | {{ device.state.Intensity }}% ) | Battery Voltage: {{ device.state.power.BatteryVoltage }}V</h2>
+                    <p v-if="!device.changingName" class="h1 d-inline-block my-2" style="height: 60px;">
+                        {{ device.Name || "(no name)"}}
+                        | <button @click="device.changeName()" class="btn btn-primary mx-1">Change</button></p>
+                    <p v-else class="h1 d-inline-block my-2" style="height: 60px;">
+                        <input type="text" v-model="device.newName" placeholder="enter box name" /> 
+                        <button @click="device.saveName()" class="btn btn-primary mx-1">Save</button></p>
+                    </p>
+                    <h3>({{ device.state.PlayState }} | {{ device.state.Intensity }}% )</h3>
+                    <h6>Battery Voltage: {{ device.state.power.BatteryVoltage }}V</h6>
                     <div class="progress my-2" role="progressbar"
                         v-bind:aria-valuenow="parseInt(Math.round(device.state.Intensity))" aria-valuemin="0"
                         aria-valuemax="100" style="height: 3em">
