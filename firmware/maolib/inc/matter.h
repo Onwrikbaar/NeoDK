@@ -25,7 +25,7 @@ typedef enum {
     EE_UNSIGNED_INT_1, EE_UNSIGNED_INT_2, EE_UNSIGNED_INT_4, EE_UNSIGNED_INT_8,
     EE_BOOLEAN_FALSE, EE_BOOLEAN_TRUE, EE_FLOAT_4, EE_FLOAT_8,
     EE_UTF8_1LEN, EE_UTF8_2LEN, EE_UTF8_4LEN, EE_UTF8_8LEN,
-    EE_BYTE_1LEN, EE_BYTE_2LEN, EE_BYTE_4LEN, EE_BYTE_8LEN,
+    EE_BYTES_1LEN, EE_BYTES_2LEN, EE_BYTES_4LEN, EE_BYTES_8LEN,
     EE_NULL, EE_STRUCT, EE_ARRAY, EE_LIST, EE_END_OF_CONTAINER
 } ElementEncoding;
 
@@ -35,14 +35,12 @@ typedef uint16_t SubscriptionId;
 extern "C" {
 #endif
 
-uint16_t Matter_encodedIntegerLength(uint8_t nr_of_octets);
 uint16_t Matter_encodeUnsignedInteger(uint8_t dst[], uint8_t const *src, uint8_t nr_of_octets);
-uint16_t Matter_encodedStringLength(char const *str);
 uint16_t Matter_encodeString(uint8_t dst[], char const *str);
 uint16_t Matter_encodedStringArrayLength(char const *strings[], uint8_t nr_of_strings);
 uint16_t Matter_encodeStringArray(uint8_t dst[], char const *strings[], uint8_t nr_of_strings);
 uint16_t Matter_encodedDataLength(ElementEncoding enc, uint16_t nr_of_octets);
-uint16_t Matter_encodeScalarData(uint8_t dst[], ElementEncoding, uint8_t const *src, uint16_t nr_of_octets);
+uint16_t Matter_encode(uint8_t dst[], ElementEncoding, uint8_t const *src, uint16_t nr_of_octets);
 
 #ifdef __cplusplus
 }

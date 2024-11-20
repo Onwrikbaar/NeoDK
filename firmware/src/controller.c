@@ -96,7 +96,7 @@ static void attributeChanged(Controller *me, AttributeId ai, ElementEncoding enc
     aa->reserved = 0;
     aa->attribute_id = ai;
     // TODO Add subscription Id?
-    nbtw += Matter_encodeScalarData(packet + nbtw, enc, data, data_size);
+    nbtw += Matter_encode(packet + nbtw, enc, data, data_size);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
 
@@ -111,6 +111,13 @@ static void handleReadRequest(Controller *me, AttributeAction const *aa)
 {
     switch (aa->attribute_id)
     {
+        case AI_FIRMWARE_VERSION:
+            // TODO Implement.
+            break;
+        case AI_VOLTAGES:
+            Attribute_awaitRead(aa->attribute_id, (AttrNotifier)&attributeChanged, me);
+            BSP_triggerADC();
+            break;
         case AI_ALL_PATTERN_NAMES:
             readPatternNames(me, aa);
             break;
@@ -123,18 +130,21 @@ static void handleReadRequest(Controller *me, AttributeAction const *aa)
         case AI_PLAY_PAUSE_STOP:
             Sequencer_notifyPlayState(me->sequencer);
             break;
+        case AI_BOX_NAME:
+            // TODO Implement.
+            break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
-            // TODO Respond with NOT_FOUND code.
+            // TODO Respond with NOT_FOUND code to the UI.
     }
 }
 
 
 static EventType eventTypeForCommand(uint8_t const *cs, uint16_t len)
 {
+    if (len == 4 && memcmp(cs, "stop",  len) == 0) return ET_STOP;
     if (len == 4 && memcmp(cs, "play",  len) == 0) return ET_PLAY;
     if (len == 5 && memcmp(cs, "pause", len) == 0) return ET_PAUSE;
-    if (len == 4 && memcmp(cs, "stop",  len) == 0) return ET_STOP;
     return ET_UNKNOWN_COMMAND;
 }
 
@@ -143,20 +153,23 @@ static void handleWriteRequest(Controller *me, AttributeAction const *aa)
 {
     switch (aa->attribute_id)
     {
-        case AI_INTENSITY_PERCENT:
-            if (aa->data[0] == EE_UNSIGNED_INT_1) {
-                EventQueue_postEvent((EventQueue *)me->sequencer, ET_SET_INTENSITY, &aa->data[1], sizeof aa->data[1]);
-            }
-            break;
         case AI_CURRENT_PATTERN_NAME:
             if (aa->data[0] == EE_UTF8_1LEN) {
                 EventQueue_postEvent((EventQueue *)me->sequencer, ET_SELECT_PATTERN_BY_NAME, aa->data + 2, aa->data[1]);
+            }
+            break;
+        case AI_INTENSITY_PERCENT:
+            if (aa->data[0] == EE_UNSIGNED_INT_1) {
+                EventQueue_postEvent((EventQueue *)me->sequencer, ET_SET_INTENSITY, &aa->data[1], sizeof aa->data[1]);
             }
             break;
         case AI_PLAY_PAUSE_STOP:
             if (aa->data[0] == EE_UTF8_1LEN) {
                 EventQueue_postEvent((EventQueue *)me->sequencer, eventTypeForCommand(aa->data + 2, aa->data[1]), NULL, 0);
             }
+            break;
+        case AI_BOX_NAME:
+            // TODO Implement.
             break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);

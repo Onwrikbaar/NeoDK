@@ -18,49 +18,66 @@
 
 
 typedef struct {
+    uint16_t active;
     AttributeId ai;                             // Key.
-    ElementEncoding encoding;
     AttrNotifier notify;
     void *target;
 } Subscription;
 
 
-static Subscription subscriptions[4];
+static Subscription subscriptions[10];
 static uint8_t nr_of_subs = 0;
 
 
-static Subscription const *findSubForId(AttributeId ai)
+static Subscription *findSubForId(AttributeId ai)
 {
     for (uint8_t i = 0; i < M_DIM(subscriptions); i++) {
-        Subscription const *sub = &subscriptions[i];
+        Subscription *sub = &subscriptions[i];
         if (ai == sub->ai) return sub;
     }
 
     return NULL;
 }
 
+
+static SubscriptionId setSubForId(AttributeId ai, AttrNotifier notify, void *target, uint16_t count)
+{
+    Subscription *sub = findSubForId(ai);
+    if (sub == NULL) {
+        if (nr_of_subs == M_DIM(subscriptions)) return 0;
+        sub = &subscriptions[nr_of_subs++];
+        sub->ai = ai;
+    }
+    sub->notify = notify;
+    sub->target = target;
+    sub->active = count;
+    return 256 + (sub - subscriptions);
+}
+
 /*
  * Below are the functions implementing this module's interface.
  */
 
+SubscriptionId Attribute_awaitRead(AttributeId ai, AttrNotifier notify, void *target)
+{
+    BSP_logf("%s for id=%hu)\n", __func__, ai);
+    return setSubForId(ai, notify, target, 1);
+}
+
+
 SubscriptionId Attribute_subscribe(AttributeId ai, AttrNotifier notify, void *target)
 {
-    if (nr_of_subs == M_DIM(subscriptions)) return 0;
-
     // BSP_logf("%s for id=%hu\n", __func__, ai);
-    Subscription *sub = &subscriptions[nr_of_subs];
-    sub->ai = ai;
-    sub->notify = notify;
-    sub->target = target;
-    return 256 + nr_of_subs++;
+    return setSubForId(ai, notify, target, ~0);
 }
 
 
 void Attribute_changed(AttributeId ai, ElementEncoding enc, uint8_t const *data, uint16_t size)
 {
-    // BSP_logf("%s(%hu)\n", __func__, ai);
-    Subscription const *sub = findSubForId(ai);
-    if (sub != NULL) {
+    BSP_logf("%s(%hu)\n", __func__, ai);
+    Subscription *sub = findSubForId(ai);
+    if (sub != NULL && sub->active) {
         sub->notify(sub->target, ai, enc, data, size);
+        sub->active -= 1;
     }
 }
