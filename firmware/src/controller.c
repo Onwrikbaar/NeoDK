@@ -46,6 +46,7 @@ struct _Controller {
     StateFunc  state;
     Sequencer *sequencer;
     DataLink  *datalink;
+    char       box_name[24];
 };
 
 
@@ -95,7 +96,7 @@ static void attributeChanged(Controller *me, AttributeId ai, ElementEncoding enc
     aa->opcode = OC_REPORT_DATA;
     aa->reserved = 0;
     aa->attribute_id = ai;
-    // TODO Add subscription Id?
+    // TODO Add subscription Id if applicable?
     nbtw += Matter_encode(packet + nbtw, enc, data, data_size);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
@@ -131,7 +132,7 @@ static void handleReadRequest(Controller *me, AttributeAction const *aa)
             Sequencer_notifyPlayState(me->sequencer);
             break;
         case AI_BOX_NAME:
-            // TODO Implement.
+            attributeChanged(me, aa->attribute_id, EE_UTF8_1LEN, (uint8_t const *)me->box_name, strlen(me->box_name));
             break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
@@ -146,6 +147,16 @@ static EventType eventTypeForCommand(uint8_t const *cs, uint16_t len)
     if (len == 4 && memcmp(cs, "play",  len) == 0) return ET_PLAY;
     if (len == 5 && memcmp(cs, "pause", len) == 0) return ET_PAUSE;
     return ET_UNKNOWN_COMMAND;
+}
+
+
+static void updateBoxName(Controller *me, uint8_t const *name, uint16_t len)
+{
+    size_t nb = (len < sizeof me->box_name ? len : sizeof me->box_name - 1);
+    memcpy(me->box_name, name, nb);
+    me->box_name[nb] = '\0';
+    // TODO Store the name in nonvolatile memory rather than in RAM.
+    BSP_logf("Box name set to '%s'\n", me->box_name);
 }
 
 
@@ -169,7 +180,9 @@ static void handleWriteRequest(Controller *me, AttributeAction const *aa)
             }
             break;
         case AI_BOX_NAME:
-            // TODO Implement.
+            if (aa->data[0] == EE_UTF8_1LEN) {
+                updateBoxName(me, aa->data + 2, aa->data[1]);
+            }
             break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
@@ -288,6 +301,7 @@ Controller *Controller_new()
 
 void Controller_init(Controller *me, Sequencer *sequencer, DataLink *datalink)
 {
+    strncpy(me->box_name, "My first Neostim box", sizeof me->box_name - 1);
     me->sequencer = sequencer;
     me->datalink  = datalink;
 }
