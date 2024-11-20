@@ -189,12 +189,17 @@ static void setPlayState(Sequencer *me, PlayState play_state)
 }
 
 
-static void printAdcValues(uint16_t const *v)
+static void handleAdcValues(uint16_t const *v)
 {
-    uint32_t Iprim_mA = ((uint32_t)v[0] * 2063UL) /  1024;
-    uint32_t Vcap_mV = ((uint32_t)v[1] * 52813UL) / 16384;
-    uint32_t Vbat_mV = ((uint32_t)v[2] * 52813UL) / 16384;
-    CLI_logf("Iprim=%u mA, Vcap=%u mV, Vbat=%u mV\n", Iprim_mA, Vcap_mV, Vbat_mV);
+    struct {
+        uint16_t Vbat_mV, Vcap_mV, Iprim_mA;
+    } vi = {
+        .Vbat_mV = ((uint32_t)v[2] * 52813UL) / 16384,
+        .Vcap_mV = ((uint32_t)v[1] * 52813UL) / 16384,
+        .Iprim_mA = ((uint32_t)v[0] * 2063UL) /  1024,
+    };
+    CLI_logf("Vbat=%hu mV, Vcap=%hu mV, Iprim=%hu mA\n", vi.Vbat_mV, vi.Vcap_mV, vi.Iprim_mA);
+    Attribute_changed(AI_VOLTAGES, EE_BYTES_1LEN, (uint8_t const *)&vi, sizeof vi);
 }
 
 
@@ -210,7 +215,7 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
     switch (AOEvent_type(evt))
     {
         case ET_ADC_DATA_AVAILABLE:
-            printAdcValues((uint16_t const *)AOEvent_data(evt));
+            handleAdcValues((uint16_t const *)AOEvent_data(evt));
             break;
         case ET_SELECT_NEXT_PATTERN:
             if (++me->pattern_index == me->nr_of_patterns) me->pattern_index = 0;

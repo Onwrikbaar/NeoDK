@@ -17,8 +17,9 @@
 
 
 typedef enum {
-    AI_FIRMWARE_VERSION = 2, AI_BATTERY_LEVEL, AI_CLOCK_MICROS,
-    AI_ALL_PATTERN_NAMES, AI_CURRENT_PATTERN_NAME, AI_INTENSITY_PERCENT, AI_PLAY_PAUSE_STOP
+    AI_FIRMWARE_VERSION = 2, AI_VOLTAGES, AI_CLOCK_MICROS,
+    AI_ALL_PATTERN_NAMES, AI_CURRENT_PATTERN_NAME, AI_INTENSITY_PERCENT, AI_PLAY_PAUSE_STOP,
+    AI_BOX_NAME
 } AttributeId;
 
 typedef void (*AttrNotifier)(void *target, AttributeId, ElementEncoding, uint8_t const *data, uint16_t size);
@@ -27,6 +28,7 @@ typedef void (*AttrNotifier)(void *target, AttributeId, ElementEncoding, uint8_t
 extern "C" {
 #endif
 
+SubscriptionId Attribute_awaitRead(AttributeId, AttrNotifier, void *target);
 SubscriptionId Attribute_subscribe(AttributeId, AttrNotifier, void *target);
 void Attribute_changed(AttributeId, ElementEncoding, uint8_t const *data, uint16_t size);
 
