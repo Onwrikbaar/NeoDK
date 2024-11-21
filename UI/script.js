@@ -1,9 +1,42 @@
 import NeoDK from './neodk.js';
 import { createApp, ref, toRaw, computed } from 'vue';
 
+class NeoDKBoxPowerVM extends NeoDK.BoxPower {
+    constructor() {
+        super();
+
+    }
+
+    #batteryVoltage = ref(super._batteryVoltage);
+    #capacitorVoltage = ref(super._capacitorVoltage);
+    #primaryCurrent = ref(super._primaryCurrent);
+
+    get BatteryVoltage() {
+        return toRaw(this).#batteryVoltage.value;
+    }
+    set BatteryVoltage(value){
+        toRaw(this).#batteryVoltage.value = value;
+    }
+    
+    get CapacitorVoltage() {
+        return toRaw(this).#capacitorVoltage.value;
+    }
+    set CapacitorVoltage(value){
+        toRaw(this).#capacitorVoltage.value = value;
+    }
+    
+    get PrimaryCurrent() {
+        return toRaw(this).#primaryCurrent.value;
+    }
+    set PrimaryCurrent(value){
+        toRaw(this).#primaryCurrent.value = value;
+    }
+}
+
 class NeoDKStateVM extends NeoDK.State {
     constructor() {
         super();
+        this.power = new NeoDKBoxPowerVM();
     }
 
     #playState = ref(super._playState);
@@ -41,6 +74,16 @@ class NeoDKStateVM extends NeoDK.State {
 }
 
 class NeoDKVM extends NeoDK {
+
+    /**
+     *
+     */
+    constructor(...args) {
+        super(...args);
+        this.changingName = ref(false);
+        this.newName = '';
+    }
+
     setIntensity = (intensity) => super.setIntensity(intensity);
 
     selectPattern = (pattern) => super.selectPattern(pattern);
@@ -52,6 +95,16 @@ class NeoDKVM extends NeoDK {
     stop = () => super.setPlayState(NeoDK.ChangeStateCommand.stop);
 
     paused = computed(() => ['paused', 'stopped'].includes(this.state.PlayState));
+
+    changeName = () => { 
+        this.changingName.value = true; 
+        this.newName = this.Name;
+    }
+
+    saveName = () => {
+        this.Name = this.newName;
+        this.changingName.value = false;
+    }
 }
 
 const app = createApp({
@@ -76,9 +129,9 @@ const app = createApp({
         async refreshState() {
             try {
                 this.devices.forEach(element => {
-                    // todo add anything that needs to be periodically refreshed here
+                    toRaw(element).refreshVoltages();
                 });
-                //setTimeout(this.refreshState, 1000);
+                setTimeout(this.refreshState, 1000 * 60 * 5);
             } catch (error) {
                 console.error('Failed to fetch state', error);
             }
