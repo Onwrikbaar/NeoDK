@@ -10,7 +10,7 @@ A power cycle starts the firmware; the blue LED should light up and the box is r
 
 ## Controlling NeoDK from a computer
 1. Connect NeoDK to a computer using a USB-to-3.5mm-TRS-serial cable (3.3V TTL, Tip=Tx, Ring=Rx, Sleeve=GND).
-2. Open a Chrome, Edge or Opera browser window and point it to [@edger477's colorful UI](https://edger477.github.io/NeoDK/).
+2. Open a Chrome, Edge or Opera browser window and point it to [@edger477's colorful UI](https://edger477.github.io/NeoDK/UI).
 
 ## Developing code for NeoDK
 ### Debugging probe

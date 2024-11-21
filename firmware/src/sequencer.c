@@ -94,6 +94,28 @@ static uint8_t const pattern_circle[][2] =
     {EL_BD, EL_AC},
 };
 
+static uint8_t const pattern_itch[][2] =
+{
+    {EL_A, EL_B},
+    {EL_B, EL_A},
+    {EL_A, EL_B},
+    {EL_B, EL_A},
+
+    // {EL_AC, EL_BD},
+
+    {EL_C, EL_D},
+    {EL_D, EL_C},
+    {EL_C, EL_D},
+    {EL_D, EL_C},
+
+    // {EL_BD, EL_AC},
+
+    {EL_A, EL_B},
+    {EL_C, EL_D},
+    {EL_B, EL_A},
+    {EL_D, EL_C},
+};
+
 static PatternDescr const pattern_descriptors[] =
 {
     {
@@ -127,6 +149,14 @@ static PatternDescr const pattern_descriptors[] =
         .pace_ms = 30,
         .nr_of_steps = 9,
         .nr_of_reps = 40,
+    },
+    {
+        .name = "Scratch that itch",
+        .pattern = pattern_itch,
+        .nr_of_elcons = M_DIM(pattern_itch),
+        .pace_ms = 8,
+        .nr_of_steps = 11,
+        .nr_of_reps = 5000,
     },
 };
 
@@ -278,6 +308,14 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
         case ET_AO_EXIT:
             BSP_logf("%s EXIT\n", __func__);
             break;
+        case ET_SELECT_NEXT_PATTERN:
+            if (++me->pattern_index == me->nr_of_patterns) me->pattern_index = 0;
+            switchPattern(me);
+            return &stateIdle;
+        case ET_SELECT_PATTERN_BY_NAME:
+            selectPatternByName(me, (char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
+            switchPattern(me);
+            return &stateIdle;
         case ET_TOGGLE_PLAY_PAUSE:
             CLI_logf("Resuming '%s'\n", me->pi.pattern_descr->name);
             // Fall through.
