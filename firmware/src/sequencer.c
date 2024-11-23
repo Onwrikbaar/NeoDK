@@ -161,13 +161,17 @@ static PatternDescr const pattern_descriptors[] =
 };
 
 
-static void checkAllPatterns(Sequencer *me)
+static bool checkAllPatterns(Sequencer *me)
 {
+    bool is_ok = true;
     for (uint8_t i = 0; i < me->nr_of_patterns; i++) {
         PatternDescr const *pd = &me->pattern_descr[i];
         BSP_logf("Checking '%s'\n", pd->name);
-        PatternIterator_checkPattern(pd->pattern, pd->nr_of_elcons);
+        if (!PatternIterator_checkPattern(pd->pattern, pd->nr_of_elcons)) {
+            is_ok = false;
+        }
     }
+    return is_ok;
 }
 
 
@@ -426,9 +430,9 @@ Sequencer *Sequencer_init(Sequencer *me)
 
 void Sequencer_start(Sequencer *me)
 {
-    checkAllPatterns(me);
+    bool is_ok = checkAllPatterns(me);
     PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index], me->pulse_width);
-    me->state = stateIdle;
+    me->state = is_ok ? stateIdle : stateNop;
     me->state(me, AOEvent_newEntryEvent());
     setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
     BSP_primaryVoltageEnable(true);
