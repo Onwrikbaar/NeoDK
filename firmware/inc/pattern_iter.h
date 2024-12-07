@@ -38,7 +38,7 @@ typedef struct {
 bool PatternIterator_checkPattern(uint8_t const pattern[][2], uint16_t nr_of_elcons);
 
 // Instance methods.
-void PatternIterator_init(PatternIterator *, PatternDescr const *, uint8_t pulse_width);
+void PatternIterator_init(PatternIterator *, PatternDescr const *);
 bool PatternIterator_done(PatternIterator *);
 bool PatternIterator_getNextPulseTrain(PatternIterator *, PulseTrain *);
 

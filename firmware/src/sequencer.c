@@ -38,7 +38,6 @@ struct _Sequencer {
     uint8_t nr_of_patterns;
     uint8_t pattern_index;
     uint8_t intensity_percent;
-    uint8_t pulse_width;
     uint8_t play_state;
 };
 
@@ -187,7 +186,7 @@ static void selectPatternByName(Sequencer *me, char const *name, EventSize len)
 static void setPulseWidth(Sequencer *me, uint8_t width_µs)
 {
     BSP_logf("Setting pulse width to %hhu µs\n", width_µs);
-    me->pulse_width = width_µs;
+    me->pi.pulse_width_micros = width_µs;
 }
 
 
@@ -197,8 +196,8 @@ static void setIntensityPercentage(Sequencer *me, uint8_t perc)
     me->intensity_percent = perc;
     // TODO Ramp up to the previous intensity?
     Sequencer_notifyIntensity(me);
-    BSP_setPrimaryVoltage_mV(perc * 100);
-    setPulseWidth(me, 40 + perc);
+    BSP_setPrimaryVoltage_mV(perc * 80);
+    setPulseWidth(me, 50 + perc + perc / 2);
 }
 
 
@@ -206,9 +205,9 @@ static void switchPattern(Sequencer *me)
 {
     PatternDescr const *pd = &me->pattern_descr[me->pattern_index];
     CLI_logf("Switching to '%s'\n", pd->name);
+    PatternIterator_init(&me->pi, pd);
     setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
     Sequencer_notifyPattern(me);
-    PatternIterator_init(&me->pi, pd, me->pulse_width);
 }
 
 
@@ -284,7 +283,7 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             break;
         case ET_TOGGLE_PLAY_PAUSE:
         case ET_PLAY:
-            PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index], me->pulse_width);
+            PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index]);
             CLI_logf("Starting '%s'\n", me->pi.pattern_descr->name);
             return &statePulsing;               // Transition.
         case ET_BURST_EXPIRED:
@@ -427,7 +426,6 @@ Sequencer *Sequencer_init(Sequencer *me)
 void Sequencer_start(Sequencer *me)
 {
     checkAllPatterns(me);
-    PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index], me->pulse_width);
     me->state = stateIdle;
     me->state(me, AOEvent_newEntryEvent());
     setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
