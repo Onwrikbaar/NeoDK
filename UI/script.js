@@ -117,7 +117,7 @@ const app = createApp({
     methods: {
         async connect() {
             try {
-                var device = new NeoDKVM({ logger: { log: console.log, deubug: console.log }, state: new NeoDKStateVM() });
+                var device = new NeoDKVM({ logger: { log: console.log, debug: console.log }, state: new NeoDKStateVM() });
                 var selected = await device.selectPort();
                 if (selected) {
                     this.devices.push(device);
