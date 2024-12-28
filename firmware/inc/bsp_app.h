@@ -7,7 +7,7 @@
  *
  *  Created on: 6 Oct 2020
  *      Author: mark
- *   Copyright  2020..2024 Neostim™
+ *   Copyright  2020..2025 Neostim™
  */
 
 #ifndef INC_BSP_APP_H_
@@ -21,7 +21,7 @@ typedef struct {
     uint8_t pulse_width_micros;
     uint8_t pace_ms;
     uint8_t nr_of_pulses;
-} PulseTrain;
+} Burst;
 
 
 void BSP_init(void);                            // Get the hardware ready for action.
@@ -43,7 +43,7 @@ int BSP_closeSerialPort(int fd);
 // Pulse generation related functions.
 uint16_t BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV);
 void BSP_primaryVoltageEnable(bool must_be_on);
-bool BSP_startPulseTrain(PulseTrain const *);
+bool BSP_startBurst(Burst const *);
 
 // Debugging stuff.
 void BSP_triggerADC(void);

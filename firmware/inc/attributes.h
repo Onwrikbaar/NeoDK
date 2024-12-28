@@ -7,7 +7,7 @@
  *
  *  Created on: 15 Oct 2024
  *      Author: mark
- *   Copyright  2024 Neostim™
+ *   Copyright  2024, 2025 Neostim™
  */
 
 #ifndef INC_ATTRIBUTES_H_
@@ -19,7 +19,7 @@
 typedef enum {
     AI_FIRMWARE_VERSION = 2, AI_VOLTAGES, AI_CLOCK_MICROS,
     AI_ALL_PATTERN_NAMES, AI_CURRENT_PATTERN_NAME, AI_INTENSITY_PERCENT, AI_PLAY_PAUSE_STOP,
-    AI_BOX_NAME
+    AI_BOX_NAME, AI_PT_DESCRIPTOR_QUEUE
 } AttributeId;
 
 typedef void (*AttrNotifier)(void *target, AttributeId, ElementEncoding, uint8_t const *data, uint16_t size);

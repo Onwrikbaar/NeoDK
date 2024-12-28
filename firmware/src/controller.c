@@ -7,7 +7,7 @@
  *
  *  Created on: 21 Aug 2024
  *      Author: mark
- *   Copyright  2024 Neostim™
+ *   Copyright  2024, 2025 Neostim™
  */
 
 #include <stdlib.h>
@@ -108,19 +108,31 @@ static void logTransaction(AttributeAction const *aa, char const *action_str)
 }
 
 
+static void sendStatusResponse(Controller *me, AttributeAction const *aa, StatusCode sc)
+{
+    BSP_logf("%s %hu for attr id=%hu\n", __func__, sc, aa->attribute_id);
+    // TODO Implement.
+}
+
+
 static void handleReadRequest(Controller *me, AttributeAction const *aa)
 {
     switch (aa->attribute_id)
     {
         case AI_FIRMWARE_VERSION: {
             char const *fw_version = BSP_firmwareVersion();
-            attributeChanged(me, AI_FIRMWARE_VERSION, EE_UTF8_1LEN, (uint8_t const *)fw_version, strlen(fw_version));
+            attributeChanged(me, aa->attribute_id, EE_UTF8_1LEN, (uint8_t const *)fw_version, strlen(fw_version));
             break;
         }
         case AI_VOLTAGES:
             Attribute_awaitRead(aa->attribute_id, (AttrNotifier)&attributeChanged, me);
             BSP_triggerADC();
             break;
+        case AI_CLOCK_MICROS: {
+            uint64_t clock_micros = BSP_microsecondsSinceBoot();
+            attributeChanged(me, aa->attribute_id, EE_UNSIGNED_INT, (uint8_t const *)&clock_micros, sizeof clock_micros);
+            break;
+        }
         case AI_ALL_PATTERN_NAMES:
             readPatternNames(me, aa);
             break;
@@ -138,8 +150,10 @@ static void handleReadRequest(Controller *me, AttributeAction const *aa)
             break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
-            // TODO Respond with NOT_FOUND code to the UI.
+            sendStatusResponse(me, aa, SC_UNSUPPORTED_ATTRIBUTE);
+            return;
     }
+    sendStatusResponse(me, aa, SC_SUCCESS);
 }
 
 
@@ -186,16 +200,24 @@ static void handleWriteRequest(Controller *me, AttributeAction const *aa)
                 updateBoxName(me, aa->data + 2, aa->data[1]);
             }
             break;
+        case AI_PT_DESCRIPTOR_QUEUE:
+            if (aa->data[0] == EE_BYTES_1LEN) {
+                EventQueue_postEvent((EventQueue *)me->sequencer, ET_QUEUE_PULSE_TRAIN, aa->data + 2, aa->data[1]);
+            }
+            break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
-            // TODO Respond with NOT_FOUND code.
+            sendStatusResponse(me, aa, SC_UNSUPPORTED_ATTRIBUTE);
+            return;
     }
+    sendStatusResponse(me, aa, SC_SUCCESS);
 }
 
 
 static void handleSubscribeRequest(Controller *me, AttributeAction const *aa)
 {
     Attribute_subscribe(aa->attribute_id, (AttrNotifier)&attributeChanged, me);
+    // Do not send a status response here. It will be sent later.
 }
 
 
@@ -210,8 +232,10 @@ static void handleInvokeRequest(Controller *me, AttributeAction const *aa)
             break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
-            // TODO Respond with NOT_FOUND code.
+            sendStatusResponse(me, aa, SC_UNSUPPORTED_ATTRIBUTE);
+            return;
     }
+    sendStatusResponse(me, aa, SC_SUCCESS);
 }
 
 
@@ -238,7 +262,7 @@ static void handleRequest(Controller *me, AttributeAction const *aa)
             break;
         default:
             BSP_logf("%s, unknown opcode 0x%02hhx\n", __func__, aa->opcode);
-            break;
+            sendStatusResponse(me, aa, SC_UNSUPPORTED_COMMAND);
     }
 }
 

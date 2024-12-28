@@ -7,7 +7,7 @@
  *
  *  Created on: 6 Mar 2024
  *      Author: mark
- *   Copyright  2024 Neostim™
+ *   Copyright  2024, 2025 Neostim™
  */
 
 #ifndef INC_PATTERN_ITER_H_
@@ -40,6 +40,6 @@ bool PatternIterator_checkPattern(uint8_t const pattern[][2], uint16_t nr_of_elc
 // Instance methods.
 void PatternIterator_init(PatternIterator *, PatternDescr const *);
 bool PatternIterator_done(PatternIterator *);
-bool PatternIterator_getNextPulseTrain(PatternIterator *, PulseTrain *);
+bool PatternIterator_getNextBurst(PatternIterator *, Burst *);
 
 #endif

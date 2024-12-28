@@ -7,7 +7,7 @@
  *
  *  Created on: 27 Feb 2024
  *      Author: mark
- *   Copyright  2024 Neostim™
+ *   Copyright  2024, 2025 Neostim™
  */
 
 #include <stdlib.h>
@@ -19,7 +19,7 @@
 #include "app_event.h"
 #include "attributes.h"
 #include "pattern_iter.h"
-#include "burst.h"
+#include "pulse_train.h"
 
 // This module implements:
 #include "sequencer.h"
@@ -232,11 +232,22 @@ static void handleAdcValues(uint16_t const *v)
 }
 
 
+static void queuePulseTrain(Sequencer *me, PulseTrain const *pt, uint16_t sz)
+{
+    PulseTrain_print(pt);
+    // TODO Implement.
+}
+
+
 static void *stateNop(Sequencer *me, AOEvent const *evt)
 {
     BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
     return NULL;
 }
+
+// Forward declarations.
+static void *stateIdle(Sequencer *, AOEvent const *);
+static void *statePulsing(Sequencer *, AOEvent const *);
 
 
 static void *stateCanopy(Sequencer *me, AOEvent const *evt)
@@ -246,6 +257,8 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
         case ET_ADC_DATA_AVAILABLE:
             handleAdcValues((uint16_t const *)AOEvent_data(evt));
             break;
+        case ET_STOP:
+            return &stateIdle;                  // Transition.
         case ET_SELECT_NEXT_PATTERN:
             if (++me->pattern_index == me->nr_of_patterns) me->pattern_index = 0;
             switchPattern(me);
@@ -266,9 +279,6 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
     return NULL;
 }
 
-// Forward declaration.
-static void *statePulsing(Sequencer *, AOEvent const *);
-
 
 static void *stateIdle(Sequencer *me, AOEvent const *evt)
 {
@@ -286,11 +296,14 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index]);
             CLI_logf("Starting '%s'\n", me->pi.pattern_descr->name);
             return &statePulsing;               // Transition.
+        case ET_QUEUE_PULSE_TRAIN:
+            queuePulseTrain(me, (PulseTrain const *)AOEvent_data(evt), AOEvent_dataSize(evt));
+            break;
         case ET_BURST_EXPIRED:
             CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
             break;
         default:
-            return stateCanopy(me, evt);
+            return stateCanopy(me, evt);        // Forward the event.
     }
     return NULL;
 }
@@ -301,27 +314,25 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
     switch (AOEvent_type(evt))
     {
         case ET_AO_ENTRY:
-            BSP_logf("%s ENTRY\n", __func__);
+            BSP_logf("Sequencer_%s ENTRY\n", __func__);
             setPlayState(me, PS_PAUSED);
             break;
         case ET_AO_EXIT:
-            BSP_logf("%s EXIT\n", __func__);
+            BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
         case ET_SELECT_NEXT_PATTERN:
             if (++me->pattern_index == me->nr_of_patterns) me->pattern_index = 0;
             switchPattern(me);
-            return &stateIdle;
+            return &stateIdle;                  // Transition.
         case ET_SELECT_PATTERN_BY_NAME:
             selectPatternByName(me, (char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
             switchPattern(me);
-            return &stateIdle;
+            return &stateIdle;                  // Transition.
         case ET_TOGGLE_PLAY_PAUSE:
             CLI_logf("Resuming '%s'\n", me->pi.pattern_descr->name);
             // Fall through.
         case ET_PLAY:
-            return &statePulsing;
-        case ET_STOP:
-            return &stateIdle;
+            return &statePulsing;               // Transition.
         case ET_BURST_EXPIRED:
             if (PatternIterator_done(&me->pi)) {
                 CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
@@ -330,21 +341,21 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
             CLI_logf("Pausing '%s'\n", me->pi.pattern_descr->name);
             break;
         default:
-            return stateCanopy(me, evt);
+            return stateCanopy(me, evt);        // Forward the event.
     }
     return NULL;
 }
 
 
-static bool scheduleNextPulseTrain(Sequencer *me)
+static bool scheduleNextBurst(Sequencer *me)
 {
-    PulseTrain pt;
-    if (PatternIterator_getNextPulseTrain(&me->pi, &pt)) {
-        if (pt.pulse_width_micros > MAX_PULSE_WIDTH_MICROS) {
-            pt.pulse_width_micros = MAX_PULSE_WIDTH_MICROS;
+    Burst burst;
+    if (PatternIterator_getNextBurst(&me->pi, &burst)) {
+        if (burst.pulse_width_micros > MAX_PULSE_WIDTH_MICROS) {
+            burst.pulse_width_micros = MAX_PULSE_WIDTH_MICROS;
         }
-        // BSP_logf("Pulse width is %hu µs\n", pt.pulse_width_micros);
-        return BSP_startPulseTrain(&pt);
+        // BSP_logf("Pulse width is %hu µs\n", burstpulse_width_micros);
+        return BSP_startBurst(&burst);
     }
 
     return false;
@@ -356,29 +367,27 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
     switch (AOEvent_type(evt))
     {
         case ET_AO_ENTRY:
-            BSP_logf("%s ENTRY\n", __func__);
+            BSP_logf("Sequencer_%s ENTRY\n", __func__);
             setPlayState(me, PS_PLAYING);
-            scheduleNextPulseTrain(me);
+            scheduleNextBurst(me);
             break;
         case ET_AO_EXIT:
-            BSP_logf("%s EXIT\n", __func__);
+            BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
         case ET_TOGGLE_PLAY_PAUSE:
         case ET_PAUSE:
             return &statePaused;                // Transition.
-        case ET_STOP:
-            return &stateIdle;                  // Transition.
         case ET_BURST_STARTED:
-            // BSP_logf("Pulse train started\n");
+            // BSP_logf("Burst started\n");
             break;
         case ET_BURST_EXPIRED:
-            if (! scheduleNextPulseTrain(me)) {
+            if (! scheduleNextBurst(me)) {
                 CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
                 return &stateIdle;              // Transition.
             }
             break;
         default:
-            return stateCanopy(me, evt);
+            return stateCanopy(me, evt);        // Forward the event.
     }
     return NULL;
 }

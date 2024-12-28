@@ -1,6 +1,6 @@
 #
 #      Author  mark
-#   Copyright  2023, 2024 Neostim
+#   Copyright  2023..2025 Neostim
 #
 
 PROJECT_NAME     := neodk
@@ -39,6 +39,7 @@ PROJ_COMMON_SRC += \
   $(PROJ_DIR_SRC)/controller.c \
   $(PROJ_DIR_SRC)/sequencer.c \
   $(PROJ_DIR_SRC)/pattern_iter.c \
+  $(PROJ_DIR_SRC)/pulse_train.c \
   $(PROJ_DIR_SRC)/datalink.c \
   $(PROJ_DIR_SRC)/debug_cli.c \
   $(PROJ_DIR_SRC)/attributes.c \

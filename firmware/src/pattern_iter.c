@@ -7,7 +7,7 @@
  *
  *  Created on: 6 Mar 2024
  *      Author: mark
- *   Copyright  2024 Neostim™
+ *   Copyright  2024, 2025 Neostim™
  */
 
 #include <stdbool.h>
@@ -80,14 +80,14 @@ bool PatternIterator_done(PatternIterator *me)
 }
 
 
-bool PatternIterator_getNextPulseTrain(PatternIterator *me, PulseTrain *pt)
+bool PatternIterator_getNextBurst(PatternIterator *me, Burst *burst)
 {
     if (PatternIterator_done(me)) return false;
 
-    uint8_t const *elcon = getNextPattern(me, &pt->nr_of_pulses);
-    pt->elcon[0] = elcon[0];
-    pt->elcon[1] = elcon[1];
-    pt->pulse_width_micros = me->pulse_width_micros;
-    pt->pace_ms = me->pattern_descr->pace_ms;   // Yields 1000/pace_ms pulses per second.
+    uint8_t const *elcon = getNextPattern(me, &burst->nr_of_pulses);
+    burst->elcon[0] = elcon[0];
+    burst->elcon[1] = elcon[1];
+    burst->pulse_width_micros = me->pulse_width_micros;
+    burst->pace_ms = me->pattern_descr->pace_ms;// Yields 1000/pace_ms pulses per second.
     return true;
 }

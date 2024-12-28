@@ -7,7 +7,7 @@
  *
  *  Created on: Oct 20, 2023
  *      Author: mark
- *   Copyright  2023, 2024 Neostim™
+ *   Copyright  2023..2025 Neostim™
  */
 
 #include <stdlib.h>
@@ -145,7 +145,7 @@ static void setupAndRunApplication(Boss *me)
 int main()
 {
     BSP_initDebug();
-    BSP_logf("Initialising...\n");
+    BSP_logf("Initialising %s...\n", BSP_firmwareVersion());
     BSP_init();                                 // Get the hardware ready.
 
     Boss boss;                                  // The supervisor object.

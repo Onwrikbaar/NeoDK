@@ -7,7 +7,7 @@
  *
  *  Created on: 20 Oct 2023
  *      Author: mark
- *   Copyright  2023, 2024 Neostim™
+ *   Copyright  2023..2025 Neostim™
  */
 
 #include <limits.h>
@@ -645,7 +645,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.41-beta";
+    return "v0.42-beta";
 }
 
 
@@ -832,27 +832,27 @@ uint16_t BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 }
 
 
-bool BSP_startPulseTrain(PulseTrain const *pt)
+bool BSP_startBurst(Burst const *burst)
 {
-    M_ASSERT(pt->pace_ms >= 5);                 // Repetition rate <= 200 Hz.
-    M_ASSERT(pt->pulse_width_micros != 0);
-    M_ASSERT(pt->nr_of_pulses != 0);
+    M_ASSERT(burst->pace_ms >= 5);              // Repetition rate <= 200 Hz.
+    M_ASSERT(burst->pulse_width_micros != 0);
+    M_ASSERT(burst->nr_of_pulses != 0);
 
-    pulse_timer->ARR = pulsePaceMillisecondsToTicks(pt->pace_ms) - 1;
-    pulse_timer->RCR = pt->nr_of_pulses - 1;
+    pulse_timer->ARR = pulsePaceMillisecondsToTicks(burst->pace_ms) - 1;
+    pulse_timer->RCR = burst->nr_of_pulses - 1;
     pulse_timer->CNT = 0;
     pulse_timer->SR &= ~(TIM_SR_CC1IF | TIM_SR_CC2IF);
-    uint8_t phase = getPhase(pt->elcon);
+    uint8_t phase = getPhase(burst->elcon);
     if (phase == 0) {
-        pulse_timer->CCR1 = pt->pulse_width_micros - 1;
+        pulse_timer->CCR1 = burst->pulse_width_micros - 1;
         pulse_timer->DIER |= TIM_DIER_CC1IE;
     } else if (phase == 1) {
-        pulse_timer->CCR2 = pt->pulse_width_micros - 1;
+        pulse_timer->CCR2 = burst->pulse_width_micros - 1;
         pulse_timer->DIER |= TIM_DIER_CC2IE;
     } else return false;                        // We only have one output stage.
 
     pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
-    setSwitches(pt->elcon[0] | pt->elcon[1]);
+    setSwitches(burst->elcon[0] | burst->elcon[1]);
     bsp.pulse_seqnr = 0;
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
