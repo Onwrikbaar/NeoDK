@@ -7,7 +7,7 @@
  *
  *  Created on: 26 Mar 2024
  *      Author: mark
- *   Copyright  2024 Neostim™
+ *   Copyright  2024, 2025 Neostim™
  */
 
 #include <stdio.h>
@@ -66,7 +66,7 @@ static void interpretCommand(CmndInterp *me, char ch)
     switch (ch)
     {
         case '?':
-            CLI_logf("Commands: /? /a /b /d /l /n /q /u /v /w /0 /1../9\n");
+            CLI_logf("Commands: /? /a /b /d /l /n /q /s /u /v /w /0 /1../9\n");
             break;
         case '0':
             BSP_primaryVoltageEnable(false);
@@ -97,6 +97,9 @@ static void interpretCommand(CmndInterp *me, char ch)
             EventQueue_postEvent(me->delegate, ET_POSIX_SIGNAL, (uint8_t const *)&sig, sizeof sig);
             break;
         }
+        case 's':
+            EventQueue_postEvent((EventQueue *)me->sequencer, ET_STOP, NULL, 0);
+            break;
         case 'u':                               // Intensity up.
             changeIntensity(me, +2);
             break;
@@ -104,7 +107,7 @@ static void interpretCommand(CmndInterp *me, char ch)
             CLI_logf("Firmware %s\n", BSP_firmwareVersion());
             break;
         case 'w':                               // Allow rediscovery by Dweeb.
-            DataLink_waitForSync(me->datalink);
+            DataLink_awaitSync(me->datalink);
             break;
         default:
             CLI_logf("Unknown command '/%c'\n", ch);

@@ -30,7 +30,7 @@ static void nextElconIfLastStep(PatternIterator *me)
 }
 
 
-static uint8_t const *getNextPattern(PatternIterator *me, uint8_t *nr_of_pulses)
+static uint8_t const *getNextPattern(PatternIterator *me, uint16_t *nr_of_pulses)
 {
     PatternDescr const *pd = me->pattern_descr;
     uint8_t elcon_nr = me->elcon_nr;

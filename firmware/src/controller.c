@@ -214,13 +214,6 @@ static void handleWriteRequest(Controller *me, AttributeAction const *aa)
 }
 
 
-static void handleSubscribeRequest(Controller *me, AttributeAction const *aa)
-{
-    Attribute_subscribe(aa->attribute_id, (AttrNotifier)&attributeChanged, me);
-    // Do not send a status response here. It will be sent later.
-}
-
-
 static void handleInvokeRequest(Controller *me, AttributeAction const *aa)
 {
     switch (aa->attribute_id)
@@ -253,7 +246,7 @@ static void handleRequest(Controller *me, AttributeAction const *aa)
             break;
         case OC_SUBSCRIBE_REQUEST:
             logTransaction(aa, "subscribe to");
-            handleSubscribeRequest(me, aa);
+            Attribute_subscribe(aa->attribute_id, (AttrNotifier)&attributeChanged, me);
             handleReadRequest(me, aa);
             break;
         case OC_INVOKE_REQUEST:
@@ -338,7 +331,7 @@ void Controller_start(Controller *me)
     me->state = &stateIdle;
     me->state(me, AOEvent_newEntryEvent());
     DataLink_open(me->datalink, &me->event_queue);
-    DataLink_waitForSync(me->datalink);
+    DataLink_awaitSync(me->datalink);
     BSP_logf("Starting NeoDK!\n%s", welcome_msg);
 }
 

@@ -7,7 +7,7 @@
  *
  *  Created on: 24 Feb 2024
  *      Author: mark
- *   Copyright  2024 Neostim™
+ *   Copyright  2024, 2025 Neostim™
  */
 
 #ifndef INC_DATALINK_H_
@@ -25,7 +25,7 @@ DataLink *DataLink_new();
 
 // Instance methods.
 bool DataLink_open(DataLink *, EventQueue *);
-void DataLink_waitForSync(DataLink *);
+void DataLink_awaitSync(DataLink *);
 bool DataLink_sendDebugPacket(DataLink *, uint8_t const *, uint16_t);
 bool DataLink_sendDatagram(DataLink *, uint8_t const *, uint16_t);
 void DataLink_close(DataLink *);

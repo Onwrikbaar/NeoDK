@@ -232,10 +232,14 @@ static void handleAdcValues(uint16_t const *v)
 }
 
 
-static void queuePulseTrain(Sequencer *me, PulseTrain const *pt, uint16_t sz)
+static bool queuePulseTrain(Sequencer *me, PulseTrain const *pt, uint16_t sz)
 {
     PulseTrain_print(pt);
-    // TODO Implement.
+    // Scale amplitude 0..255 to 0..8160 mV (for now).
+    BSP_setPrimaryVoltage_mV(PulseTrain_amplitude(pt) * 32);
+    setPulseWidth(me, PulseTrain_pulseWidth(pt));
+    Burst burst;
+    return BSP_startBurst(PulseTrain_getBurst(pt, &burst));
 }
 
 
@@ -280,6 +284,29 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
 }
 
 
+static void *stateStreaming(Sequencer *me, AOEvent const *evt)
+{
+    switch (AOEvent_type(evt))
+    {
+        case ET_AO_ENTRY:
+            BSP_logf("Sequencer_%s ENTRY\n", __func__);
+            break;
+        case ET_AO_EXIT:
+            BSP_logf("Sequencer_%s EXIT\n", __func__);
+            break;
+        case ET_BURST_STARTED:
+            break;
+        case ET_BURST_COMPLETED:
+            break;
+        case ET_BURST_EXPIRED:
+            return &stateIdle;                  // Transition.
+        default:
+            return stateCanopy(me, evt);        // Forward the event.
+    }
+    return NULL;
+}
+
+
 static void *stateIdle(Sequencer *me, AOEvent const *evt)
 {
     switch (AOEvent_type(evt))
@@ -297,7 +324,9 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             CLI_logf("Starting '%s'\n", me->pi.pattern_descr->name);
             return &statePulsing;               // Transition.
         case ET_QUEUE_PULSE_TRAIN:
-            queuePulseTrain(me, (PulseTrain const *)AOEvent_data(evt), AOEvent_dataSize(evt));
+            if (queuePulseTrain(me, (PulseTrain const *)AOEvent_data(evt), AOEvent_dataSize(evt))) {
+                return &stateStreaming;         // Transition.
+            }
             break;
         case ET_BURST_EXPIRED:
             CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
@@ -347,6 +376,13 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
 }
 
 
+static uint8_t getPhase(uint8_t const elcon[2])
+{
+    M_ASSERT((elcon[0] & elcon[1]) == 0);       // Prevent shorts.
+    return (elcon[0] & 0x5) ? 0 : 1;
+}
+
+
 static bool scheduleNextBurst(Sequencer *me)
 {
     Burst burst;
@@ -355,6 +391,7 @@ static bool scheduleNextBurst(Sequencer *me)
             burst.pulse_width_micros = MAX_PULSE_WIDTH_MICROS;
         }
         // BSP_logf("Pulse width is %hu µs\n", burstpulse_width_micros);
+        burst.phase = getPhase(burst.elcon);
         return BSP_startBurst(&burst);
     }
 

@@ -7,7 +7,7 @@
  *
  *  Created on: 24 Feb 2024
  *      Author: mark
- *   Copyright  2024 Neostim™
+ *   Copyright  2024, 2025 Neostim™
  */
 
 #include <stdlib.h>
@@ -48,15 +48,6 @@ static void init(DataLink *me)
     me->rx_nb = 0;
     me->synced = false;
     me->tx_seq_nr = 0;
-}
-
-__attribute__((unused))
-static void dumpBuffer(const char *prefix, const uint8_t *bbuf, uint8_t nb)
-{
-    if (prefix != NULL) BSP_logf("%s", prefix);
-    for (uint8_t i = 0; i < nb; i++) {
-        BSP_logf(" 0x%02x", bbuf[i]);
-    }
 }
 
 
@@ -283,9 +274,8 @@ bool DataLink_open(DataLink *me, EventQueue *dq)
 }
 
 
-void DataLink_waitForSync(DataLink *me)
+void DataLink_awaitSync(DataLink *me)
 {
-    BSP_logf("%s\n", __func__);
     me->synced = false;
 }
 

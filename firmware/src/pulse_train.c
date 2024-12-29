@@ -14,6 +14,8 @@
 
 #include "bsp_dbg.h"
 #include "convenience.h"
+
+// This module implements:
 #include "pulse_train.h"
 
 /**
@@ -39,15 +41,6 @@ struct _PulseTrain {
     uint8_t  reserved_for_future_use[2];
 };
 
-
-static burst_phase_t const phase_mask = 0x1e;
-
-/*
-static void PulseTrain_togglePhase(PulseTrain *me)
-{
-    me->phase ^= 1;
-}
-*/
 
 static void applyDeltaWidth(PulseTrain *me)
 {
@@ -79,36 +72,23 @@ static void applyDeltaPace(PulseTrain *me)
  * Below are the functions implementing this module's interface.
  */
 
-burst_size_t PulseTrain_size()
+pulse_train_size_t PulseTrain_size()
 {
     return sizeof(PulseTrain);
 }
 
 
-PulseTrain *PulseTrain_new(void *addr, burst_size_t nb)
+PulseTrain *PulseTrain_new(void *addr, pulse_train_size_t nb)
 {
     return PulseTrain_copy(addr, nb, NULL);
 }
 
 
-PulseTrain *PulseTrain_copy(void *addr, burst_size_t nb, PulseTrain const *original)
+PulseTrain *PulseTrain_copy(void *addr, pulse_train_size_t nb, PulseTrain const *original)
 {
     if (addr == NULL || nb < PulseTrain_size()) return NULL;
     if (original == NULL) return memset(addr, 0, nb);
     return memcpy(addr, original, PulseTrain_size());
-}
-
-
-void PulseTrain_setPhase(PulseTrain *me, burst_phase_t phase)
-{
-    me->phase &= ~phase_mask;
-    me->phase |= (phase & phase_mask);
-}
-
-
-burst_phase_t PulseTrain_phase(PulseTrain const *me)
-{
-    return me->phase & phase_mask;
 }
 
 
@@ -133,15 +113,35 @@ PulseTrain *PulseTrain_setStartTimeMicros(PulseTrain *me, uint32_t start_time_mi
 }
 
 
-void PulseTrain_print(PulseTrain const *me)
+uint16_t PulseTrain_amplitude(PulseTrain const *me)
 {
-    BSP_logf("PulseTrain %hhu: start=%u µs, np=%hu, pat=0x%x<>0x%x\n", me->sequence_number, me->start_time_micros, me->nr_of_pulses, me->electrode_set[0], me->electrode_set[1]);
+    return me->amplitude;
 }
 
 
-uint16_t PulseTrain_nrOfPulses(PulseTrain const *me)
+uint8_t PulseTrain_pulseWidth(PulseTrain const *me)
 {
-    return me->nr_of_pulses;
+    return me->pulse_width;
+}
+
+
+Burst const *PulseTrain_getBurst(PulseTrain const *me, Burst *burst)
+{
+    burst->elcon[0] = me->electrode_set[0];
+    burst->elcon[1] = me->electrode_set[1];
+    burst->phase = me->phase;
+    burst->pace_ms = me->pace_ms;
+    burst->pulse_width_micros = me->pulse_width;
+    burst->nr_of_pulses = me->nr_of_pulses;
+    return burst;
+}
+
+
+void PulseTrain_print(PulseTrain const *me)
+{
+    BSP_logf("PT %hhu: start=%u µs, ec=0x%x<>0x%x, np=%hu, pace=%hhu ms, amp=%hhu, pw=%hhu µs\n",
+            me->sequence_number, me->start_time_micros, me->electrode_set[0], me->electrode_set[1],
+            me->nr_of_pulses, me->pace_ms, me->amplitude, me->pulse_width);
 }
 
 
@@ -154,9 +154,9 @@ PulseTrain *PulseTrain_applyDeltas(PulseTrain *me)
 }
 
 // This one doesn't really belong here.
-void PulseTrain_iterate(PulseTrain *bursts, uint16_t nob, void (*f)(PulseTrain const *))
+void PulseTrain_iterate(PulseTrain *pts, uint16_t nob, void (*f)(PulseTrain const *))
 {
     for (uint16_t i = 0; i < nob; i++) {
-        f(&bursts[i]);
+        f(&pts[i]);
     }
 }

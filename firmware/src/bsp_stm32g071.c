@@ -348,13 +348,6 @@ static void setPinVal(GPIO_TypeDef *GPIOx, uint16_t gpio_pin, uint8_t pin_state)
 }
 
 
-static uint8_t getPhase(uint8_t const elcon[2])
-{
-    M_ASSERT((elcon[0] & elcon[1]) == 0);       // Prevent shorts.
-    return (elcon[0] & 0x5) ? 0 : 1;
-}
-
-
 static void setSwitches(uint16_t pattern)
 {
     // Turn on the LED if at least one triac will be activated.
@@ -645,7 +638,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.42-beta";
+    return "v0.43-beta";
 }
 
 
@@ -842,11 +835,10 @@ bool BSP_startBurst(Burst const *burst)
     pulse_timer->RCR = burst->nr_of_pulses - 1;
     pulse_timer->CNT = 0;
     pulse_timer->SR &= ~(TIM_SR_CC1IF | TIM_SR_CC2IF);
-    uint8_t phase = getPhase(burst->elcon);
-    if (phase == 0) {
+    if (burst->phase == 0) {
         pulse_timer->CCR1 = burst->pulse_width_micros - 1;
         pulse_timer->DIER |= TIM_DIER_CC1IE;
-    } else if (phase == 1) {
+    } else if (burst->phase == 1) {
         pulse_timer->CCR2 = burst->pulse_width_micros - 1;
         pulse_timer->DIER |= TIM_DIER_CC2IE;
     } else return false;                        // We only have one output stage.

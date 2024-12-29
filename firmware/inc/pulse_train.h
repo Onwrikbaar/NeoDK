@@ -10,26 +10,25 @@
  *   Copyright  2019..2025 Neostim™
  */
 
-#ifndef INC_BURST_H_
-#define INC_BURST_H_
+#ifndef INC_PULSE_TRAIN_H_
+#define INC_PULSE_TRAIN_H_
 
-#include <stdint.h>
+#include "burst.h"
 
-typedef struct _PulseTrain PulseTrain;                    // Opaque type.
-typedef uint8_t burst_size_t;
-typedef uint8_t burst_phase_t;
+typedef struct _PulseTrain PulseTrain;          // Opaque type.
+typedef uint8_t pulse_train_size_t;
 
 // Class methods.
-burst_size_t PulseTrain_size();
-PulseTrain  *PulseTrain_new(void *addr, burst_size_t);
-PulseTrain  *PulseTrain_copy(void *addr, burst_size_t, PulseTrain const *original);
+pulse_train_size_t PulseTrain_size();
+PulseTrain *PulseTrain_new(void *addr, pulse_train_size_t);
+PulseTrain *PulseTrain_copy(void *addr, pulse_train_size_t, PulseTrain const *original);
 
 // Instance methods.
-PulseTrain   *PulseTrain_init(PulseTrain *, uint8_t electrode_set[2], uint16_t nr_of_pulses);
-void          PulseTrain_setPhase(PulseTrain *, burst_phase_t phase);
-burst_phase_t PulseTrain_phase(PulseTrain const *);
-PulseTrain   *PulseTrain_setStartTimeMicros(PulseTrain *, uint32_t start_time_micros);
-uint16_t      PulseTrain_nrOfPulses(PulseTrain const *);
-void          PulseTrain_print(PulseTrain const *);
+PulseTrain *PulseTrain_init(PulseTrain *, uint8_t electrode_set[2], uint16_t nr_of_pulses);
+PulseTrain *PulseTrain_setStartTimeMicros(PulseTrain *, uint32_t start_time_micros);
+uint16_t    PulseTrain_amplitude(PulseTrain const *);
+uint8_t     PulseTrain_pulseWidth(PulseTrain const *);
+Burst const *PulseTrain_getBurst(PulseTrain const *, Burst *);
+void        PulseTrain_print(PulseTrain const *);
 
 #endif

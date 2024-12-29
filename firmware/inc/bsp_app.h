@@ -15,13 +15,7 @@
 
 #include "convenience.h"
 #include "eventqueue.h"
-
-typedef struct {
-    uint8_t elcon[2];
-    uint8_t pulse_width_micros;
-    uint8_t pace_ms;
-    uint8_t nr_of_pulses;
-} Burst;
+#include "burst.h"
 
 
 void BSP_init(void);                            // Get the hardware ready for action.

@@ -7,7 +7,7 @@
  *
  *  Created on: 15 Oct 2024
  *      Author: mark
- *   Copyright  2024 Neostim™
+ *   Copyright  2024, 2025 Neostim™
  */
 
 #include "bsp_dbg.h"
@@ -19,7 +19,7 @@
 
 typedef struct {
     AttributeId ai;                             // Key.
-    uint16_t active;
+    uint16_t times;
     AttrNotifier notify;
     void *target;
 } Subscription;
@@ -40,7 +40,7 @@ static Subscription *findSubForId(AttributeId ai)
 }
 
 
-static SubscriptionId setSubForId(AttributeId ai, AttrNotifier notify, void *target, uint16_t count)
+static SubscriptionId setSubForId(AttributeId ai, AttrNotifier notify, void *target, uint16_t times)
 {
     Subscription *sub = findSubForId(ai);
     if (sub == NULL) {                          // Not present, add it if there is room.
@@ -50,7 +50,7 @@ static SubscriptionId setSubForId(AttributeId ai, AttrNotifier notify, void *tar
     }
     sub->notify = notify;
     sub->target = target;
-    sub->active = count;
+    sub->times  = times;
     return 256 + (sub - subscriptions);
 }
 
@@ -76,8 +76,8 @@ void Attribute_changed(AttributeId ai, ElementEncoding enc, uint8_t const *data,
 {
     // BSP_logf("%s(%hu)\n", __func__, ai);
     Subscription *sub = findSubForId(ai);
-    if (sub != NULL && sub->active) {
+    if (sub != NULL && sub->times != 0) {
         sub->notify(sub->target, ai, enc, data, size);
-        sub->active -= 1;
+        sub->times -= 1;
     }
 }
