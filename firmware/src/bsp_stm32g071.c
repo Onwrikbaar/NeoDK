@@ -70,7 +70,7 @@
 
 
 // #define ADC_TIMER_FREQ_Hz        100000UL
-#define PULSE_TIMER_FREQ_Hz     1000000UL
+#define PULSE_TIMER_FREQ_Hz     4000000UL
 #define APP_TIMER_FREQ_Hz       4000000UL
 #define TICKS_PER_MICROSECOND   (APP_TIMER_FREQ_Hz / 1000000UL)
 
@@ -638,7 +638,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.43-beta";
+    return "v0.44-beta";
 }
 
 
@@ -828,7 +828,7 @@ uint16_t BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 bool BSP_startBurst(Burst const *burst)
 {
     M_ASSERT(burst->pace_ms >= 5);              // Repetition rate <= 200 Hz.
-    M_ASSERT(burst->pulse_width_micros != 0);
+    M_ASSERT(burst->pulse_width_¼_µs != 0);
     M_ASSERT(burst->nr_of_pulses != 0);
 
     pulse_timer->ARR = pulsePaceMillisecondsToTicks(burst->pace_ms) - 1;
@@ -836,10 +836,10 @@ bool BSP_startBurst(Burst const *burst)
     pulse_timer->CNT = 0;
     pulse_timer->SR &= ~(TIM_SR_CC1IF | TIM_SR_CC2IF);
     if (burst->phase == 0) {
-        pulse_timer->CCR1 = burst->pulse_width_micros - 1;
+        pulse_timer->CCR1 = burst->pulse_width_¼_µs - 1;
         pulse_timer->DIER |= TIM_DIER_CC1IE;
     } else if (burst->phase == 1) {
-        pulse_timer->CCR2 = burst->pulse_width_micros - 1;
+        pulse_timer->CCR2 = burst->pulse_width_¼_µs - 1;
         pulse_timer->DIER |= TIM_DIER_CC2IE;
     } else return false;                        // We only have one output stage.
 

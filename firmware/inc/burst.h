@@ -20,7 +20,14 @@ typedef struct {
     uint8_t phase;
     uint8_t pace_ms;
     uint16_t nr_of_pulses;
-    uint8_t pulse_width_micros;
+    uint16_t pulse_width_¼_µs;
+    uint8_t rfu;
 } Burst;
+
+typedef struct {
+    int16_t  delta_width_¼_µs;                  // [0.25 µs]. Changes the duration of a pulse.
+    int8_t   delta_pace_µs;                     // [µs]. Modifies the time between pulses.
+    int8_t   delta_amplitude;                   // In units of 1/255 of the set maximum.
+} Deltas;
 
 #endif

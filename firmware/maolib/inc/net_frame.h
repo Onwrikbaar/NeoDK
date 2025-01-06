@@ -3,7 +3,7 @@
  *
  *  Created on: 29 Feb 2020
  *      Author: mark
- *   Copyright  2020..2024 Neostim™
+ *   Copyright  2020..2025 Neostim™
  */
 
 #include <stdbool.h>

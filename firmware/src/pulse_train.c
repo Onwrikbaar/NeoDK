@@ -7,7 +7,7 @@
  *
  *  Created on: 29 Dec 2019
  *      Author: mark
- *   Copyright  2019..2025 Neostim
+ *   Copyright  2019..2025 Neostim™
  */
 
 #include <string.h>
@@ -23,51 +23,33 @@
  * Multi-byte members are little-Endian.
  */
 struct _PulseTrain {
-    uint8_t  meta;              // Type, version, flags, etc., for correct interpretation of this descriptor.
-    uint8_t  sequence_number;   // For diagnostics. Wraps around to 0 after 255.
-    uint8_t  phase;             // Bits 2..1 select 1 of 4 biphasic output stages. Bit 0 is the selected stage's polarity.
-    uint8_t  amplitude;         // Voltage, current or power, in units of 1/255 of the set maximum.
-    uint32_t start_time_micros; // When this burst should begin, in microseconds since start of program.
-    uint8_t  electrode_set[2];  // The (max 8) electrodes connected to each of the two output phases.
-    uint8_t  pulse_width;       // The duration of one pulse [µs].
-    uint8_t  pace_ms;           // [1..255] milliseconds between the start of consecutive pulses.
-    uint16_t nr_of_pulses;      // Length of this burst.
-    uint8_t  nr_of_same_phase;  // Bits 4..0: number of pulses before changing polarity (max 31, 0 means never).
+    uint8_t  meta;                  // Type, version, flags, etc., for correct interpretation of this descriptor.
+    uint8_t  sequence_number;       // For diagnostics. Wraps around to 0 after 255.
+    uint8_t  phase;                 // Bits 2..1 select 1 of 4 biphasic output stages. Bit 0 is the selected stage's polarity.
+    uint8_t  amplitude;             // Voltage, current or power, in units of 1/255 of the set maximum.
+    uint32_t start_time_µs;         // When this burst should begin, in microseconds since 'now'.
+    uint8_t  electrode_set[2];      // The (max 8) electrodes connected to each of the two output phases.
+    uint8_t  pulse_width_µs;        // The duration of one pulse [µs].
+    uint8_t  pace_ms;               // [1..255] milliseconds between the start of consecutive pulses.
+    uint16_t nr_of_pulses;          // Length of this burst.
+    uint8_t  nr_of_same_phase;      // Bits 4..0: number of pulses before changing polarity (max 31, 0 means never).
     // The following three members [-128..127] are applied after each pulse.
-    int8_t   delta_width_micros;// [µs]. Changes the duration of a pulse.
-    int8_t   delta_amplitude;   // In units of 1/255 of the set maximum.
-    int8_t   delta_pace_micros; // [µs]. Modifies the time between pulses.
+    int8_t   delta_pulse_width_¼_µs;// [0.25 µs]. Changes the duration of a pulse.
+    int8_t   delta_pace_µs;         // [µs]. Modifies the time between pulses.
+    int8_t   delta_amplitude;       // In units of 1/255 of the set maximum.
     // BLE 4.0 / 4.1 guaranteed ATT payload size is 20 bytes, so we have a couple to spare.
     uint8_t  reserved_for_future_use[2];
 };
 
-
-static void applyDeltaWidth(PulseTrain *me)
-{
-    int16_t new_width = me->pulse_width + me->delta_width_micros;
-    if (new_width < 0) new_width = 0;
-    else if (new_width > 255) new_width = 255;
-    me->pulse_width = new_width;
-}
-
-
-static void applyDeltaAmplitude(PulseTrain *me)
-{
-    int16_t new_amplitude = me->amplitude + me->delta_amplitude;
-    if (new_amplitude < 0) new_amplitude = 0;
-    else if (new_amplitude > 255) new_amplitude = 255;
-    me->amplitude = new_amplitude;
-}
-
-
+/*
 static void applyDeltaPace(PulseTrain *me)
 {
-    int16_t new_pace_ms = me->pace_ms + me->delta_pace_micros;
+    int16_t new_pace_ms = me->pace_ms + me->delta_pace_µs;
     if (new_pace_ms < 0) new_pace_ms = 0;
     else if (new_pace_ms > 255) new_pace_ms = 255;
     me->pace_ms = new_pace_ms;
 }
-
+*/
 /*
  * Below are the functions implementing this module's interface.
  */
@@ -75,12 +57,6 @@ static void applyDeltaPace(PulseTrain *me)
 pulse_train_size_t PulseTrain_size()
 {
     return sizeof(PulseTrain);
-}
-
-
-PulseTrain *PulseTrain_new(void *addr, pulse_train_size_t nb)
-{
-    return PulseTrain_copy(addr, nb, NULL);
 }
 
 
@@ -92,23 +68,18 @@ PulseTrain *PulseTrain_copy(void *addr, pulse_train_size_t nb, PulseTrain const 
 }
 
 
-PulseTrain *PulseTrain_init(PulseTrain *me, uint8_t electrode_set[2], uint16_t nr_of_pulses)
+PulseTrain *PulseTrain_init(PulseTrain *me, uint8_t seq_nr, uint32_t timestamp, Burst const *burst)
 {
     me->meta = 0;
-    me->phase = 0;
-    me->amplitude = 200;
-    me->electrode_set[0] = electrode_set[0];
-    me->electrode_set[1] = electrode_set[1];
-    me->pulse_width = 40;
-    me->pace_ms = 25;
-    me->nr_of_pulses = nr_of_pulses;
-    return me;
-}
-
-
-PulseTrain *PulseTrain_setStartTimeMicros(PulseTrain *me, uint32_t start_time_micros)
-{
-    me->start_time_micros = start_time_micros;
+    me->sequence_number = seq_nr;
+    me->start_time_µs = timestamp;
+    me->electrode_set[0] = burst->elcon[0];
+    me->electrode_set[1] = burst->elcon[1];
+    me->phase = burst->phase;
+    me->amplitude = 0;
+    me->pace_ms = burst->pace_ms;
+    me->nr_of_pulses = burst->nr_of_pulses;
+    me->pulse_width_µs = (burst->pulse_width_¼_µs + 2) / 4;
     return me;
 }
 
@@ -121,7 +92,7 @@ uint16_t PulseTrain_amplitude(PulseTrain const *me)
 
 uint8_t PulseTrain_pulseWidth(PulseTrain const *me)
 {
-    return me->pulse_width;
+    return me->pulse_width_µs;
 }
 
 
@@ -131,32 +102,39 @@ Burst const *PulseTrain_getBurst(PulseTrain const *me, Burst *burst)
     burst->elcon[1] = me->electrode_set[1];
     burst->phase = me->phase;
     burst->pace_ms = me->pace_ms;
-    burst->pulse_width_micros = me->pulse_width;
+    burst->pulse_width_¼_µs = me->pulse_width_µs * 4;
     burst->nr_of_pulses = me->nr_of_pulses;
     return burst;
 }
 
 
+void PulseTrain_getDeltas(PulseTrain const *me, Deltas *deltas)
+{
+    deltas->delta_width_¼_µs = me->delta_pulse_width_¼_µs;
+    deltas->delta_pace_µs    = me->delta_pace_µs;
+    deltas->delta_amplitude  = me->delta_amplitude;
+}
+
+
+void PulseTrain_clearDeltas(PulseTrain *deltas)
+{
+    deltas->delta_pulse_width_¼_µs = 0;
+    deltas->delta_pace_µs          = 0;
+    deltas->delta_amplitude        = 0;
+}
+
+
+void PulseTrain_setDeltas(PulseTrain *me, int16_t delta_width_¼_µs, int8_t delta_amplitude, int8_t delta_pace_µs)
+{
+    me->delta_pulse_width_¼_µs = delta_width_¼_µs;
+    me->delta_amplitude        = delta_amplitude;
+    me->delta_pace_µs          = delta_pace_µs;
+}
+
+
 void PulseTrain_print(PulseTrain const *me)
 {
-    BSP_logf("PT %hhu: start=%u µs, ec=0x%x<>0x%x, np=%hu, pace=%hhu ms, amp=%hhu, pw=%hhu µs\n",
-            me->sequence_number, me->start_time_micros, me->electrode_set[0], me->electrode_set[1],
-            me->nr_of_pulses, me->pace_ms, me->amplitude, me->pulse_width);
-}
-
-
-PulseTrain *PulseTrain_applyDeltas(PulseTrain *me)
-{
-    applyDeltaWidth(me);
-    applyDeltaAmplitude(me);
-    applyDeltaPace(me);
-    return me;
-}
-
-// This one doesn't really belong here.
-void PulseTrain_iterate(PulseTrain *pts, uint16_t nob, void (*f)(PulseTrain const *))
-{
-    for (uint16_t i = 0; i < nob; i++) {
-        f(&pts[i]);
-    }
+    BSP_logf("Pt %3hhu: t=%u µs, ec=0x%x<>0x%x, phase=%hhu, np=%hu, pace=%hhu ms, amp=%hhu, pw=%hhu µs, Δ=%hhd ¼µs\n",
+            me->sequence_number, me->start_time_µs, me->electrode_set[0], me->electrode_set[1],
+            me->phase, me->nr_of_pulses, me->pace_ms, me->amplitude, me->pulse_width_µs, me->delta_pulse_width_¼_µs);
 }

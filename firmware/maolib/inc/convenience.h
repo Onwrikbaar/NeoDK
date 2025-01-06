@@ -3,7 +3,7 @@
  *
  *  Created on: 14 Oct 2020
  *      Author: mark
- *   Copyright  2020..2024 Neostim™
+ *   Copyright  2020..2025 Neostim™
  */
 
 #ifndef INC_CONVENIENCE_H_
@@ -35,6 +35,7 @@ extern "C" {
 
 Selector *Selector_init(Selector *, Action, void *target);
 void invokeSelector(Selector *, uint32_t);
+int dumpBuffer(const char *prefix, const uint8_t *bbuf, uint8_t nb);
 struct timespec *tsIncrementNanos(struct timespec *, int64_t nanoseconds);
 char const *bytesToHexString(uint8_t const *pb, uint16_t nb);
 

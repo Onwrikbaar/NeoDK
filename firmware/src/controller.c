@@ -62,10 +62,12 @@ static void initResponsePacket(PacketHeader *ph)
 }
 
 
-static void initAttributeAction(AttributeAction *rsp_aa, AttributeAction const *req_aa)
+static void initAttributeAction(AttributeAction *aa, uint16_t transaction_id, uint8_t opcode, uint16_t attribute_id)
 {
-    *rsp_aa = *req_aa;                          // Copy the request.
-    rsp_aa->opcode = OC_REPORT_DATA;            // Only change the opcode.
+    aa->transaction_id = transaction_id;
+    aa->opcode = opcode;
+    aa->reserved = 0;
+    aa->attribute_id = attribute_id;
 }
 
 
@@ -79,7 +81,7 @@ static void readPatternNames(Controller *me, AttributeAction const *aa)
     // TODO Ensure packet_size does not exceed max frame payload size.
     uint8_t packet[packet_size];
     initResponsePacket((PacketHeader *)packet);
-    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), aa);
+    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), aa->transaction_id, OC_REPORT_DATA, aa->attribute_id);
     nbtw += Matter_encodeStringArray(packet + nbtw, pattern_names, nr_of_patterns);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
@@ -91,13 +93,19 @@ static void attributeChanged(Controller *me, AttributeId ai, ElementEncoding enc
     uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
     uint8_t packet[nbtw + Matter_encodedDataLength(enc, data_size)];
     initResponsePacket((PacketHeader *)packet);
-    AttributeAction *aa = (AttributeAction *)(packet + sizeof(PacketHeader));
-    aa->transaction_id = 0;
-    aa->opcode = OC_REPORT_DATA;
-    aa->reserved = 0;
-    aa->attribute_id = ai;
-    // TODO Add subscription Id if applicable?
+    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), 0, OC_REPORT_DATA, ai);
     nbtw += Matter_encode(packet + nbtw, enc, data, data_size);
+    DataLink_sendDatagram(me->datalink, packet, nbtw);
+}
+
+
+static void sendStatusResponse(Controller *me, AttributeAction const *aa, StatusCode sc)
+{
+    if (sc != SC_SUCCESS) BSP_logf("%s %hu for attr id=%hu\n", __func__, sc, aa->attribute_id);
+    uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
+    uint8_t packet[nbtw];
+    initResponsePacket((PacketHeader *)packet);
+    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), aa->transaction_id, sc, aa->attribute_id);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
 
@@ -105,13 +113,6 @@ static void attributeChanged(Controller *me, AttributeId ai, ElementEncoding enc
 static void logTransaction(AttributeAction const *aa, char const *action_str)
 {
     BSP_logf("Transaction %hu: %s attribute %hu\n", aa->transaction_id, action_str, aa->attribute_id);
-}
-
-
-static void sendStatusResponse(Controller *me, AttributeAction const *aa, StatusCode sc)
-{
-    BSP_logf("%s %hu for attr id=%hu\n", __func__, sc, aa->attribute_id);
-    // TODO Implement.
 }
 
 
@@ -148,12 +149,14 @@ static void handleReadRequest(Controller *me, AttributeAction const *aa)
         case AI_BOX_NAME:
             attributeChanged(me, aa->attribute_id, EE_UTF8_1LEN, (uint8_t const *)me->box_name, strlen(me->box_name));
             break;
+        case AI_PT_DESCRIPTOR_QUEUE:
+            Sequencer_notifyPtQueue(me->sequencer);
+            break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
             sendStatusResponse(me, aa, SC_UNSUPPORTED_ATTRIBUTE);
             return;
     }
-    sendStatusResponse(me, aa, SC_SUCCESS);
 }
 
 
@@ -267,7 +270,7 @@ static void *stateNop(Controller *me, AOEvent const *evt)
 }
 
 
-static void *stateIdle(Controller *me, AOEvent const *evt)
+static void *stateReady(Controller *me, AOEvent const *evt)
 {
     switch (AOEvent_type(evt))
     {
@@ -328,7 +331,7 @@ void Controller_init(Controller *me, Sequencer *sequencer, DataLink *datalink)
 
 void Controller_start(Controller *me)
 {
-    me->state = &stateIdle;
+    me->state = &stateReady;
     me->state(me, AOEvent_newEntryEvent());
     DataLink_open(me->datalink, &me->event_queue);
     DataLink_awaitSync(me->datalink);

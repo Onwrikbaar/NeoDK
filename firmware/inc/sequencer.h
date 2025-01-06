@@ -34,6 +34,7 @@ uint8_t Sequencer_getIntensityPercentage(Sequencer const *);
 void Sequencer_notifyIntensity(Sequencer const *);
 void Sequencer_notifyPattern(Sequencer const *);
 void Sequencer_notifyPlayState(Sequencer const *);
+void Sequencer_notifyPtQueue(Sequencer const *);
 
 void Sequencer_stop(Sequencer *);
 void Sequencer_delete(Sequencer *);

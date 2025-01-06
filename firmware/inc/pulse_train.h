@@ -18,17 +18,17 @@
 typedef struct _PulseTrain PulseTrain;          // Opaque type.
 typedef uint8_t pulse_train_size_t;
 
-// Class methods.
+// Class method.
 pulse_train_size_t PulseTrain_size();
-PulseTrain *PulseTrain_new(void *addr, pulse_train_size_t);
-PulseTrain *PulseTrain_copy(void *addr, pulse_train_size_t, PulseTrain const *original);
 
 // Instance methods.
-PulseTrain *PulseTrain_init(PulseTrain *, uint8_t electrode_set[2], uint16_t nr_of_pulses);
-PulseTrain *PulseTrain_setStartTimeMicros(PulseTrain *, uint32_t start_time_micros);
+PulseTrain *PulseTrain_init(PulseTrain *, uint8_t seq_nr, uint32_t timestamp, Burst const *burst);
+void        PulseTrain_clearDeltas(PulseTrain *);
+void        PulseTrain_setDeltas(PulseTrain *, int16_t delta_width_¼_µs, int8_t delta_amplitude, int8_t delta_pace_µs);
 uint16_t    PulseTrain_amplitude(PulseTrain const *);
 uint8_t     PulseTrain_pulseWidth(PulseTrain const *);
 Burst const *PulseTrain_getBurst(PulseTrain const *, Burst *);
+void        PulseTrain_getDeltas(PulseTrain const *, Deltas *);
 void        PulseTrain_print(PulseTrain const *);
 
 #endif

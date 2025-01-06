@@ -24,14 +24,16 @@
 // This module implements:
 #include "sequencer.h"
 
-#define MAX_PULSE_WIDTH_MICROS           200
-#define DEFAULT_INTENSITY_PERCENT         10
+#define MAX_PULSE_WIDTH_¼_µs            (200 * 4)
+#define DEFAULT_INTENSITY_PERCENT         15
 
 typedef void *(*StateFunc)(Sequencer *, AOEvent const *);
 
 struct _Sequencer {
     EventQueue event_queue;                     // This MUST be the first member.
-    uint8_t event_storage[400];
+    uint8_t event_storage[200];
+    EventQueue ptd_queue;
+    uint8_t ptd_storage[400];
     StateFunc state;
     PatternDescr const *pattern_descr;
     PatternIterator pi;
@@ -238,6 +240,8 @@ static bool queuePulseTrain(Sequencer *me, PulseTrain const *pt, uint16_t sz)
     // Scale amplitude 0..255 to 0..8160 mV (for now).
     BSP_setPrimaryVoltage_mV(PulseTrain_amplitude(pt) * 32);
     setPulseWidth(me, PulseTrain_pulseWidth(pt));
+    Sequencer_notifyPtQueue(me);                // Just testing!
+    // Execute immediately, for now.
     Burst burst;
     return BSP_startBurst(PulseTrain_getBurst(pt, &burst));
 }
@@ -387,8 +391,8 @@ static bool scheduleNextBurst(Sequencer *me)
 {
     Burst burst;
     if (PatternIterator_getNextBurst(&me->pi, &burst)) {
-        if (burst.pulse_width_micros > MAX_PULSE_WIDTH_MICROS) {
-            burst.pulse_width_micros = MAX_PULSE_WIDTH_MICROS;
+        if (burst.pulse_width_¼_µs > MAX_PULSE_WIDTH_¼_µs) {
+            burst.pulse_width_¼_µs = MAX_PULSE_WIDTH_¼_µs;
         }
         // BSP_logf("Pulse width is %hu µs\n", burstpulse_width_micros);
         burst.phase = getPhase(burst.elcon);
@@ -452,6 +456,7 @@ Sequencer *Sequencer_new()
 {
     Sequencer *me = (Sequencer *)malloc(sizeof(Sequencer));
     EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
+    EventQueue_init(&me->ptd_queue, me->ptd_storage, sizeof me->ptd_storage);
     return me;
 }
 
@@ -522,6 +527,13 @@ void Sequencer_notifyPattern(Sequencer const *me)
 void Sequencer_notifyPlayState(Sequencer const *me)
 {
     Attribute_changed(AI_PLAY_PAUSE_STOP, EE_UNSIGNED_INT_1, &me->play_state, sizeof me->play_state);
+}
+
+
+void Sequencer_notifyPtQueue(Sequencer const *me)
+{
+    uint16_t nr_of_bytes_free = EventQueue_availableSpace(&me->ptd_queue);
+    Attribute_changed(AI_PT_DESCRIPTOR_QUEUE, EE_UNSIGNED_INT_2, (uint8_t const *)&nr_of_bytes_free, sizeof nr_of_bytes_free);
 }
 
 
