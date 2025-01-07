@@ -60,7 +60,7 @@ static SubscriptionId setSubForId(AttributeId ai, AttrNotifier notify, void *tar
 
 SubscriptionId Attribute_awaitRead(AttributeId ai, AttrNotifier notify, void *target)
 {
-    BSP_logf("%s for id=%hu\n", __func__, ai);
+    // BSP_logf("%s for id=%hu\n", __func__, ai);
     return setSubForId(ai, notify, target, 1);
 }
 
@@ -75,11 +75,11 @@ SubscriptionId Attribute_subscribe(AttributeId ai, AttrNotifier notify, void *ta
 void Attribute_changed(AttributeId ai, ElementEncoding enc, uint8_t const *data, uint16_t size)
 {
     Subscription *sub = findSubForId(ai);
-    if (sub == NULL) return;                // No subscription for this attribute.
+    if (sub == NULL) return;
 
     sub->notify(sub->target, ai, enc, data, size);
     if (sub->times == 1) {                  // Subscription expired?
-        BSP_logf("Cancelling subscription for id=%hu\n", sub->ai);
+        // BSP_logf("Cancelling subscription for id=%hu\n", sub->ai);
         *sub = subscriptions[--nr_of_subs]; // Cancel it.
     } else if (sub->times != 0) {
         sub->times -= 1;

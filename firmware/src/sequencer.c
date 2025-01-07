@@ -123,7 +123,7 @@ static PatternDescr const pattern_descriptors[] =
         .name = "Jackhammer",
         .pattern = pattern_jackhammer,
         .nr_of_elcons = M_DIM(pattern_jackhammer),
-        .pace_ms = 125,
+        .pace_ms = 65,
         .nr_of_steps = 3,
         .nr_of_reps = 200,
     },
@@ -234,19 +234,6 @@ static void handleAdcValues(uint16_t const *v)
 }
 
 
-static bool queuePulseTrain(Sequencer *me, PulseTrain const *pt, uint16_t sz)
-{
-    PulseTrain_print(pt);
-    // Scale amplitude 0..255 to 0..8160 mV (for now).
-    BSP_setPrimaryVoltage_mV(PulseTrain_amplitude(pt) * 32);
-    setPulseWidth(me, PulseTrain_pulseWidth(pt));
-    Sequencer_notifyPtQueue(me);                // Just testing!
-    // Execute immediately, for now.
-    Burst burst;
-    return BSP_startBurst(PulseTrain_getBurst(pt, &burst));
-}
-
-
 static void *stateNop(Sequencer *me, AOEvent const *evt)
 {
     BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
@@ -288,22 +275,67 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
 }
 
 
+static void handleDescriptor(Sequencer *me, AOEvent const *evt)
+{
+    uint16_t sz = AOEvent_dataSize(evt);
+    // TODO Check size.
+    PulseTrain const *pt = (PulseTrain const *)AOEvent_data(evt);
+    PulseTrain_print(pt, sz);
+    // Scale amplitude 0..255 to 0..8160 mV (for now).
+    BSP_setPrimaryVoltage_mV(PulseTrain_amplitude(pt) * 32);
+    setPulseWidth(me, PulseTrain_pulseWidth(pt));
+    Burst burst;
+    BSP_startBurst(PulseTrain_getBurst(pt, &burst));
+}
+
+
+static bool enQueueDescriptor(Sequencer *me, AOEvent const *evt)
+{
+    if (EventQueue_repostEvent(&me->ptd_queue, evt)) {
+        Sequencer_notifyPtQueue(me);
+        return true;
+    }
+
+    return false;
+}
+
+
+static bool handleQueuedDescriptor(Sequencer *me)
+{
+    if (EventQueue_handleNextEvent(&me->ptd_queue, (EvtFunc)&handleDescriptor, me)) {
+        Sequencer_notifyPtQueue(me);
+        return true;
+    }
+
+    return false;
+}
+
+
 static void *stateStreaming(Sequencer *me, AOEvent const *evt)
 {
     switch (AOEvent_type(evt))
     {
         case ET_AO_ENTRY:
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
+            handleQueuedDescriptor(me);
             break;
         case ET_AO_EXIT:
             BSP_logf("Sequencer_%s EXIT\n", __func__);
+            break;
+        case ET_QUEUE_PULSE_TRAIN:
+            enQueueDescriptor(me, evt);
+            break;
+        case ET_SELECT_NEXT_PATTERN:
+        case ET_SELECT_PATTERN_BY_NAME:
+            // Ignore for now.
             break;
         case ET_BURST_STARTED:
             break;
         case ET_BURST_COMPLETED:
             break;
         case ET_BURST_EXPIRED:
-            return &stateIdle;                  // Transition.
+            if (handleQueuedDescriptor(me)) break;
+            return &stateIdle;                  // Otherwise transition.
         default:
             return stateCanopy(me, evt);        // Forward the event.
     }
@@ -328,8 +360,8 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             CLI_logf("Starting '%s'\n", me->pi.pattern_descr->name);
             return &statePulsing;               // Transition.
         case ET_QUEUE_PULSE_TRAIN:
-            if (queuePulseTrain(me, (PulseTrain const *)AOEvent_data(evt), AOEvent_dataSize(evt))) {
-                return &stateStreaming;         // Transition.
+            if (enQueueDescriptor(me, evt)) {
+                return &stateStreaming;         // Transition;
             }
             break;
         case ET_BURST_EXPIRED:
@@ -532,7 +564,7 @@ void Sequencer_notifyPlayState(Sequencer const *me)
 
 void Sequencer_notifyPtQueue(Sequencer const *me)
 {
-    uint16_t nr_of_bytes_free = EventQueue_availableSpace(&me->ptd_queue);
+    uint16_t nr_of_bytes_free = EventQueue_availableSpace(&me->ptd_queue) - AOEvent_minimumSize();
     Attribute_changed(AI_PT_DESCRIPTOR_QUEUE, EE_UNSIGNED_INT_2, (uint8_t const *)&nr_of_bytes_free, sizeof nr_of_bytes_free);
 }
 

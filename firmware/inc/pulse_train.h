@@ -29,6 +29,6 @@ uint16_t    PulseTrain_amplitude(PulseTrain const *);
 uint8_t     PulseTrain_pulseWidth(PulseTrain const *);
 Burst const *PulseTrain_getBurst(PulseTrain const *, Burst *);
 void        PulseTrain_getDeltas(PulseTrain const *, Deltas *);
-void        PulseTrain_print(PulseTrain const *);
+void        PulseTrain_print(PulseTrain const *, uint16_t sz);
 
 #endif

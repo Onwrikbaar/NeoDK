@@ -103,9 +103,10 @@ static void sendStatusResponse(Controller *me, AttributeAction const *aa, Status
 {
     if (sc != SC_SUCCESS) BSP_logf("%s %hu for attr id=%hu\n", __func__, sc, aa->attribute_id);
     uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
-    uint8_t packet[nbtw];
+    uint8_t packet[nbtw + Matter_encodedDataLength(EE_UNSIGNED_INT, 1)];
     initResponsePacket((PacketHeader *)packet);
-    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), aa->transaction_id, sc, aa->attribute_id);
+    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), aa->transaction_id, OC_STATUS_RESPONSE, aa->attribute_id);
+    nbtw += Matter_encode(packet + nbtw, EE_UNSIGNED_INT, &sc, 1);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
 

@@ -132,9 +132,10 @@ void PulseTrain_setDeltas(PulseTrain *me, int16_t delta_width_¼_µs, int8_t del
 }
 
 
-void PulseTrain_print(PulseTrain const *me)
+void PulseTrain_print(PulseTrain const *me, uint16_t sz)
 {
     BSP_logf("Pt %3hhu: t=%u µs, ec=0x%x<>0x%x, phase=%hhu, np=%hu, pace=%hhu ms, amp=%hhu, pw=%hhu µs, Δ=%hhd ¼µs\n",
             me->sequence_number, me->start_time_µs, me->electrode_set[0], me->electrode_set[1],
-            me->phase, me->nr_of_pulses, me->pace_ms, me->amplitude, me->pulse_width_µs, me->delta_pulse_width_¼_µs);
+            me->phase, me->nr_of_pulses, me->pace_ms, me->amplitude, me->pulse_width_µs,
+            sz >= 16 ? me->delta_pulse_width_¼_µs : 0);
 }
