@@ -300,25 +300,20 @@ static void handleDescriptor(Sequencer *me, AOEvent const *evt)
 }
 
 
-static bool enQueueDescriptor(Sequencer *me, AOEvent const *evt)
+static bool queueIncomingDescriptor(Sequencer *me, AOEvent const *evt)
 {
-    if (EventQueue_repostEvent(&me->ptd_queue, evt)) {
-        Sequencer_notifyPtQueue(me);
-        return true;
-    }
-
-    return false;
+    bool stat = PulseTrain_isValid((PulseTrain const *)AOEvent_data(evt), AOEvent_dataSize(evt))
+             && EventQueue_repostEvent(&me->ptd_queue, evt);
+    Sequencer_notifyPtQueue(me);
+    return stat;
 }
 
 
-static bool handleQueuedDescriptor(Sequencer *me)
+static bool execQueuedDescriptor(Sequencer *me)
 {
-    if (EventQueue_handleNextEvent(&me->ptd_queue, (EvtFunc)&handleDescriptor, me)) {
-        Sequencer_notifyPtQueue(me);
-        return true;
-    }
-
-    return false;
+    bool stat = EventQueue_handleNextEvent(&me->ptd_queue, (EvtFunc)&handleDescriptor, me);
+    Sequencer_notifyPtQueue(me);
+    return stat;
 }
 
 
@@ -328,14 +323,20 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
     {
         case ET_AO_ENTRY:
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
-            handleQueuedDescriptor(me);
+            execQueuedDescriptor(me);
             break;
         case ET_AO_EXIT:
+            EventQueue_clear(&me->ptd_queue);
             BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
         case ET_QUEUE_PULSE_TRAIN:
-            enQueueDescriptor(me, evt);
+            queueIncomingDescriptor(me, evt);
             break;
+        case ET_START_STREAM:
+            // Superfluous, ignore.
+            break;
+        case ET_STOP_STREAM:
+            return &stateIdle;                  // Transition.
         case ET_SELECT_NEXT_PATTERN:
         case ET_SELECT_PATTERN_BY_NAME:
             // Ignore for now.
@@ -347,7 +348,7 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
             break;
         case ET_BURST_EXPIRED:
             // BSP_logf("Burst expired\n");
-            if (handleQueuedDescriptor(me)) break;
+            if (execQueuedDescriptor(me)) break;
             return &stateIdle;                  // Otherwise transition.
         default:
             return stateCanopy(me, evt);        // Forward the event.
@@ -373,10 +374,13 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             CLI_logf("Starting '%s'\n", me->pi.pattern_descr->name);
             return &statePulsing;               // Transition.
         case ET_QUEUE_PULSE_TRAIN:
-            BSP_logf("Incoming pulse train of size %hu\n", AOEvent_dataSize(evt));
-            if (enQueueDescriptor(me, evt)) {
-                return &stateStreaming;         // Transition.
-            }
+            queueIncomingDescriptor(me, evt);
+            break;
+        case ET_START_STREAM:
+            if (EventQueue_isEmpty(&me->ptd_queue)) break;
+            return &stateStreaming;             // Transition.
+        case ET_STOP_STREAM:
+            // Superfluous, ignore.
             break;
         case ET_BURST_EXPIRED:
             CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);

@@ -227,6 +227,13 @@ static void handleInvokeRequest(Controller *me, AttributeAction const *aa)
                 EventQueue_postEvent((EventQueue *)me->sequencer, ET_SELECT_PATTERN_BY_NAME, aa->data + 2, aa->data[1]);
             }
             break;
+        case AI_PT_DESCRIPTOR_QUEUE:
+            if (aa->data[0] == EE_BOOLEAN_TRUE) {
+                EventQueue_postEvent((EventQueue *)me->sequencer, ET_START_STREAM, NULL, 0);
+            } else if (aa->data[0] == EE_BOOLEAN_FALSE) {
+                EventQueue_postEvent((EventQueue *)me->sequencer, ET_STOP_STREAM, NULL, 0);
+            }
+            break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
             sendStatusResponse(me, aa, SC_UNSUPPORTED_ATTRIBUTE);

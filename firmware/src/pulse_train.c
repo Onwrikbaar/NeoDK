@@ -72,6 +72,13 @@ PulseTrain *PulseTrain_init(PulseTrain *me, uint8_t seq_nr, uint32_t timestamp, 
 }
 
 
+bool PulseTrain_isValid(PulseTrain const *me, uint16_t sz)
+{
+    // TODO Implement.
+    return true;
+}
+
+
 uint8_t PulseTrain_pulseWidth(PulseTrain const *me)
 {
     return me->pulse_width_µs;
