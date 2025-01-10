@@ -24,7 +24,6 @@
 // This module implements:
 #include "sequencer.h"
 
-#define MAX_PULSE_WIDTH_¼_µs            (200 * 4)
 #define DEFAULT_INTENSITY_PERCENT         15
 
 typedef void *(*StateFunc)(Sequencer *, AOEvent const *);
@@ -123,7 +122,7 @@ static PatternDescr const pattern_descriptors[] =
         .name = "Jackhammer",
         .pattern = pattern_jackhammer,
         .nr_of_elcons = M_DIM(pattern_jackhammer),
-        .pace_ms = 65,
+        .pace_µs = MAX_PULSE_PACE_µs,
         .nr_of_steps = 3,
         .nr_of_reps = 200,
     },
@@ -131,7 +130,7 @@ static PatternDescr const pattern_descriptors[] =
         .name = "Toggle",
         .pattern = pattern_toggle,
         .nr_of_elcons = M_DIM(pattern_toggle),
-        .pace_ms = 50,
+        .pace_µs = 50000,
         .nr_of_steps = 5,
         .nr_of_reps = 300,
     },
@@ -139,7 +138,7 @@ static PatternDescr const pattern_descriptors[] =
         .name = "CrossToggle",
         .pattern = pattern_cross_toggle,
         .nr_of_elcons = M_DIM(pattern_cross_toggle),
-        .pace_ms = 20,
+        .pace_µs = 20000,
         .nr_of_steps = 5,
         .nr_of_reps = 200,
     },
@@ -147,7 +146,7 @@ static PatternDescr const pattern_descriptors[] =
         .name = "Circle",
         .pattern = pattern_circle,
         .nr_of_elcons = M_DIM(pattern_circle),
-        .pace_ms = 30,
+        .pace_µs = 30000,
         .nr_of_steps = 9,
         .nr_of_reps = 40,
     },
@@ -155,7 +154,7 @@ static PatternDescr const pattern_descriptors[] =
         .name = "Scratch that itch",
         .pattern = pattern_itch,
         .nr_of_elcons = M_DIM(pattern_itch),
-        .pace_ms = 8,
+        .pace_µs = 8000,
         .nr_of_steps = 11,
         .nr_of_reps = 5000,
     },
@@ -275,6 +274,17 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
 }
 
 
+static bool startBurst(Burst const *burst, Deltas const *deltas)
+{
+    if (Burst_isValid(burst)) {
+        return BSP_startBurst(burst, deltas);
+    }
+
+    BSP_logf("Invalid burst\n");
+    return false;
+}
+
+
 static void handleDescriptor(Sequencer *me, AOEvent const *evt)
 {
     uint16_t sz = AOEvent_dataSize(evt);
@@ -285,7 +295,8 @@ static void handleDescriptor(Sequencer *me, AOEvent const *evt)
     BSP_setPrimaryVoltage_mV(PulseTrain_amplitude(pt) * 32);
     setPulseWidth(me, PulseTrain_pulseWidth(pt));
     Burst burst;
-    BSP_startBurst(PulseTrain_getBurst(pt, &burst));
+    Deltas deltas;
+    startBurst(PulseTrain_getBurst(pt, &burst), PulseTrain_getDeltas(pt, sz, &deltas));
 }
 
 
@@ -332,8 +343,10 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
         case ET_BURST_STARTED:
             break;
         case ET_BURST_COMPLETED:
+            // BSP_logf("Burst completed\n");
             break;
         case ET_BURST_EXPIRED:
+            // BSP_logf("Burst expired\n");
             if (handleQueuedDescriptor(me)) break;
             return &stateIdle;                  // Otherwise transition.
         default:
@@ -360,8 +373,9 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             CLI_logf("Starting '%s'\n", me->pi.pattern_descr->name);
             return &statePulsing;               // Transition.
         case ET_QUEUE_PULSE_TRAIN:
+            BSP_logf("Incoming pulse train of size %hu\n", AOEvent_dataSize(evt));
             if (enQueueDescriptor(me, evt)) {
-                return &stateStreaming;         // Transition;
+                return &stateStreaming;         // Transition.
             }
             break;
         case ET_BURST_EXPIRED:
@@ -428,7 +442,8 @@ static bool scheduleNextBurst(Sequencer *me)
         }
         // BSP_logf("Pulse width is %hu µs\n", burstpulse_width_micros);
         burst.phase = getPhase(burst.elcon);
-        return BSP_startBurst(&burst);
+        Deltas deltas = {0};
+        return startBurst(&burst, &deltas);
     }
 
     return false;

@@ -19,9 +19,9 @@ typedef struct {
     char const *name;
     uint8_t const (*pattern)[2];
     uint16_t nr_of_elcons;
-    uint8_t pace_ms;
-    uint8_t nr_of_steps;
+    uint16_t pace_µs;
     uint16_t nr_of_reps;
+    uint8_t nr_of_steps;
 } PatternDescr;
 
 typedef struct {

@@ -16,19 +16,18 @@
 #include "burst.h"
 
 typedef struct _PulseTrain PulseTrain;          // Opaque type.
-typedef uint8_t pulse_train_size_t;
 
 // Class method.
-pulse_train_size_t PulseTrain_size();
+uint16_t PulseTrain_size();
 
 // Instance methods.
 PulseTrain *PulseTrain_init(PulseTrain *, uint8_t seq_nr, uint32_t timestamp, Burst const *burst);
-void        PulseTrain_clearDeltas(PulseTrain *);
-void        PulseTrain_setDeltas(PulseTrain *, int16_t delta_width_¼_µs, int8_t delta_amplitude, int8_t delta_pace_µs);
-uint16_t    PulseTrain_amplitude(PulseTrain const *);
-uint8_t     PulseTrain_pulseWidth(PulseTrain const *);
-Burst const *PulseTrain_getBurst(PulseTrain const *, Burst *);
-void        PulseTrain_getDeltas(PulseTrain const *, Deltas *);
-void        PulseTrain_print(PulseTrain const *, uint16_t sz);
+void     PulseTrain_clearDeltas(PulseTrain *);
+void     PulseTrain_setDeltas(PulseTrain *, int8_t delta_width_¼_µs, int8_t delta_pace_µs);
+uint16_t PulseTrain_amplitude(PulseTrain const *);
+uint8_t  PulseTrain_pulseWidth(PulseTrain const *);
+Burst  const *PulseTrain_getBurst(PulseTrain const *, Burst *);
+Deltas const *PulseTrain_getDeltas(PulseTrain const *, uint16_t sz, Deltas *);
+void     PulseTrain_print(PulseTrain const *, uint16_t sz);
 
 #endif

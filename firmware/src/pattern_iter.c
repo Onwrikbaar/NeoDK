@@ -88,6 +88,6 @@ bool PatternIterator_getNextBurst(PatternIterator *me, Burst *burst)
     burst->elcon[0] = elcon[0];
     burst->elcon[1] = elcon[1];
     burst->pulse_width_¼_µs = me->pulse_width_micros * 4;
-    burst->pace_ms = me->pattern_descr->pace_ms;// Yields 1000/pace_ms pulses per second.
+    burst->pace_µs = me->pattern_descr->pace_µs;
     return true;
 }

@@ -93,7 +93,8 @@ typedef struct {
     uint16_t volatile adc_1_samples[3];         // Must match the number of ADC1 ranks.
     uint16_t V_prim_mV;
     uint16_t pulse_seqnr;
-    uint8_t pulse_phase;
+    Burst burst;
+    Deltas deltas;
 } BSP;
 
 // The interrupt request priorities, from high to low.
@@ -104,7 +105,7 @@ enum {  // STM32G0xx MCUs have 4 interrupt priority levels.
     IRQ_PRIO_ADC1, IRQ_PRIO_EXTI = IRQ_PRIO_ADC1
 };
 
-// Ensure the following consts refer to the same timer.
+// Ensure the following three consts refer to the same timer.
 static TIM_TypeDef *const pulse_timer = TIM1;   // Advanced 16-bit timer.
 static IRQn_Type const pulse_timer_upd_irq = TIM1_BRK_UP_TRG_COM_IRQn;
 static IRQn_Type const pulse_timer_cc_irq  = TIM1_CC_IRQn;
@@ -383,13 +384,6 @@ static uint64_t ticksSinceBoot()
     return *(uint64_t *)ticks_since_boot;
 }
 
-
-static uint16_t pulsePaceMillisecondsToTicks(uint8_t pace_ms)
-{
-    uint32_t const pace_ticks = (PULSE_TIMER_FREQ_Hz * pace_ms) / 1000;
-    return pace_ticks <= 0xffff ? (uint16_t)pace_ticks : 0xffff;
-}
-
 /**
  * @brief   Calculate the value (0..4095) for the 12-bit DAC to set the desired primary voltage [mV].
  * @note    Assuming R15 = 115 kΩ, R18 = 13 kΩ and R19 = 42.2 kΩ (Refer to the schematic).
@@ -490,14 +484,16 @@ void TIM1_CC_IRQHandler(void)
         pulse_timer->SR &= ~TIM_SR_CC1IF;
         bsp.pulse_seqnr += 1;
         // BSP_logf("CC1 %hu\n", bsp.pulse_seqnr);
+        Burst_applyDeltas(&bsp.burst, &bsp.deltas);
     }
     if ((pulse_timer->DIER & TIM_DIER_CC2IE) && (pulse_timer->SR & TIM_SR_CC2IF)) {
         pulse_timer->SR &= ~TIM_SR_CC2IF;
         bsp.pulse_seqnr += 1;
         // BSP_logf("CC2 %hu\n", bsp.pulse_seqnr);
+        Burst_applyDeltas(&bsp.burst, &bsp.deltas);
     }
     if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-        EventQueue_postEvent(bsp.pulse_delegate_queue, ET_BURST_COMPLETED, NULL, 0);
+        EventQueue_postEvent(bsp.pulse_delegate_queue, ET_BURST_COMPLETED, (uint8_t const *)&bsp.pulse_seqnr, sizeof bsp.pulse_seqnr);
     }
     if (pulse_timer->SR & 0xcffe0) {
         BSP_logf("Pt SR=0x%x\n", pulse_timer->SR & 0xcffe0);
@@ -638,7 +634,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.45-beta";
+    return "v0.47-beta";
 }
 
 
@@ -825,14 +821,11 @@ uint16_t BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 }
 
 
-bool BSP_startBurst(Burst const *burst)
+bool BSP_startBurst(Burst const *burst, Deltas const *deltas)
 {
-    M_ASSERT(burst->pace_ms >=  5);             // Repetition rate <= 200 Hz.
-    M_ASSERT(burst->pace_ms <= 65);             // Repetition rate >   15 Hz.
-    M_ASSERT(burst->pulse_width_¼_µs != 0);
-    M_ASSERT(burst->nr_of_pulses != 0);
-
-    pulse_timer->ARR = pulsePaceMillisecondsToTicks(burst->pace_ms) - 1;
+    bsp.burst  = *burst;
+    bsp.deltas = *deltas;
+    pulse_timer->ARR = burst->pace_µs - 1;
     pulse_timer->RCR = burst->nr_of_pulses - 1;
     pulse_timer->CNT = 0;
     pulse_timer->SR &= ~(TIM_SR_CC1IF | TIM_SR_CC2IF);
