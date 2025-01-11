@@ -18,6 +18,7 @@
 #include "matter.h"
 #include "attributes.h"
 #include "app_event.h"
+#include "patterns.h"
 
 // This module implements:
 #include "controller.h"
@@ -73,9 +74,9 @@ static void initAttributeAction(AttributeAction *aa, uint16_t transaction_id, ui
 
 static void readPatternNames(Controller *me, AttributeAction const *aa)
 {
-    uint8_t nr_of_patterns = Sequencer_getNrOfPatterns(me->sequencer);
+    uint8_t nr_of_patterns = Patterns_getCount();
     char const *pattern_names[nr_of_patterns];  // Reserve enough space.
-    Sequencer_getPatternNames(me->sequencer, pattern_names, nr_of_patterns);
+    Patterns_getNames(pattern_names, nr_of_patterns);
     uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
     uint16_t packet_size = nbtw + Matter_encodedStringArrayLength(pattern_names, nr_of_patterns);
     // TODO Ensure packet_size does not exceed max frame payload size.

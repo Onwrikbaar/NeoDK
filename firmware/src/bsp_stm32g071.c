@@ -81,7 +81,7 @@ typedef struct {
     void *app_timer_target;
     uint32_t clock_ticks_per_app_timer_tick;
     Selector button_sel;
-    EventQueue *pulse_delegate_queue;
+    EventQueue *pulse_delegate;
     Selector rx_sel;
     Selector rx_err_sel;
     void (*tx_callback)(void *, uint8_t *);
@@ -470,7 +470,7 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
         pulse_timer->DIER &= ~(TIM_DIER_CC1IE | TIM_DIER_CC2IE);
         pulse_timer->SR &= ~(TIM_SR_UIF | TIM_SR_CC1IF | TIM_SR_CC2IF);
         setSwitches(0);                         // Disconnect the output stage from the load.
-        EventQueue_postEvent(bsp.pulse_delegate_queue, ET_BURST_EXPIRED, NULL, 0);
+        EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_EXPIRED, NULL, 0);
     } else {
         BSP_logf("Pt SR=0x%x\n", __func__, pulse_timer->SR);
         // spuriousIRQ(&bsp);
@@ -493,7 +493,7 @@ void TIM1_CC_IRQHandler(void)
         Burst_applyDeltas(&bsp.burst, &bsp.deltas);
     }
     if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-        EventQueue_postEvent(bsp.pulse_delegate_queue, ET_BURST_COMPLETED, (uint8_t const *)&bsp.pulse_seqnr, sizeof bsp.pulse_seqnr);
+        EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, (uint8_t const *)&bsp.pulse_seqnr, sizeof bsp.pulse_seqnr);
     }
     if (pulse_timer->SR & 0xcffe0) {
         BSP_logf("Pt SR=0x%x\n", pulse_timer->SR & 0xcffe0);
@@ -568,7 +568,7 @@ void DMA1_Channel1_IRQHandler(void)
 {
     if (DMA1->ISR & DMA_ISR_TCIF1) {
         DMA1->IFCR = DMA_IFCR_CTCIF1;           // Clear transfer complete flag.
-        EventQueue_postEvent(bsp.pulse_delegate_queue, ET_ADC_DATA_AVAILABLE, (uint8_t const *)bsp.adc_1_samples, sizeof bsp.adc_1_samples);
+        EventQueue_postEvent(bsp.pulse_delegate, ET_ADC_DATA_AVAILABLE, (uint8_t const *)bsp.adc_1_samples, sizeof bsp.adc_1_samples);
     } else if (DMA1->ISR & DMA_ISR_TEIF1) {
         DMA1->IFCR = DMA_IFCR_CTEIF1;           // Clear transfer error flag.
         BSP_logf("%s, TEIF1\n", __func__);
@@ -634,7 +634,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.47-beta";
+    return "v0.48-beta";
 }
 
 
@@ -705,7 +705,7 @@ void BSP_registerAppTimerHandler(void (*handler)(void *, uint64_t), void *target
 
 void BSP_registerPulseDelegate(EventQueue *pdq)
 {
-    bsp.pulse_delegate_queue = pdq;
+    bsp.pulse_delegate = pdq;
     pulse_timer->PSC = SystemCoreClock / PULSE_TIMER_FREQ_Hz - 1;
     BSP_logf("%s: PSC=%u\n", __func__, pulse_timer->PSC);
     // PWM mode 1 for timer channels 1 and 2, enable preload.
@@ -842,7 +842,7 @@ bool BSP_startBurst(Burst const *burst, Deltas const *deltas)
     bsp.pulse_seqnr = 0;
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
-    EventQueue_postEvent(bsp.pulse_delegate_queue, ET_BURST_STARTED, NULL, 0);
+    EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_STARTED, NULL, 0);
     pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
     return true;
 }

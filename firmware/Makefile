@@ -38,6 +38,7 @@ PROJ_COMMON_SRC += \
   $(PROJ_DIR_SRC)/neodk_main.c \
   $(PROJ_DIR_SRC)/controller.c \
   $(PROJ_DIR_SRC)/sequencer.c \
+  $(PROJ_DIR_SRC)/patterns.c \
   $(PROJ_DIR_SRC)/pattern_iter.c \
   $(PROJ_DIR_SRC)/pulse_train.c \
   $(PROJ_DIR_SRC)/burst.c \

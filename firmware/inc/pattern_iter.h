@@ -14,15 +14,7 @@
 #define INC_PATTERN_ITER_H_
 
 #include "bsp_app.h"
-
-typedef struct {
-    char const *name;
-    uint8_t const (*pattern)[2];
-    uint16_t nr_of_elcons;
-    uint16_t pace_µs;
-    uint16_t nr_of_reps;
-    uint8_t nr_of_steps;
-} PatternDescr;
+#include "patterns.h"
 
 typedef struct {
     PatternDescr const *pattern_descr;
@@ -34,11 +26,9 @@ typedef struct {
 } PatternIterator;
 
 
-// Class method.
-bool PatternIterator_checkPattern(uint8_t const pattern[][2], uint16_t nr_of_elcons);
-
-// Instance methods.
 void PatternIterator_init(PatternIterator *, PatternDescr const *);
+void PatternIterator_setPulseWidth(PatternIterator *, uint8_t width_µs);
+char const *PatternIterator_name(PatternIterator *);
 bool PatternIterator_done(PatternIterator *);
 bool PatternIterator_getNextBurst(PatternIterator *, Burst *);
 

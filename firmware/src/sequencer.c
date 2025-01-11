@@ -24,7 +24,7 @@
 // This module implements:
 #include "sequencer.h"
 
-#define DEFAULT_INTENSITY_PERCENT         15
+#define DEFAULT_INTENSITY_PERCENT         16
 
 typedef void *(*StateFunc)(Sequencer *, AOEvent const *);
 
@@ -34,161 +34,11 @@ struct _Sequencer {
     EventQueue ptd_queue;
     uint8_t ptd_storage[400];
     StateFunc state;
-    PatternDescr const *pattern_descr;
+    PatternDescr const *pattern;
     PatternIterator pi;
-    uint8_t nr_of_patterns;
-    uint8_t pattern_index;
     uint8_t intensity_percent;
     uint8_t play_state;
 };
-
-enum { EL_0, EL_A, EL_B, EL_C = 4, EL_AC = (EL_A | EL_C), EL_D = 8, EL_BD = (EL_B | EL_D) };
-
-__attribute__((unused))
-static char const elset_str[][5] = {
-    "None", "A", "B", "AB", "C", "AC", "BC", "ABC", "D", "AD", "BD", "ABD", "CD", "ACD", "BCD", "ABCD"
-};
-
-static uint8_t const pattern_jackhammer[][2] =
-{
-    {EL_AC, EL_BD},
-    {EL_BD, EL_AC},
-};
-
-static uint8_t const pattern_toggle[][2] =
-{
-    {EL_A, EL_B},
-    {EL_C, EL_D},
-    {EL_B, EL_A},
-    {EL_D, EL_C},
-};
-
-static uint8_t const pattern_cross_toggle[][2] =
-{
-    {EL_A, EL_D},
-    {EL_B, EL_C},
-    {EL_C, EL_B},
-    {EL_D, EL_A},
-};
-
-static uint8_t const pattern_circle[][2] =
-{
-    {EL_A,  EL_B},
-    {EL_B,  EL_AC},
-    {EL_C,  EL_B},
-    {EL_BD, EL_C},
-    {EL_C,  EL_D},
-    {EL_D,  EL_AC},
-    {EL_A,  EL_D},
-    {EL_BD, EL_A},
-    {EL_AC, EL_BD},
-
-    {EL_B,  EL_A},
-    {EL_AC, EL_B},
-    {EL_B,  EL_C},
-    {EL_C,  EL_BD},
-    {EL_D,  EL_C},
-    {EL_AC, EL_D},
-    {EL_D,  EL_A},
-    {EL_A,  EL_BD},
-    {EL_BD, EL_AC},
-};
-
-static uint8_t const pattern_itch[][2] =
-{
-    {EL_A, EL_B},
-    {EL_B, EL_A},
-    {EL_A, EL_B},
-    {EL_B, EL_A},
-
-    // {EL_AC, EL_BD},
-
-    {EL_C, EL_D},
-    {EL_D, EL_C},
-    {EL_C, EL_D},
-    {EL_D, EL_C},
-
-    // {EL_BD, EL_AC},
-
-    {EL_A, EL_B},
-    {EL_C, EL_D},
-    {EL_B, EL_A},
-    {EL_D, EL_C},
-};
-
-static PatternDescr const pattern_descriptors[] =
-{
-    {
-        .name = "Jackhammer",
-        .pattern = pattern_jackhammer,
-        .nr_of_elcons = M_DIM(pattern_jackhammer),
-        .pace_µs = MAX_PULSE_PACE_µs,
-        .nr_of_steps = 3,
-        .nr_of_reps = 200,
-    },
-    {
-        .name = "Toggle",
-        .pattern = pattern_toggle,
-        .nr_of_elcons = M_DIM(pattern_toggle),
-        .pace_µs = 50000,
-        .nr_of_steps = 5,
-        .nr_of_reps = 300,
-    },
-    {
-        .name = "CrossToggle",
-        .pattern = pattern_cross_toggle,
-        .nr_of_elcons = M_DIM(pattern_cross_toggle),
-        .pace_µs = 20000,
-        .nr_of_steps = 5,
-        .nr_of_reps = 200,
-    },
-    {
-        .name = "Circle",
-        .pattern = pattern_circle,
-        .nr_of_elcons = M_DIM(pattern_circle),
-        .pace_µs = 30000,
-        .nr_of_steps = 9,
-        .nr_of_reps = 40,
-    },
-    {
-        .name = "Scratch that itch",
-        .pattern = pattern_itch,
-        .nr_of_elcons = M_DIM(pattern_itch),
-        .pace_µs = 8000,
-        .nr_of_steps = 11,
-        .nr_of_reps = 5000,
-    },
-};
-
-
-static void checkAllPatterns(Sequencer *me)
-{
-    for (uint8_t i = 0; i < me->nr_of_patterns; i++) {
-        PatternDescr const *pd = &me->pattern_descr[i];
-        BSP_logf("Checking '%s'\n", pd->name);
-        PatternIterator_checkPattern(pd->pattern, pd->nr_of_elcons);
-    }
-}
-
-
-static void selectPatternByName(Sequencer *me, char const *name, EventSize len)
-{
-    for (uint8_t i = 0; i < me->nr_of_patterns; i++) {
-        char const *pattern_name = me->pattern_descr[i].name;
-        if (len == strlen(pattern_name) && memcmp(name, pattern_name, len) == 0) {
-            // BSP_logf("%s '%s'\n", __func__, pattern_name);
-            me->pattern_index = i;
-            return;
-        }
-    }
-}
-
-
-static void setPulseWidth(Sequencer *me, uint8_t width_µs)
-{
-    BSP_logf("Setting pulse width to %hhu µs\n", width_µs);
-    me->pi.pulse_width_micros = width_µs;
-}
 
 
 static void setIntensityPercentage(Sequencer *me, uint8_t perc)
@@ -198,17 +48,20 @@ static void setIntensityPercentage(Sequencer *me, uint8_t perc)
     // TODO Ramp up to the previous intensity?
     Sequencer_notifyIntensity(me);
     BSP_setPrimaryVoltage_mV(perc * 80);
-    setPulseWidth(me, 50 + perc + perc / 2);
+    PatternIterator_setPulseWidth(&me->pi, 50 + perc + perc / 2);
 }
 
 
-static void switchPattern(Sequencer *me)
+static bool switchPattern(Sequencer *me, PatternDescr const *pd)
 {
-    PatternDescr const *pd = &me->pattern_descr[me->pattern_index];
-    CLI_logf("Switching to '%s'\n", pd->name);
+    if (pd == NULL) return false;
+
+    CLI_logf("Switching to '%s'\n", Patterns_name(pd));
     PatternIterator_init(&me->pi, pd);
+    me->pattern = pd;
     setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
     Sequencer_notifyPattern(me);
+    return true;
 }
 
 
@@ -254,12 +107,10 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
         case ET_STOP:
             return &stateIdle;                  // Transition.
         case ET_SELECT_NEXT_PATTERN:
-            if (++me->pattern_index == me->nr_of_patterns) me->pattern_index = 0;
-            switchPattern(me);
+            switchPattern(me, Patterns_getNext(me->pattern));
             break;
         case ET_SELECT_PATTERN_BY_NAME:
-            selectPatternByName(me, (char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
-            switchPattern(me);
+            switchPattern(me, Patterns_findByName((char const *)AOEvent_data(evt), AOEvent_dataSize(evt)));
             break;
         case ET_SET_INTENSITY:
             setIntensityPercentage(me, *(uint8_t const *)AOEvent_data(evt));
@@ -293,7 +144,7 @@ static void handleDescriptor(Sequencer *me, AOEvent const *evt)
     PulseTrain_print(pt, sz);
     // Scale amplitude 0..255 to 0..8160 mV (for now).
     BSP_setPrimaryVoltage_mV(PulseTrain_amplitude(pt) * 32);
-    setPulseWidth(me, PulseTrain_pulseWidth(pt));
+    PatternIterator_setPulseWidth(&me->pi, PulseTrain_pulseWidth(pt));
     Burst burst;
     Deltas deltas;
     startBurst(PulseTrain_getBurst(pt, &burst), PulseTrain_getDeltas(pt, sz, &deltas));
@@ -348,7 +199,7 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
             break;
         case ET_BURST_EXPIRED:
             // BSP_logf("Burst expired\n");
-            if (execQueuedDescriptor(me)) break;
+            if (execQueuedDescriptor(me)) break;// Process next burst, if present.
             return &stateIdle;                  // Otherwise transition.
         default:
             return stateCanopy(me, evt);        // Forward the event.
@@ -370,8 +221,8 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             break;
         case ET_TOGGLE_PLAY_PAUSE:
         case ET_PLAY:
-            PatternIterator_init(&me->pi, &me->pattern_descr[me->pattern_index]);
-            CLI_logf("Starting '%s'\n", me->pi.pattern_descr->name);
+            PatternIterator_init(&me->pi, me->pattern);
+            CLI_logf("Starting '%s'\n", PatternIterator_name(&me->pi));
             return &statePulsing;               // Transition.
         case ET_QUEUE_PULSE_TRAIN:
             queueIncomingDescriptor(me, evt);
@@ -383,7 +234,7 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             // Superfluous, ignore.
             break;
         case ET_BURST_EXPIRED:
-            CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
+            CLI_logf("Finished '%s'\n", PatternIterator_name(&me->pi));
             break;
         default:
             return stateCanopy(me, evt);        // Forward the event.
@@ -404,24 +255,22 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
             BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
         case ET_SELECT_NEXT_PATTERN:
-            if (++me->pattern_index == me->nr_of_patterns) me->pattern_index = 0;
-            switchPattern(me);
+            switchPattern(me, Patterns_getNext(me->pattern));
             return &stateIdle;                  // Transition.
         case ET_SELECT_PATTERN_BY_NAME:
-            selectPatternByName(me, (char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
-            switchPattern(me);
+            switchPattern(me, Patterns_findByName((char const *)AOEvent_data(evt), AOEvent_dataSize(evt)));
             return &stateIdle;                  // Transition.
         case ET_TOGGLE_PLAY_PAUSE:
-            CLI_logf("Resuming '%s'\n", me->pi.pattern_descr->name);
+            CLI_logf("Resuming '%s'\n", PatternIterator_name(&me->pi));
             // Fall through.
         case ET_PLAY:
             return &statePulsing;               // Transition.
         case ET_BURST_EXPIRED:
             if (PatternIterator_done(&me->pi)) {
-                CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
+                CLI_logf("Finished '%s'\n", PatternIterator_name(&me->pi));
                 return &stateIdle;              // Transition.
             }
-            CLI_logf("Pausing '%s'\n", me->pi.pattern_descr->name);
+            CLI_logf("Pausing '%s'\n", PatternIterator_name(&me->pi));
             break;
         default:
             return stateCanopy(me, evt);        // Forward the event.
@@ -444,7 +293,7 @@ static bool scheduleNextBurst(Sequencer *me)
         if (burst.pulse_width_¼_µs > MAX_PULSE_WIDTH_¼_µs) {
             burst.pulse_width_¼_µs = MAX_PULSE_WIDTH_¼_µs;
         }
-        // BSP_logf("Pulse width is %hu µs\n", burstpulse_width_micros);
+        // BSP_logf("Pulse width is %hu µs\n", burst.pulse_width_¼_µs / 4);
         burst.phase = getPhase(burst.elcon);
         Deltas deltas = {0};
         return startBurst(&burst, &deltas);
@@ -474,7 +323,7 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
             break;
         case ET_BURST_EXPIRED:
             if (! scheduleNextBurst(me)) {
-                CLI_logf("Finished '%s'\n", me->pi.pattern_descr->name);
+                CLI_logf("Finished '%s'\n", PatternIterator_name(&me->pi));
                 return &stateIdle;              // Transition.
             }
             break;
@@ -515,9 +364,8 @@ Sequencer *Sequencer_new()
 Sequencer *Sequencer_init(Sequencer *me)
 {
     me->state = &stateNop;
-    me->pattern_descr = pattern_descriptors;
-    me->nr_of_patterns = M_DIM(pattern_descriptors);
-    me->pattern_index = 2;
+    char const default_pattern_name[] = "Toggle";
+    me->pattern = Patterns_findByName(default_pattern_name, strlen(default_pattern_name));
     me->intensity_percent = 0;
     me->play_state = PS_UNKNOWN;
     BSP_registerPulseDelegate(&me->event_queue);
@@ -527,7 +375,7 @@ Sequencer *Sequencer_init(Sequencer *me)
 
 void Sequencer_start(Sequencer *me)
 {
-    checkAllPatterns(me);
+    Patterns_checkAll();
     me->state = stateIdle;
     me->state(me, AOEvent_newEntryEvent());
     setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
@@ -538,21 +386,6 @@ void Sequencer_start(Sequencer *me)
 bool Sequencer_handleEvent(Sequencer *me)
 {
     return EventQueue_handleNextEvent(&me->event_queue, (EvtFunc)&dispatchEvent, me);
-}
-
-
-uint16_t Sequencer_getNrOfPatterns(Sequencer const *me)
-{
-    return me->nr_of_patterns;
-}
-
-
-void Sequencer_getPatternNames(Sequencer const *me, char const *names[], uint8_t cnt)
-{
-    if (cnt > me->nr_of_patterns) cnt = me->nr_of_patterns;
-    for (uint8_t i = 0; i < cnt; i++) {
-        names[i] = me->pattern_descr[i].name;
-    }
 }
 
 
@@ -570,8 +403,8 @@ void Sequencer_notifyIntensity(Sequencer const *me)
 
 void Sequencer_notifyPattern(Sequencer const *me)
 {
-    PatternDescr const *pd = &me->pattern_descr[me->pattern_index];
-    Attribute_changed(AI_CURRENT_PATTERN_NAME, EE_UTF8_1LEN, (uint8_t const *)pd->name, strlen(pd->name));
+    char const *name = Patterns_name(me->pattern);
+    Attribute_changed(AI_CURRENT_PATTERN_NAME, EE_UTF8_1LEN, (uint8_t const *)name, strlen(name));
 }
 
 

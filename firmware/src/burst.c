@@ -10,6 +10,7 @@
  *   Copyright  2025 Neostim™
  */
 
+// This module implements:
 #include "burst.h"
 
 

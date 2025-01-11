@@ -10,7 +10,6 @@
  *   Copyright  2024, 2025 Neostim™
  */
 
-#include <stdbool.h>
 #include "bsp_dbg.h"
 
 // This module implements:
@@ -50,19 +49,6 @@ static uint8_t const *getNextPattern(PatternIterator *me, uint16_t *nr_of_pulses
  * Below are the functions implementing this module's interface.
  */
 
-bool PatternIterator_checkPattern(uint8_t const pattern[][2], uint16_t nr_of_elcons)
-{
-    for (uint16_t i = 0; i < nr_of_elcons; i++) {
-        uint8_t const *elcon = pattern[i];
-        if ((elcon[0] & elcon[1]) != 0) {
-            BSP_logf("%s: short in elcon %hu\n", __func__, i);
-            return false;
-        }
-    }
-    return true;
-}
-
-
 void PatternIterator_init(PatternIterator *me, PatternDescr const *pd)
 {
     me->pattern_descr = pd;
@@ -71,6 +57,19 @@ void PatternIterator_init(PatternIterator *me, PatternDescr const *pd)
     M_ASSERT(pd->nr_of_steps != 0);
     me->step_nr = 0;
     me->segment_nr = 0;                         // 0 or 1.
+}
+
+
+void PatternIterator_setPulseWidth(PatternIterator *me, uint8_t width_µs)
+{
+    BSP_logf("Setting pulse width to %hhu µs\n", width_µs);
+    me->pulse_width_micros = width_µs;
+}
+
+
+char const *PatternIterator_name(PatternIterator *me)
+{
+    return Patterns_name(me->pattern_descr);
 }
 
 
