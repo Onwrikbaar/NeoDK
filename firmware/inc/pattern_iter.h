@@ -28,8 +28,8 @@ typedef struct {
 
 void PatternIterator_init(PatternIterator *, PatternDescr const *);
 void PatternIterator_setPulseWidth(PatternIterator *, uint8_t width_µs);
+bool PatternIterator_scheduleNextBurst(PatternIterator *);
 char const *PatternIterator_name(PatternIterator *);
 bool PatternIterator_done(PatternIterator *);
-bool PatternIterator_getNextBurst(PatternIterator *, Burst *);
 
 #endif

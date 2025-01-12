@@ -46,7 +46,7 @@ This project is intended for experienced electronics hobbyists and professionals
 NeoDK is _NOT_ a ready-for-play e-stim box. It is a minimal viable design (MVD) of a powerful and highly efficient electrostimulation device that is not limited by 2-pole 'channels' or strictly TENS-like waveforms. Schematic and board CAD files are included, but to get a working device involves some soldering. To get more than the basic functionality requires programming in C.
 
 ### How to get a working NeoDK
-By far the easiest way to build NeoDK, is to order the SMD-populated PCB from JLCPCB (using the files in directory JLCPCB_prod) and buy the six through hole components separately. Soldering the through hole components onto the board is quite easy.
+By far the easiest way to build NeoDK, is to order the SMD-populated PCB from JLCPCB (using the files in directory JLCPCB_prod) and buy the six through hole components separately. Soldering the through hole components onto the board is easy.
 
 ### Licensing
 NeoDK's electronics and firmware can do things no commercially available e-stim box comes close to. If this appeals to you but you would like to have more features than NeoDK offers, by all means use NeoDK as the foundation for your own design - while observing this project's [Licence](LICENSE.txt). Regarding licensing for commercial / non-open source purposes, please contact the author.
@@ -56,3 +56,7 @@ NeoDK's electronics and firmware can do things no commercially available e-stim 
 
 ## NeoDK in the media
 Joanne's Reviews' always informative and entertaining YouTube [E-stim Livestreams](https://www.youtube.com/@JoannesReviews/streams) recently featured an [item about NeoDK](https://youtu.be/giEaDksRmh0?t=1460).
+
+## Other OSHW electrostimulation projects
+- [zc95](https://github.com/CrashOverride85/zc95). A feature-rich four channel machine.
+- Noisy Cricket (soon to be published). An incredibly compact device primarily aimed at BDSM play.

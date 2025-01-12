@@ -26,6 +26,7 @@ bool     PulseTrain_isValid(PulseTrain const *, uint16_t sz);
 void     PulseTrain_clearDeltas(PulseTrain *);
 void     PulseTrain_setDeltas(PulseTrain *, int8_t delta_width_¼_µs, int8_t delta_pace_µs);
 uint16_t PulseTrain_amplitude(PulseTrain const *);
+uint8_t  PulseTrain_phase(PulseTrain const *);
 uint8_t  PulseTrain_pulseWidth(PulseTrain const *);
 Burst  const *PulseTrain_getBurst(PulseTrain const *, Burst *);
 Deltas const *PulseTrain_getDeltas(PulseTrain const *, uint16_t sz, Deltas *);

@@ -115,7 +115,7 @@ LIB_FILES += -lc -lnosys -lm
 default: neodk_g071
 
 libmao.a:
-	$(CC) $(CFLAGS) -I$(MAO_LIB_INC) -I$(SEGGER) -c $(MAO_LIB_SRC)/*.c
+	$(CC) $(CFLAGS) -I$(MAO_LIB_INC) -I$(PROJ_DIR_INC) -I$(SEGGER) -c $(MAO_LIB_SRC)/*.c
 	$(AR) maolib/$@ *.o
 	rm *.o
 

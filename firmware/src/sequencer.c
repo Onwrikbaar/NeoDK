@@ -14,12 +14,11 @@
 #include <string.h>
 
 #include "bsp_dbg.h"
-#include "bsp_mao.h"
 #include "debug_cli.h"
 #include "app_event.h"
 #include "attributes.h"
 #include "pattern_iter.h"
-#include "pulse_train.h"
+#include "ptd_queue.h"
 
 // This module implements:
 #include "sequencer.h"
@@ -136,18 +135,25 @@ static bool startBurst(Burst const *burst, Deltas const *deltas)
 }
 
 
-static void handleDescriptor(Sequencer *me, AOEvent const *evt)
+static void execPulseTrain(PatternIterator *pi, PulseTrain const *pt, uint16_t sz)
 {
-    uint16_t sz = AOEvent_dataSize(evt);
-    // TODO Check size.
-    PulseTrain const *pt = (PulseTrain const *)AOEvent_data(evt);
-    PulseTrain_print(pt, sz);
     // Scale amplitude 0..255 to 0..8160 mV (for now).
     BSP_setPrimaryVoltage_mV(PulseTrain_amplitude(pt) * 32);
-    PatternIterator_setPulseWidth(&me->pi, PulseTrain_pulseWidth(pt));
+    PatternIterator_setPulseWidth(pi, PulseTrain_pulseWidth(pt));
     Burst burst;
     Deltas deltas;
     startBurst(PulseTrain_getBurst(pt, &burst), PulseTrain_getDeltas(pt, sz, &deltas));
+}
+
+
+static void handlePtEvent(Sequencer *me, AOEvent const *evt)
+{
+    PulseTrain const *pt = (PulseTrain const *)AOEvent_data(evt);
+    uint16_t sz = AOEvent_dataSize(evt);
+    if (PulseTrain_isValid(pt, sz)) {
+        PulseTrain_print(pt, sz);
+        execPulseTrain(&me->pi, pt, sz);
+    }
 }
 
 
@@ -160,9 +166,9 @@ static bool queueIncomingDescriptor(Sequencer *me, AOEvent const *evt)
 }
 
 
-static bool execQueuedDescriptor(Sequencer *me)
+static bool handleQueuedDescriptor(Sequencer *me)
 {
-    bool stat = EventQueue_handleNextEvent(&me->ptd_queue, (EvtFunc)&handleDescriptor, me);
+    bool stat = EventQueue_handleNextEvent(&me->ptd_queue, (EvtFunc)&handlePtEvent, me);
     Sequencer_notifyPtQueue(me);
     return stat;
 }
@@ -174,7 +180,7 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
     {
         case ET_AO_ENTRY:
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
-            execQueuedDescriptor(me);
+            handleQueuedDescriptor(me);
             break;
         case ET_AO_EXIT:
             EventQueue_clear(&me->ptd_queue);
@@ -199,7 +205,7 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
             break;
         case ET_BURST_EXPIRED:
             // BSP_logf("Burst expired\n");
-            if (execQueuedDescriptor(me)) break;// Process next burst, if present.
+            if (handleQueuedDescriptor(me)) break;// Process next burst, if present.
             return &stateIdle;                  // Otherwise transition.
         default:
             return stateCanopy(me, evt);        // Forward the event.
@@ -279,30 +285,6 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
 }
 
 
-static uint8_t getPhase(uint8_t const elcon[2])
-{
-    M_ASSERT((elcon[0] & elcon[1]) == 0);       // Prevent shorts.
-    return (elcon[0] & 0x5) ? 0 : 1;
-}
-
-
-static bool scheduleNextBurst(Sequencer *me)
-{
-    Burst burst;
-    if (PatternIterator_getNextBurst(&me->pi, &burst)) {
-        if (burst.pulse_width_¼_µs > MAX_PULSE_WIDTH_¼_µs) {
-            burst.pulse_width_¼_µs = MAX_PULSE_WIDTH_¼_µs;
-        }
-        // BSP_logf("Pulse width is %hu µs\n", burst.pulse_width_¼_µs / 4);
-        burst.phase = getPhase(burst.elcon);
-        Deltas deltas = {0};
-        return startBurst(&burst, &deltas);
-    }
-
-    return false;
-}
-
-
 static void *statePulsing(Sequencer *me, AOEvent const *evt)
 {
     switch (AOEvent_type(evt))
@@ -310,7 +292,7 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
         case ET_AO_ENTRY:
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
             setPlayState(me, PS_PLAYING);
-            scheduleNextBurst(me);
+            PatternIterator_scheduleNextBurst(&me->pi);
             break;
         case ET_AO_EXIT:
             BSP_logf("Sequencer_%s EXIT\n", __func__);
@@ -322,7 +304,7 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
             // BSP_logf("Burst started\n");
             break;
         case ET_BURST_EXPIRED:
-            if (! scheduleNextBurst(me)) {
+            if (! PatternIterator_scheduleNextBurst(&me->pi)) {
                 CLI_logf("Finished '%s'\n", PatternIterator_name(&me->pi));
                 return &stateIdle;              // Transition.
             }

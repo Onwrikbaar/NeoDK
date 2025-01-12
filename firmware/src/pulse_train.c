@@ -75,7 +75,7 @@ PulseTrain *PulseTrain_init(PulseTrain *me, uint8_t seq_nr, uint32_t timestamp, 
 bool PulseTrain_isValid(PulseTrain const *me, uint16_t sz)
 {
     // TODO More checks.
-    return sz >= 14 && sz <= 16;
+    return sz >= 14 && sz <= sizeof(PulseTrain);
 }
 
 
