@@ -30,8 +30,7 @@ typedef void *(*StateFunc)(Sequencer *, AOEvent const *);
 struct _Sequencer {
     EventQueue event_queue;                     // This MUST be the first member.
     uint8_t event_storage[200];
-    EventQueue ptd_queue;
-    uint8_t ptd_storage[400];
+    PtdQueue *ptd_queue;
     StateFunc state;
     PatternDescr const *pattern;
     PatternIterator pi;
@@ -146,31 +145,17 @@ static void execPulseTrain(PatternIterator *pi, PulseTrain const *pt, uint16_t s
 }
 
 
-static void handlePtEvent(Sequencer *me, AOEvent const *evt)
+static bool processNextPulseTrain(Sequencer *me)
 {
-    PulseTrain const *pt = (PulseTrain const *)AOEvent_data(evt);
-    uint16_t sz = AOEvent_dataSize(evt);
-    if (PulseTrain_isValid(pt, sz)) {
-        PulseTrain_print(pt, sz);
-        execPulseTrain(&me->pi, pt, sz);
+    uint8_t pt_buf[PulseTrain_size()];
+    PulseTrain *pt = (PulseTrain *)pt_buf;      // Alias.
+    bool ok = PtdQueue_getNextPtd(me->ptd_queue, pt);
+    if (ok) {
+        Sequencer_notifyPtQueue(me);
+        PulseTrain_print(pt, sizeof pt_buf);
+        execPulseTrain(&me->pi, pt, sizeof pt_buf);
     }
-}
-
-
-static bool queueIncomingDescriptor(Sequencer *me, AOEvent const *evt)
-{
-    bool stat = PulseTrain_isValid((PulseTrain const *)AOEvent_data(evt), AOEvent_dataSize(evt))
-             && EventQueue_repostEvent(&me->ptd_queue, evt);
-    Sequencer_notifyPtQueue(me);
-    return stat;
-}
-
-
-static bool handleQueuedDescriptor(Sequencer *me)
-{
-    bool stat = EventQueue_handleNextEvent(&me->ptd_queue, (EvtFunc)&handlePtEvent, me);
-    Sequencer_notifyPtQueue(me);
-    return stat;
+    return ok;
 }
 
 
@@ -180,14 +165,14 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
     {
         case ET_AO_ENTRY:
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
-            handleQueuedDescriptor(me);
+            processNextPulseTrain(me);
             break;
         case ET_AO_EXIT:
-            EventQueue_clear(&me->ptd_queue);
+            PtdQueue_clear(me->ptd_queue);
             BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
         case ET_QUEUE_PULSE_TRAIN:
-            queueIncomingDescriptor(me, evt);
+            PtdQueue_addDescriptor(me->ptd_queue, (PulseTrain const *)AOEvent_data(evt), AOEvent_dataSize(evt));
             break;
         case ET_START_STREAM:
             // Superfluous, ignore.
@@ -199,14 +184,15 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
             // Ignore for now.
             break;
         case ET_BURST_STARTED:
+            // BSP_logf("Burst started\n");
             break;
         case ET_BURST_COMPLETED:
             // BSP_logf("Burst completed\n");
             break;
         case ET_BURST_EXPIRED:
             // BSP_logf("Burst expired\n");
-            if (handleQueuedDescriptor(me)) break;// Process next burst, if present.
-            return &stateIdle;                  // Otherwise transition.
+            if (processNextPulseTrain(me)) break;
+            return &stateIdle;                  // No more descriptors, transition.
         default:
             return stateCanopy(me, evt);        // Forward the event.
     }
@@ -231,10 +217,10 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             CLI_logf("Starting '%s'\n", PatternIterator_name(&me->pi));
             return &statePulsing;               // Transition.
         case ET_QUEUE_PULSE_TRAIN:
-            queueIncomingDescriptor(me, evt);
+            PtdQueue_addDescriptor(me->ptd_queue, (PulseTrain const *)AOEvent_data(evt), AOEvent_dataSize(evt));
             break;
         case ET_START_STREAM:
-            if (EventQueue_isEmpty(&me->ptd_queue)) break;
+            if (PtdQueue_isEmpty(me->ptd_queue)) break;
             return &stateStreaming;             // Transition.
         case ET_STOP_STREAM:
             // Superfluous, ignore.
@@ -338,7 +324,7 @@ Sequencer *Sequencer_new()
 {
     Sequencer *me = (Sequencer *)malloc(sizeof(Sequencer));
     EventQueue_init(&me->event_queue, me->event_storage, sizeof me->event_storage);
-    EventQueue_init(&me->ptd_queue, me->ptd_storage, sizeof me->ptd_storage);
+    me->ptd_queue = PtdQueue_new(20);
     return me;
 }
 
@@ -398,8 +384,9 @@ void Sequencer_notifyPlayState(Sequencer const *me)
 
 void Sequencer_notifyPtQueue(Sequencer const *me)
 {
-    uint16_t nr_of_bytes_free = EventQueue_availableSpace(&me->ptd_queue) - AOEvent_minimumSize();
-    Attribute_changed(AI_PT_DESCRIPTOR_QUEUE, EE_UNSIGNED_INT_2, (uint8_t const *)&nr_of_bytes_free, sizeof nr_of_bytes_free);
+    uint16_t nr_of_bytes_free[2];               // We have one queue per phase.
+    PtdQueue_nrOfBytesFree(me->ptd_queue, nr_of_bytes_free);
+    Attribute_changed(AI_PT_DESCRIPTOR_QUEUE, EE_BYTES_1LEN, (uint8_t const *)nr_of_bytes_free, sizeof nr_of_bytes_free);
 }
 
 
@@ -413,5 +400,6 @@ void Sequencer_stop(Sequencer *me)
 
 void Sequencer_delete(Sequencer *me)
 {
+    PtdQueue_delete(me->ptd_queue);
     free(me);
 }

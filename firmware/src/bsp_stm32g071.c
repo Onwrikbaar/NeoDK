@@ -634,7 +634,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.49-beta";
+    return "v0.50-beta";
 }
 
 

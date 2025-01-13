@@ -28,7 +28,7 @@ struct _PulseTrain {
     uint8_t  sequence_number;       // For diagnostics. Wraps around to 0 after 255.
     uint8_t  phase;                 // Bits 2..1 select 1 of 4 biphasic output stages. Bit 0 is the selected stage's polarity.
     uint8_t  pulse_width_µs;        // The duration of one pulse [µs].
-    uint32_t start_time_µs;         // When this burst should begin, in microseconds since 'now'.
+    uint32_t start_time_µs;         // When this burst should begin, relative to the start of the stream.
     uint8_t  electrode_set[2];      // The (max 8) electrodes connected to each of the two output phases.
     uint16_t nr_of_pulses;          // Length of this burst.
     uint8_t  pace_ms;               // [1..63] (bits 5..0) milliseconds between the start of consecutive pulses.
@@ -36,6 +36,7 @@ struct _PulseTrain {
     // The following two members [-128..127] are applied after each pulse.
     int8_t   delta_pulse_width_¼_µs;// [0.25 µs]. Changes the duration of a pulse.
     int8_t   delta_pace_µs;         // [µs]. Modifies the time between pulses.
+//  int8_t   delta_amplitude;       // Under consideration.
 };
 
 /*
@@ -47,14 +48,14 @@ uint16_t PulseTrain_size()
     return sizeof(PulseTrain);
 }
 
-/*
-PulseTrain *PulseTrain_copy(void *addr, pulse_train_size_t nb, PulseTrain const *original)
+
+PulseTrain *PulseTrain_copy(void *addr, uint16_t nb, PulseTrain const *original)
 {
     if (addr == NULL || nb < PulseTrain_size()) return NULL;
     if (original == NULL) return memset(addr, 0, nb);
     return memcpy(addr, original, PulseTrain_size());
 }
-*/
+
 
 PulseTrain *PulseTrain_init(PulseTrain *me, uint8_t seq_nr, uint32_t timestamp, Burst const *burst)
 {
@@ -76,6 +77,18 @@ bool PulseTrain_isValid(PulseTrain const *me, uint16_t sz)
 {
     // TODO More checks.
     return sz >= 14 && sz <= sizeof(PulseTrain);
+}
+
+
+uint32_t PulseTrain_timestamp(PulseTrain const *me)
+{
+    return me->start_time_µs;
+}
+
+
+uint8_t  PulseTrain_phase(PulseTrain const *me)
+{
+    return me->phase;
 }
 
 

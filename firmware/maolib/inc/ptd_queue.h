@@ -28,8 +28,11 @@ extern "C" {
 PtdQueue *PtdQueue_new(uint16_t nr_of_descriptors);
 
 // Instance methods.
-void PtdQueue_bytesFree(PtdQueue *, uint16_t[2]);
+void PtdQueue_clear(PtdQueue *);
+bool PtdQueue_isEmpty(PtdQueue const *);
+void PtdQueue_nrOfBytesFree(PtdQueue *, uint16_t[2]);
 bool PtdQueue_addDescriptor(PtdQueue *, PulseTrain const *, uint16_t sz);
+bool PtdQueue_getNextPtd(PtdQueue *, PulseTrain *);
 void PtdQueue_delete(PtdQueue *);
 
 #ifdef __cplusplus
