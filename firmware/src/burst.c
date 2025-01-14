@@ -10,6 +10,8 @@
  *   Copyright  2025 Neostim™
  */
 
+#include "bsp_dbg.h"
+
 // This module implements:
 #include "burst.h"
 
@@ -25,9 +27,15 @@ bool Burst_isValid(Burst const *me)
 }
 
 
-uint32_t Burst_duration_µs(Burst const *burst)
+uint32_t Burst_duration_µs(Burst const *me)
 {
-    return burst->nr_of_pulses * burst->pace_µs;
+    return me->nr_of_pulses * me->pace_µs;
+}
+
+
+uint8_t Burst_pulseWidth_µs(Burst const *me)
+{
+    return (me->pulse_width_¼_µs + 2) / 4;
 }
 
 
@@ -42,4 +50,12 @@ void Burst_applyDeltas(Burst *me, Deltas const *deltas)
     if (new_pace < MIN_PULSE_PACE_µs) new_pace = MIN_PULSE_PACE_µs;
     else if (new_pace > MAX_PULSE_PACE_µs) new_pace = MAX_PULSE_PACE_µs;
     me->pace_µs = new_pace;
+}
+
+
+void Burst_print(Burst const *me)
+{
+    BSP_logf("Pt: t=%u µs, ec=0x%x<>0x%x, phase=%hhu, np=%hu, pace=%hu µs, amp=%hhu, pw=%hhu µs\n",
+            me->start_time_µs, me->elcon[0], me->elcon[1], me->phase,
+            me->nr_of_pulses, me->pace_µs, me->amplitude, Burst_pulseWidth_µs(me));
 }

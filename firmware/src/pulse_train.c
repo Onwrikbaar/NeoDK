@@ -86,9 +86,9 @@ uint32_t PulseTrain_timestamp(PulseTrain const *me)
 }
 
 
-uint8_t  PulseTrain_phase(PulseTrain const *me)
+uint8_t PulseTrain_phase(PulseTrain const *me)
 {
-    return me->phase;
+    return me->phase & 0x7;
 }
 
 
@@ -106,12 +106,14 @@ uint16_t PulseTrain_amplitude(PulseTrain const *me)
 
 Burst const *PulseTrain_getBurst(PulseTrain const *me, Burst *burst)
 {
+    burst->start_time_µs = me->start_time_µs;
     burst->elcon[0] = me->electrode_set[0];
     burst->elcon[1] = me->electrode_set[1];
-    burst->phase = me->phase;
-    burst->pace_µs = me->pace_ms * 1000;
+    burst->phase = PulseTrain_phase(me);
+    burst->pace_µs = (me->pace_ms & 0x3f) * 1000;
     burst->pulse_width_¼_µs = me->pulse_width_µs * 4;
     burst->nr_of_pulses = me->nr_of_pulses;
+    burst->amplitude = me->amplitude;
     return burst;
 }
 

@@ -123,39 +123,26 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
 }
 
 
-static bool startBurst(Burst const *burst, Deltas const *deltas)
-{
-    if (Burst_isValid(burst)) {
-        return BSP_startBurst(burst, deltas);
-    }
-
-    BSP_logf("Invalid burst\n");
-    return false;
-}
-
-
-static void execPulseTrain(PatternIterator *pi, PulseTrain const *pt, uint16_t sz)
+static bool execBurst(PatternIterator *pi, Burst *burst)
 {
     // Scale amplitude 0..255 to 0..8160 mV (for now).
-    BSP_setPrimaryVoltage_mV(PulseTrain_amplitude(pt) * 32);
-    PatternIterator_setPulseWidth(pi, PulseTrain_pulseWidth(pt));
-    Burst burst;
-    Deltas deltas;
-    startBurst(PulseTrain_getBurst(pt, &burst), PulseTrain_getDeltas(pt, sz, &deltas));
+    BSP_setPrimaryVoltage_mV(burst->amplitude * 32);
+    Deltas deltas = {0};
+    return BSP_startBurst(burst, &deltas);
 }
 
 
-static bool processNextPulseTrain(Sequencer *me)
+static bool processNextBurst(Sequencer *me)
 {
-    uint8_t pt_buf[PulseTrain_size()];
-    PulseTrain *pt = (PulseTrain *)pt_buf;      // Alias.
-    bool ok = PtdQueue_getNextPtd(me->ptd_queue, pt);
-    if (ok) {
+    Burst burst;
+    if (PtdQueue_getNextBurst(me->ptd_queue, &burst)) {
         Sequencer_notifyPtQueue(me);
-        PulseTrain_print(pt, sizeof pt_buf);
-        execPulseTrain(&me->pi, pt, sizeof pt_buf);
+        if (Burst_isValid(&burst)) {
+            Burst_print(&burst);
+            return execBurst(&me->pi, &burst);
+        }
     }
-    return ok;
+    return false;
 }
 
 
@@ -165,7 +152,7 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
     {
         case ET_AO_ENTRY:
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
-            processNextPulseTrain(me);
+            processNextBurst(me);
             break;
         case ET_AO_EXIT:
             PtdQueue_clear(me->ptd_queue);
@@ -191,7 +178,7 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
             break;
         case ET_BURST_EXPIRED:
             // BSP_logf("Burst expired\n");
-            if (processNextPulseTrain(me)) break;
+            if (processNextBurst(me)) break;
             return &stateIdle;                  // No more descriptors, transition.
         default:
             return stateCanopy(me, evt);        // Forward the event.

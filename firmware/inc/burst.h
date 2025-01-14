@@ -23,11 +23,13 @@
 #define MAX_PULSE_PACE_µs     63000
 
 typedef struct {
+    uint32_t start_time_µs;
     uint8_t  elcon[2];
     uint16_t pace_µs;
     uint16_t nr_of_pulses;
     uint16_t pulse_width_¼_µs;
     uint8_t  phase;
+    uint8_t  amplitude;
 } Burst;
 
 typedef struct {
@@ -38,6 +40,8 @@ typedef struct {
 
 bool Burst_isValid(Burst const *);
 uint32_t Burst_duration_µs(Burst const *);
+uint8_t Burst_pulseWidth_µs(Burst const *);
 void Burst_applyDeltas(Burst *, Deltas const *);
+void Burst_print(Burst const *);
 
 #endif
