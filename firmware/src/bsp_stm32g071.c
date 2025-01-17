@@ -111,8 +111,8 @@ static IRQn_Type const pulse_timer_upd_irq = TIM1_BRK_UP_TRG_COM_IRQn;
 static IRQn_Type const pulse_timer_cc_irq  = TIM1_CC_IRQn;
 
 // Ensure the following two consts refer to the same timer.
-static TIM_TypeDef *const app_timer = TIM2;     // General purpose 32-bit timer.
-static IRQn_Type const app_timer_irq = TIM2_IRQn;
+static TIM_TypeDef *const app_timer = TIM17;    // General purpose 16-bit timer.
+static IRQn_Type const app_timer_irq = TIM17_IRQn;
 
 static BSP bsp = {0};
 
@@ -373,12 +373,15 @@ static void disableOutputStage()
 
 static uint64_t ticksSinceBoot()
 {
-    static uint32_t ticks_since_boot[] = { 0UL, 0UL };
+    static uint16_t ticks_since_boot[] = { 0, 0, 0, 0 };
 
     BSP_criticalSectionEnter();                 // Protect our static var.
-    uint32_t last_ticks = ticks_since_boot[0];  // Assuming little-Endian.
+    uint16_t last_ticks = ticks_since_boot[0];  // Assuming little-Endian.
     if ((ticks_since_boot[0] = app_timer->CNT) < last_ticks) {
-        ticks_since_boot[1] += 1;               // The 32-bit timer wrapped.
+        // The 16-bit timer wrapped; increment the second 16-bit word.
+        if (++ticks_since_boot[1] == 0) {       // We have a 32-bit wrap too.
+            *(uint32_t *)&ticks_since_boot[2] += 1;
+        }
     }
     BSP_criticalSectionExit();
     return *(uint64_t *)ticks_since_boot;
@@ -504,6 +507,12 @@ void TIM1_CC_IRQHandler(void)
 
 void TIM2_IRQHandler(void)
 {
+    spuriousIRQ(&bsp);
+}
+
+
+void TIM17_IRQHandler(void)
+{
     if (app_timer->SR & TIM_SR_CC1IF) {         // Capture/compare 1.
         app_timer->SR &= ~TIM_SR_CC1IF;         // Clear the interrupt.
         bsp.app_timer_handler(bsp.app_timer_target, BSP_microsecondsSinceBoot());
@@ -614,7 +623,7 @@ void BSP_init()
 
     LL_RCC_SetADCClockSource(LL_RCC_ADC_CLKSOURCE_HSI);
     RCC->APBENR1 = RCC_APBENR1_TIM2EN | RCC_APBENR1_TIM3EN | RCC_APBENR1_USART2EN | RCC_APBENR1_PWREN | RCC_APBENR1_DAC1EN;
-    RCC->APBENR2 = RCC_APBENR2_TIM1EN | RCC_APBENR2_TIM16EN | RCC_APBENR2_ADCEN | RCC_APBENR2_SYSCFGEN;
+    RCC->APBENR2 = RCC_APBENR2_TIM1EN | RCC_APBENR2_TIM16EN | RCC_APBENR2_TIM17EN | RCC_APBENR2_ADCEN | RCC_APBENR2_SYSCFGEN;
     RCC->AHBENR |= RCC_AHBENR_DMA1EN;
     // Enable instruction cache and prefetch buffer.
     FLASH->ACR |= FLASH_ACR_ICEN | FLASH_ACR_PRFTEN;
@@ -830,10 +839,10 @@ bool BSP_startBurst(Burst const *burst, Deltas const *deltas)
     pulse_timer->CNT = 0;
     pulse_timer->SR &= ~(TIM_SR_CC1IF | TIM_SR_CC2IF);
     if (burst->phase == 0) {
-        pulse_timer->CCR1 = (burst->pulse_width_¼_µs + 2) / 4 - 1;
+        pulse_timer->CCR1 = Burst_pulseWidth_µs(burst);
         pulse_timer->DIER |= TIM_DIER_CC1IE;
     } else if (burst->phase == 1) {
-        pulse_timer->CCR2 = (burst->pulse_width_¼_µs + 2) / 4 - 1;
+        pulse_timer->CCR2 = Burst_pulseWidth_µs(burst);
         pulse_timer->DIER |= TIM_DIER_CC2IE;
     } else return false;                        // We only have one output stage.
 
