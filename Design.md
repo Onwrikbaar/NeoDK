@@ -33,7 +33,7 @@ Every single pulse can have either of the two polarities, and be directed to any
 
 ## Electronic design
 ### The output transformer
-- A supply voltage of about 10V must be stepped up by a factor of 10 to reach the desired output voltage of 100V. Since we only drive half of the (center-tapped) primary coil at a time, the ratio of the whole primary to the secondary needs to be 1:5.
+- A supply voltage of about 10V must be stepped up by a factor of 10 to reach the desired output voltage of 100V. For this, we use a small audio impedance matching transformer. Since we only drive half of the (center-tapped) primary coil at a time, the ratio of the whole primary to the secondary needs to be 1:5.
 - The transformer must have a power rating of around 800 mW (see electrical characteristics above).
 - The maximum secondary current through a 500 Ω load is 100V/500 Ω = 0.2 A. The primary current is then 10 * 0.2 A = 2A. To limit the ohmic losses at this current, the DC-resistance of the primary should be at most 0.5 Ω.
 - The transformer needs to have a bandwidth of at least a few kHz in order to handle the rectangular pulses well enough.
@@ -78,9 +78,9 @@ Conceptually, the firmware consists of two layers:
 2. The hardware-independent application logic, implementing the _policies_.
 
 ### About the code
-- All C modules, with the exception of the BSP, are less than 500 lines long.
+- All C modules, with the exception of the BSP, are less than 400 lines long.
 - Functions are short, or have low cyclomatic complexity.
 - Functions are _pure_ whenever possible.
-- There are no global variables, preventing unwanted coupling between modules and violation of invariants.
+- There are no global variables, preventing unwanted coupling between modules as well as violation of invariants.
 - Most 'plumbing' is done through dependency injection.
 - Object types are opaque where possible.

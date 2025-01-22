@@ -70,8 +70,9 @@
 
 
 // #define ADC_TIMER_FREQ_Hz        100000UL
+#define SEQUENCER_CLOCK_FREQ_Hz 1000000UL
 #define PULSE_TIMER_FREQ_Hz     1000000UL
-#define APP_TIMER_FREQ_Hz       4000000UL
+#define APP_TIMER_FREQ_Hz       2000000UL
 #define TICKS_PER_MICROSECOND   (APP_TIMER_FREQ_Hz / 1000000UL)
 
 
@@ -92,14 +93,14 @@ typedef struct {
     uint8_t nr_of_serial_devices;
     uint16_t volatile adc_1_samples[3];         // Must match the number of ADC1 ranks.
     uint16_t V_prim_mV;
-    uint16_t pulse_seqnr;
+    uint16_t volatile pulse_seqnr;
     Burst burst;
-    Deltas deltas;
+    // Deltas deltas;
 } BSP;
 
 // The interrupt request priorities, from high to low.
 enum {  // STM32G0xx MCUs have 4 interrupt priority levels.
-    IRQ_PRIO_PULSE,
+    IRQ_PRIO_PULSE, IRQ_PRIO_SEQ_CLOCK = IRQ_PRIO_PULSE,
     IRQ_PRIO_ADC_DMA, IRQ_PRIO_SYSTICK = IRQ_PRIO_ADC_DMA,
     IRQ_PRIO_USART, IRQ_PRIO_APP_TIMER = IRQ_PRIO_USART,
     IRQ_PRIO_ADC1, IRQ_PRIO_EXTI = IRQ_PRIO_ADC1
@@ -111,7 +112,11 @@ static IRQn_Type const pulse_timer_upd_irq = TIM1_BRK_UP_TRG_COM_IRQn;
 static IRQn_Type const pulse_timer_cc_irq  = TIM1_CC_IRQn;
 
 // Ensure the following two consts refer to the same timer.
-static TIM_TypeDef *const app_timer = TIM17;    // General purpose 16-bit timer.
+static TIM_TypeDef *const seq_clock  = TIM2;    // General purpose 32-bit timer.
+static IRQn_Type const seq_clock_irq = TIM2_IRQn;
+
+// Ensure the following two consts refer to the same timer.
+static TIM_TypeDef *const app_timer  = TIM17;   // General purpose 16-bit timer.
 static IRQn_Type const app_timer_irq = TIM17_IRQn;
 
 static BSP bsp = {0};
@@ -184,7 +189,7 @@ static void initGPIO()
     if (LL_GPIO_IsInputPinSet(PUSHBUTTON_PORT, GPIO_InitStruct.Pin)) {
         uint32_t const *const SYS_MEM = (uint32_t *)0x1FFF0000;
         __set_MSP(SYS_MEM[0]);                  // Set up the bootloader's stackpointer.
-        void (*startBootLoader)(void) = (void (*)(void)) SYS_MEM[1];
+        void (*startBootLoader)(void) = (void (*)(void))SYS_MEM[1];
         startBootLoader();                      // This call does not return.
     }
 
@@ -227,7 +232,6 @@ static void initGPIO()
 
 static void initEXTI()
 {
-    // LL_EXTI_SetEXTISource(LL_EXTI_CONFIG_PORTA, LL_EXTI_CONFIG_LINE4);
     LL_EXTI_InitTypeDef EXTI_InitStruct = {
         .Line_0_31 = LL_EXTI_LINE_4,
         .LineCommand = ENABLE,
@@ -235,6 +239,47 @@ static void initEXTI()
         .Trigger = LL_EXTI_TRIGGER_RISING_FALLING
     };
     LL_EXTI_Init(&EXTI_InitStruct);
+    enableInterruptWithPrio(EXTI4_15_IRQn, IRQ_PRIO_EXTI);
+}
+
+
+static void initAppTimer()
+{
+    app_timer->PSC = SystemCoreClock / APP_TIMER_FREQ_Hz - 1;
+    app_timer->CCR1 = BSP_millisecondsToTicks(100);
+    app_timer->DIER |= TIM_DIER_CC1IE;          // Interrupt on match with compare register.
+    app_timer->EGR |= TIM_EGR_UG;               // Force update of the shadow registers.
+    app_timer->CR1 = TIM_CR1_CEN;               // Enable the counter.
+    enableInterruptWithPrio(app_timer_irq, IRQ_PRIO_APP_TIMER);
+}
+
+
+static void initSequencerClock()
+{
+    seq_clock->PSC = SystemCoreClock / SEQUENCER_CLOCK_FREQ_Hz - 1;
+    BSP_logf("%s: PSC=%u\n", __func__, seq_clock->PSC);
+    seq_clock->CCMR1 |= TIM_CCMR1_OC1M_0;
+    seq_clock->DIER |= TIM_DIER_CC1IE;          // Interrupt on match with compare register.
+    seq_clock->EGR |= TIM_EGR_UG;               // Force update of the shadow registers.
+    enableInterruptWithPrio(seq_clock_irq, IRQ_PRIO_SEQ_CLOCK);
+}
+
+
+static void initPulseTimer()
+{
+    pulse_timer->PSC = SystemCoreClock / PULSE_TIMER_FREQ_Hz - 1;
+    BSP_logf("%s: PSC=%u\n", __func__, pulse_timer->PSC);
+    // PWM mode 1 for timer channels 1 and 2, enable preload.
+    pulse_timer->CCMR1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1PE
+                       | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2PE;
+    // Enable both outputs.
+    pulse_timer->CCER = TIM_CCER_CC1E | TIM_CCER_CC2E;
+    pulse_timer->CR2  = TIM_CR2_CCPC;           // Compare control signals are preloaded.
+    pulse_timer->CR1  = TIM_CR1_ARPE | TIM_CR1_URS;
+    pulse_timer->DIER = TIM_DIER_UIE;           // Enable update interrupt.
+    pulse_timer->BDTR = TIM_BDTR_OSSR | TIM_BDTR_MOE;
+    enableInterruptWithPrio(pulse_timer_upd_irq, IRQ_PRIO_PULSE);
+    enableInterruptWithPrio(pulse_timer_cc_irq,  IRQ_PRIO_PULSE);
 }
 
 
@@ -472,7 +517,8 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
         pulse_timer->CR1 &= ~TIM_CR1_CEN;       // Stop the counter.
         pulse_timer->DIER &= ~(TIM_DIER_CC1IE | TIM_DIER_CC2IE);
         pulse_timer->SR &= ~(TIM_SR_UIF | TIM_SR_CC1IF | TIM_SR_CC2IF);
-        setSwitches(0);                         // Disconnect the output stage from the load.
+        setSwitches(0);                         // Disconnect the output stage from the electrodes.
+        // BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
         EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_EXPIRED, NULL, 0);
     } else {
         BSP_logf("Pt SR=0x%x\n", __func__, pulse_timer->SR);
@@ -486,17 +532,18 @@ void TIM1_CC_IRQHandler(void)
     if ((pulse_timer->DIER & TIM_DIER_CC1IE) && (pulse_timer->SR & TIM_SR_CC1IF)) {
         pulse_timer->SR &= ~TIM_SR_CC1IF;
         bsp.pulse_seqnr += 1;
-        // BSP_logf("CC1 %hu\n", bsp.pulse_seqnr);
-        Burst_applyDeltas(&bsp.burst, &bsp.deltas);
+        // BSP_logf("CC1 %hu at t=%u\n", bsp.pulse_seqnr, seq_clock->CNT);
+        // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
     }
     if ((pulse_timer->DIER & TIM_DIER_CC2IE) && (pulse_timer->SR & TIM_SR_CC2IF)) {
         pulse_timer->SR &= ~TIM_SR_CC2IF;
         bsp.pulse_seqnr += 1;
-        // BSP_logf("CC2 %hu\n", bsp.pulse_seqnr);
-        Burst_applyDeltas(&bsp.burst, &bsp.deltas);
+        // BSP_logf("CC2 %hu at t=%u\n", bsp.pulse_seqnr, seq_clock->CNT);
+        // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
     }
     if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-        EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, (uint8_t const *)&bsp.pulse_seqnr, sizeof bsp.pulse_seqnr);
+        // BSP_logf("BC %hu\n", bsp.pulse_seqnr);
+        EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, NULL, 0);
     }
     if (pulse_timer->SR & 0xcffe0) {
         BSP_logf("Pt SR=0x%x\n", pulse_timer->SR & 0xcffe0);
@@ -507,7 +554,15 @@ void TIM1_CC_IRQHandler(void)
 
 void TIM2_IRQHandler(void)
 {
-    spuriousIRQ(&bsp);
+    if (seq_clock->SR & TIM_SR_CC1IF) {
+        seq_clock->SR &= ~TIM_SR_CC1IF;         // Clear the interrupt.
+        // BSP_logf("T2 at %u µs\n",seq_clock->CNT);
+        // Scale amplitude 0..255 to 0..8160 mV (for now).
+        BSP_setPrimaryVoltage_mV(bsp.burst.amplitude * 32);
+        BSP_startBurst(&bsp.burst);
+    } else {
+        spuriousIRQ(&bsp);
+    }
 }
 
 
@@ -631,7 +686,6 @@ void BSP_init()
     HAL_InitTick(IRQ_PRIO_SYSTICK);
     SystemClock_Config();
     BSP_logf("DevId=0x%x, SystemCoreClock=%u\n", LL_DBGMCU_GetDeviceID(), SystemCoreClock);
-    initEXTI();
     initDAC();
     initDMAforADC1(bsp.adc_1_samples, M_DIM(bsp.adc_1_samples));
     initADC1();
@@ -643,7 +697,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.50-beta";
+    return "v0.51-beta";
 }
 
 
@@ -696,45 +750,25 @@ uint64_t BSP_microsecondsSinceBoot()
 void BSP_registerAppTimerHandler(void (*handler)(void *, uint64_t), void *target, uint32_t microseconds_per_app_timer_tick)
 {
     BSP_logf("%s\n", __func__);
-    app_timer->PSC = SystemCoreClock / APP_TIMER_FREQ_Hz - 1;
-
-    app_timer->CCR1 = BSP_millisecondsToTicks(100);
-    app_timer->CCMR1 = TIM_CCMR1_OC1M_0;        // Set channel 1 to active level on match.
-    app_timer->CCER |= TIM_CCER_CC1E;           // Compare 1 output enable.
-    app_timer->DIER |= TIM_DIER_CC1IE;          // Interrupt on match with compare register.
     bsp.app_timer_handler = handler;
     bsp.app_timer_target  = target;
     bsp.clock_ticks_per_app_timer_tick = microseconds_per_app_timer_tick * TICKS_PER_MICROSECOND;
-
-    app_timer->EGR |= (TIM_EGR_UG | TIM_EGR_CC1G);
-    app_timer->CR1 = TIM_CR1_CEN;               // Enable the counter.
-    enableInterruptWithPrio(app_timer_irq, IRQ_PRIO_APP_TIMER);
+    initAppTimer();
 }
 
 
 void BSP_registerPulseDelegate(EventQueue *pdq)
 {
     bsp.pulse_delegate = pdq;
-    pulse_timer->PSC = SystemCoreClock / PULSE_TIMER_FREQ_Hz - 1;
-    BSP_logf("%s: PSC=%u\n", __func__, pulse_timer->PSC);
-    // PWM mode 1 for timer channels 1 and 2, enable preload.
-    pulse_timer->CCMR1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1PE
-                       | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2PE;
-    // Enable both outputs.
-    pulse_timer->CCER = TIM_CCER_CC1E | TIM_CCER_CC2E;
-    pulse_timer->CR2  = TIM_CR2_CCPC;           // Compare control signals are preloaded.
-    enableInterruptWithPrio(pulse_timer_upd_irq, IRQ_PRIO_PULSE);
-    enableInterruptWithPrio(pulse_timer_cc_irq,  IRQ_PRIO_PULSE);
-    pulse_timer->CR1  = TIM_CR1_ARPE | TIM_CR1_URS;
-    pulse_timer->DIER = TIM_DIER_UIE;           // Enable update interrupt.
-    pulse_timer->BDTR = TIM_BDTR_OSSR | TIM_BDTR_MOE;
+    initPulseTimer();
+    initSequencerClock();
 }
 
 
 void BSP_registerButtonHandler(Selector *sel)
 {
     bsp.button_sel = *sel;
-    enableInterruptWithPrio(EXTI4_15_IRQn, IRQ_PRIO_EXTI);
+    initEXTI();
 }
 
 
@@ -820,20 +854,43 @@ void BSP_primaryVoltageEnable(bool must_be_on)
 
 uint16_t BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 {
-    if (bsp.V_prim_mV != V_prim_mV) {
-        BSP_logf("Setting Vcap to %hu mV\n", V_prim_mV);
-        bsp.V_prim_mV = V_prim_mV;
-    }
+    bsp.V_prim_mV = V_prim_mV;
     // TODO Ensure a rising step on the buck regulator's feedback pin does not exceed 80 mV.
-    DAC1->DHR12R2 = Vcap_mV_ToDacVal(V_prim_mV);
+    DAC1->DHR12R2 = Vcap_mV_ToDacVal(bsp.V_prim_mV);
     return bsp.V_prim_mV;
 }
 
 
-bool BSP_startBurst(Burst const *burst, Deltas const *deltas)
+void BSP_startSequencerClock(uint32_t time_µs)
 {
-    bsp.burst  = *burst;
-    bsp.deltas = *deltas;
+    BSP_logf("%s(%d)\n", __func__, time_µs);
+    seq_clock->CCR1 = time_µs - 1;
+    seq_clock->CNT = time_µs;
+    seq_clock->CR1 |= TIM_CR1_CEN;              // Enable the counter.
+}
+
+
+void BSP_stopSequencerClock()
+{
+    BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
+    seq_clock->CR1 &= ~TIM_CR1_CEN;             // Disable the counter.
+}
+
+
+bool BSP_scheduleBurst(Burst const *burst)
+{
+    bsp.burst = *burst;
+    // Burst_print(burst);
+    seq_clock->CCR1 = burst->start_time_µs;
+    BSP_logf("SB(%hhu) for t=%u @ %d µs\n", burst->phase, burst->start_time_µs, seq_clock->CNT);
+    return true;
+}
+
+
+bool BSP_startBurst(Burst const *burst)
+{
+    bsp.pulse_seqnr = 0;
+    // BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
     pulse_timer->ARR = burst->pace_µs - 1;
     pulse_timer->RCR = burst->nr_of_pulses - 1;
     pulse_timer->CNT = 0;
@@ -848,7 +905,6 @@ bool BSP_startBurst(Burst const *burst, Deltas const *deltas)
 
     pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
     setSwitches(burst->elcon[0] | burst->elcon[1]);
-    bsp.pulse_seqnr = 0;
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
     EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_STARTED, NULL, 0);

@@ -36,7 +36,18 @@ struct _Sequencer {
     PatternIterator pi;
     uint8_t intensity_percent;
     uint8_t play_state;
+    uint8_t busy;
 };
+
+
+static void setPrimaryVoltage(uint16_t new_voltage_mV)
+{
+    static uint16_t current_voltage_mV = 0;
+    if (new_voltage_mV != current_voltage_mV) {
+        BSP_logf("Setting Vcap to %hu mV\n", new_voltage_mV);
+        BSP_setPrimaryVoltage_mV(new_voltage_mV);
+    }
+}
 
 
 static void setIntensityPercentage(Sequencer *me, uint8_t perc)
@@ -44,8 +55,8 @@ static void setIntensityPercentage(Sequencer *me, uint8_t perc)
     BSP_logf("Setting intensity to %hhu%%\n", perc);
     me->intensity_percent = perc;
     // TODO Ramp up to the previous intensity?
+    setPrimaryVoltage(perc * 80);
     Sequencer_notifyIntensity(me);
-    BSP_setPrimaryVoltage_mV(perc * 80);
     PatternIterator_setPulseWidth(&me->pi, 50 + perc + perc / 2);
 }
 
@@ -123,39 +134,30 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
 }
 
 
-static bool execBurst(PatternIterator *pi, Burst *burst)
-{
-    // Scale amplitude 0..255 to 0..8160 mV (for now).
-    BSP_setPrimaryVoltage_mV(burst->amplitude * 32);
-    Deltas deltas = {0};
-    return BSP_startBurst(burst, &deltas);
-}
-
-
-static bool processNextBurst(Sequencer *me)
+static bool processNextBurst(PtdQueue *pq)
 {
     Burst burst;
-    if (PtdQueue_getNextBurst(me->ptd_queue, &burst)) {
-        Sequencer_notifyPtQueue(me);
-        if (Burst_isValid(&burst)) {
-            Burst_print(&burst);
-            return execBurst(&me->pi, &burst);
-        }
-    }
-    return false;
+    return PtdQueue_getNextBurst(pq, &burst) && BSP_scheduleBurst(&burst);
 }
 
 
 static void *stateStreaming(Sequencer *me, AOEvent const *evt)
 {
+    static PatternDescr const stream_pd = { .name = "<stream>" };
+
     switch (AOEvent_type(evt))
     {
         case ET_AO_ENTRY:
+            me->pi.pattern_descr = &stream_pd;
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
-            processNextBurst(me);
+            Sequencer_notifyPtQueue(me);
+            BSP_startSequencerClock(-50);
+            me->busy = processNextBurst(me->ptd_queue);
             break;
         case ET_AO_EXIT:
+            BSP_stopSequencerClock();
             PtdQueue_clear(me->ptd_queue);
+            Sequencer_notifyPtQueue(me);
             BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
         case ET_QUEUE_PULSE_TRAIN:
@@ -171,15 +173,14 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
             // Ignore for now.
             break;
         case ET_BURST_STARTED:
-            // BSP_logf("Burst started\n");
+            me->busy = processNextBurst(me->ptd_queue);
             break;
         case ET_BURST_COMPLETED:
             // BSP_logf("Burst completed\n");
             break;
         case ET_BURST_EXPIRED:
-            // BSP_logf("Burst expired\n");
-            if (processNextBurst(me)) break;
-            return &stateIdle;                  // No more descriptors, transition.
+            if (me->busy) break;
+            return &stateIdle;                  // No more descriptors, leave this state.
         default:
             return stateCanopy(me, evt);        // Forward the event.
     }
@@ -331,6 +332,7 @@ Sequencer *Sequencer_init(Sequencer *me)
 void Sequencer_start(Sequencer *me)
 {
     Patterns_checkAll();
+    me->busy = false;
     me->state = stateIdle;
     me->state(me, AOEvent_newEntryEvent());
     setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);

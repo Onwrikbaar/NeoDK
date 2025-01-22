@@ -68,7 +68,7 @@ PulseTrain *PulseTrain_init(PulseTrain *me, uint8_t seq_nr, uint32_t timestamp, 
     me->amplitude = 0;
     me->pace_ms = burst->pace_µs / 1000;
     me->nr_of_pulses = burst->nr_of_pulses;
-    me->pulse_width_µs = (burst->pulse_width_¼_µs + 2) / 4;
+    me->pulse_width_µs = Burst_pulseWidth_µs(burst);
     return me;
 }
 
@@ -142,7 +142,7 @@ void PulseTrain_setDeltas(PulseTrain *me, int8_t delta_width_¼_µs, int8_t delt
 
 void PulseTrain_print(PulseTrain const *me, uint16_t sz)
 {
-    BSP_logf("Pt %3hhu: t=%u µs, ec=0x%x<>0x%x, phase=%hhu, np=%hu, pace=%hhu ms, amp=%hhu, pw=%hhu µs, Δ=%hhd ¼µs\n",
+    BSP_logf("Pt %hhu: t=%u µs, ec=0x%x<>0x%x, phase=%hhu, np=%hu, pace=%hhu ms, amp=%hhu, pw=%hhu µs, Δ=%hhd ¼µs\n",
             me->sequence_number, me->start_time_µs, me->electrode_set[0], me->electrode_set[1],
             me->phase, me->nr_of_pulses, me->pace_ms, me->amplitude, me->pulse_width_µs,
             sz > offsetof(PulseTrain, delta_pulse_width_¼_µs) ? me->delta_pulse_width_¼_µs : 0);
