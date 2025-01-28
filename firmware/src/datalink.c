@@ -203,10 +203,10 @@ static void rxErrorCallback(DataLink *me, uint32_t rx_error)
 
 static void txCallback(DataLink *me, uint8_t *dst)
 {
+    BSP_criticalSectionEnter();
     uint32_t nbr = CircBuffer_read(&me->output_buffer, dst, 1);
     M_ASSERT(nbr == 1);
     // Once the buffer is empty, disable this callback (atomic).
-    BSP_criticalSectionEnter();
     if (CircBuffer_availableData(&me->output_buffer) == 0) {
         BSP_doChannelAction(me->channel_fd, CA_TX_CB_DISABLE);
     }

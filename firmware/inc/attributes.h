@@ -22,15 +22,15 @@ typedef enum {
     AI_BOX_NAME, AI_PT_DESCRIPTOR_QUEUE
 } AttributeId;
 
-typedef void (*AttrNotifier)(void *target, AttributeId, ElementEncoding, uint8_t const *data, uint16_t size);
+typedef void (*AttrNotifier)(void *target, AttributeId, uint16_t trans_id, ElementEncoding, uint8_t const *data, uint16_t size);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-SubscriptionId Attribute_awaitRead(AttributeId, AttrNotifier, void *target);
-SubscriptionId Attribute_subscribe(AttributeId, AttrNotifier, void *target);
-void Attribute_changed(AttributeId, ElementEncoding, uint8_t const *data, uint16_t size);
+SubscriptionId Attribute_awaitRead(AttributeId, uint16_t trans_id, AttrNotifier, void *target);
+SubscriptionId Attribute_subscribe(AttributeId, uint16_t trans_id, AttrNotifier, void *target);
+void Attribute_changed(AttributeId, uint16_t trans_id, ElementEncoding, uint8_t const *data, uint16_t size);
 
 #ifdef __cplusplus
 }

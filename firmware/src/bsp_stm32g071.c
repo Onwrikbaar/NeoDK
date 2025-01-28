@@ -257,7 +257,7 @@ static void initAppTimer()
 static void initSequencerClock()
 {
     seq_clock->PSC = SystemCoreClock / SEQUENCER_CLOCK_FREQ_Hz - 1;
-    BSP_logf("%s: PSC=%u\n", __func__, seq_clock->PSC);
+    // BSP_logf("%s: PSC=%u\n", __func__, seq_clock->PSC);
     seq_clock->CCMR1 |= TIM_CCMR1_OC1M_0;
     seq_clock->DIER |= TIM_DIER_CC1IE;          // Interrupt on match with compare register.
     seq_clock->EGR |= TIM_EGR_UG;               // Force update of the shadow registers.
@@ -268,7 +268,7 @@ static void initSequencerClock()
 static void initPulseTimer()
 {
     pulse_timer->PSC = SystemCoreClock / PULSE_TIMER_FREQ_Hz - 1;
-    BSP_logf("%s: PSC=%u\n", __func__, pulse_timer->PSC);
+    // BSP_logf("%s: PSC=%u\n", __func__, pulse_timer->PSC);
     // PWM mode 1 for timer channels 1 and 2, enable preload.
     pulse_timer->CCMR1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1PE
                        | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2PE;
@@ -542,7 +542,6 @@ void TIM1_CC_IRQHandler(void)
         // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
     }
     if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-        // BSP_logf("BC %hu\n", bsp.pulse_seqnr);
         EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, NULL, 0);
     }
     if (pulse_timer->SR & 0xcffe0) {
@@ -557,8 +556,10 @@ void TIM2_IRQHandler(void)
     if (seq_clock->SR & TIM_SR_CC1IF) {
         seq_clock->SR &= ~TIM_SR_CC1IF;         // Clear the interrupt.
         // BSP_logf("T2 at %u µs\n",seq_clock->CNT);
-        // Scale amplitude 0..255 to 0..8160 mV (for now).
-        BSP_setPrimaryVoltage_mV(bsp.burst.amplitude * 32);
+        if (bsp.burst.amplitude != 0) {
+            // Scale amplitude 0..255 to 0..8160 mV (for now).
+            BSP_setPrimaryVoltage_mV(bsp.burst.amplitude * 32);
+        }
         BSP_startBurst(&bsp.burst);
     } else {
         spuriousIRQ(&bsp);
@@ -697,7 +698,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.51-beta";
+    return "v0.52-beta";
 }
 
 
@@ -877,12 +878,18 @@ void BSP_stopSequencerClock()
 }
 
 
+uint32_t BSP_getSequencerClock(void)
+{
+    return seq_clock->CNT;
+}
+
+
 bool BSP_scheduleBurst(Burst const *burst)
 {
     bsp.burst = *burst;
-    // Burst_print(burst);
     seq_clock->CCR1 = burst->start_time_µs;
-    BSP_logf("SB(%hhu) for t=%u @ %d µs\n", burst->phase, burst->start_time_µs, seq_clock->CNT);
+    // BSP_logf("SB(%hhu) for t=%u @ %d µs\n", burst->phase, burst->start_time_µs, seq_clock->CNT);
+    // BSP_logf("SB(%hhu) d=%d µs\n", burst->phase, burst->start_time_µs - seq_clock->CNT);
     return true;
 }
 

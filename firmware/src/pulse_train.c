@@ -31,10 +31,10 @@ struct _PulseTrain {
     uint32_t start_time_µs;         // When this burst should begin, relative to the start of the stream.
     uint8_t  electrode_set[2];      // The (max 8) electrodes connected to each of the two output phases.
     uint16_t nr_of_pulses;          // Length of this burst.
-    uint8_t  pace_ms;               // [1..63] (bits 5..0) milliseconds between the start of consecutive pulses.
+    uint8_t  pace_¼ms;              // [0.25 ms] time between the start of consecutive pulses.
     uint8_t  amplitude;             // Voltage, current or power, in units of 1/255 of the set maximum.
     // The following two members [-128..127] are applied after each pulse.
-    int8_t   delta_pulse_width_¼_µs;// [0.25 µs]. Changes the duration of a pulse.
+    int8_t   delta_pulse_width_¼µs; // [0.25 µs]. Changes the duration of a pulse.
     int8_t   delta_pace_µs;         // [µs]. Modifies the time between pulses.
 //  int8_t   delta_amplitude;       // Under consideration.
 };
@@ -66,7 +66,7 @@ PulseTrain *PulseTrain_init(PulseTrain *me, uint8_t seq_nr, uint32_t timestamp, 
     me->electrode_set[1] = burst->elcon[1];
     me->phase = burst->phase;
     me->amplitude = 0;
-    me->pace_ms = burst->pace_µs / 1000;
+    me->pace_¼ms = burst->pace_µs / 250;
     me->nr_of_pulses = burst->nr_of_pulses;
     me->pulse_width_µs = Burst_pulseWidth_µs(burst);
     return me;
@@ -110,40 +110,42 @@ Burst const *PulseTrain_getBurst(PulseTrain const *me, Burst *burst)
     burst->elcon[0] = me->electrode_set[0];
     burst->elcon[1] = me->electrode_set[1];
     burst->phase = PulseTrain_phase(me);
-    burst->pace_µs = (me->pace_ms & 0x3f) * 1000;
+    burst->pace_µs = me->pace_¼ms * 250;
     burst->pulse_width_¼_µs = me->pulse_width_µs * 4;
     burst->nr_of_pulses = me->nr_of_pulses;
     burst->amplitude = me->amplitude;
+    burst->flags = 0x0;
     return burst;
-}
-
-
-Deltas const *PulseTrain_getDeltas(PulseTrain const *me, uint16_t sz, Deltas *deltas)
-{
-    deltas->delta_width_¼_µs = sz > offsetof(PulseTrain, delta_pulse_width_¼_µs) ? me->delta_pulse_width_¼_µs : 0;
-    deltas->delta_pace_µs    = sz > offsetof(PulseTrain, delta_pace_µs) ? me->delta_pace_µs : 0;
-    return deltas;
 }
 
 
 void PulseTrain_clearDeltas(PulseTrain *me)
 {
-    me->delta_pulse_width_¼_µs = 0;
-    me->delta_pace_µs          = 0;
+    // BSP_logf("%s\n", __func__);
+    me->delta_pulse_width_¼µs = 0;
+    me->delta_pace_µs         = 0;
 }
 
 
 void PulseTrain_setDeltas(PulseTrain *me, int8_t delta_width_¼_µs, int8_t delta_pace_µs)
 {
-    me->delta_pulse_width_¼_µs = delta_width_¼_µs;
-    me->delta_pace_µs          = delta_pace_µs;
+    me->delta_pulse_width_¼µs = delta_width_¼_µs;
+    me->delta_pace_µs         = delta_pace_µs;
+}
+
+
+Deltas const *PulseTrain_getDeltas(PulseTrain const *me, uint16_t sz, Deltas *deltas)
+{
+    deltas->delta_width_¼_µs = sz > offsetof(PulseTrain, delta_pulse_width_¼µs) ? me->delta_pulse_width_¼µs : 0;
+    deltas->delta_pace_µs    = sz > offsetof(PulseTrain, delta_pace_µs) ? me->delta_pace_µs : 0;
+    return deltas;
 }
 
 
 void PulseTrain_print(PulseTrain const *me, uint16_t sz)
 {
-    BSP_logf("Pt %hhu: t=%u µs, ec=0x%x<>0x%x, phase=%hhu, np=%hu, pace=%hhu ms, amp=%hhu, pw=%hhu µs, Δ=%hhd ¼µs\n",
+    BSP_logf("Pt %hhu: t=%u µs, ec=0x%x<>0x%x, phase=%hhu, np=%hu, pace=%hhu ¼ms, amp=%hhu, pw=%hhu µs, Δ=%hhd ¼µs\n",
             me->sequence_number, me->start_time_µs, me->electrode_set[0], me->electrode_set[1],
-            me->phase, me->nr_of_pulses, me->pace_ms, me->amplitude, me->pulse_width_µs,
-            sz > offsetof(PulseTrain, delta_pulse_width_¼_µs) ? me->delta_pulse_width_¼_µs : 0);
+            me->phase, me->nr_of_pulses, me->pace_¼ms, me->amplitude, me->pulse_width_µs,
+            sz > offsetof(PulseTrain, delta_pulse_width_¼µs) ? me->delta_pulse_width_¼µs : 0);
 }

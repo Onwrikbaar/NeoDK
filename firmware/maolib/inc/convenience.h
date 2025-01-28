@@ -16,6 +16,8 @@
 #include <time.h>
 #include <stdint.h>
 
+#include "eventqueue.h"
+
 #define M_DIM(arr)      (sizeof arr / sizeof arr[0])
 
 typedef int8_t DeviceId;
@@ -23,6 +25,11 @@ typedef int8_t DeviceId;
 
 typedef int (*CompareFunc)(const void *, const void *);
 typedef void (*Action)(void *target, uint32_t);
+typedef struct {
+    char const *fmt;
+    struct { uint32_t argv[4]; } as;
+} LogArgs;
+
 typedef struct {
     Action action;
     void *target;
@@ -38,6 +45,7 @@ void invokeSelector(Selector *, uint32_t);
 int dumpBuffer(const char *prefix, const uint8_t *bbuf, uint8_t nb);
 struct timespec *tsIncrementNanos(struct timespec *, int64_t nanoseconds);
 char const *bytesToHexString(uint8_t const *pb, uint16_t nb);
+void DBG_irqLogf(EventQueue *, char const *fmt, ...);
 
 #ifdef __cplusplus
 }

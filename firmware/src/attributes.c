@@ -58,26 +58,26 @@ static SubscriptionId setSubForId(AttributeId ai, AttrNotifier notify, void *tar
  * Below are the functions implementing this module's interface.
  */
 
-SubscriptionId Attribute_awaitRead(AttributeId ai, AttrNotifier notify, void *target)
+SubscriptionId Attribute_awaitRead(AttributeId ai, uint16_t trans_id, AttrNotifier notify, void *target)
 {
     // BSP_logf("%s for id=%hu\n", __func__, ai);
     return setSubForId(ai, notify, target, 1);
 }
 
 
-SubscriptionId Attribute_subscribe(AttributeId ai, AttrNotifier notify, void *target)
+SubscriptionId Attribute_subscribe(AttributeId ai, uint16_t trans_id, AttrNotifier notify, void *target)
 {
     // BSP_logf("%s for id=%hu\n", __func__, ai);
     return setSubForId(ai, notify, target, 0);
 }
 
 
-void Attribute_changed(AttributeId ai, ElementEncoding enc, uint8_t const *data, uint16_t size)
+void Attribute_changed(AttributeId ai, uint16_t trans_id, ElementEncoding enc, uint8_t const *data, uint16_t size)
 {
     Subscription *sub = findSubForId(ai);
     if (sub == NULL) return;
 
-    sub->notify(sub->target, ai, enc, data, size);
+    sub->notify(sub->target, ai, trans_id, enc, data, size);
     if (sub->times == 1) {                  // Subscription expired?
         // BSP_logf("Cancelling subscription for id=%hu\n", sub->ai);
         *sub = subscriptions[--nr_of_subs]; // Cancel it.

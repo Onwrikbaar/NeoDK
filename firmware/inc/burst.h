@@ -20,7 +20,7 @@
 #define MAX_PULSE_WIDTH_¼_µs    800
 
 #define MIN_PULSE_PACE_µs      5000
-#define MAX_PULSE_PACE_µs     63000
+#define MAX_PULSE_PACE_µs     62500             // 16 Hz.
 
 typedef struct {
     uint32_t start_time_µs;
@@ -30,6 +30,7 @@ typedef struct {
     uint16_t pulse_width_¼_µs;
     uint8_t  phase;
     uint8_t  amplitude;
+    uint8_t  flags;
 } Burst;
 
 typedef struct {
@@ -38,10 +39,18 @@ typedef struct {
 } Deltas;
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool Burst_isValid(Burst const *);
 uint32_t Burst_duration_µs(Burst const *);
 uint8_t Burst_pulseWidth_µs(Burst const *);
 void Burst_applyDeltas(Burst *, Deltas const *);
 void Burst_print(Burst const *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -17,8 +17,12 @@
 
 typedef struct _PulseTrain PulseTrain;          // Opaque type.
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Class method.
-uint16_t PulseTrain_size();
+uint16_t PulseTrain_size(void);
 
 // Instance methods.
 PulseTrain *PulseTrain_init(PulseTrain *, uint8_t seq_nr, uint32_t timestamp, Burst const *burst);
@@ -32,5 +36,9 @@ uint8_t  PulseTrain_pulseWidth(PulseTrain const *);
 Burst  const *PulseTrain_getBurst(PulseTrain const *, Burst *);
 Deltas const *PulseTrain_getDeltas(PulseTrain const *, uint16_t sz, Deltas *);
 void     PulseTrain_print(PulseTrain const *, uint16_t sz);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -38,7 +38,8 @@ int BSP_closeSerialPort(int fd);
 uint16_t BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV);
 void BSP_primaryVoltageEnable(bool must_be_on);
 void BSP_startSequencerClock(uint32_t time_µs);
-void BSP_stopSequencerClock();
+void BSP_stopSequencerClock(void);
+uint32_t BSP_getSequencerClock(void);
 bool BSP_scheduleBurst(Burst const *);
 bool BSP_startBurst(Burst const *);
 

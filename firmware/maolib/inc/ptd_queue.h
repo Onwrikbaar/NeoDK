@@ -31,7 +31,7 @@ PtdQueue *PtdQueue_new(uint16_t nr_of_descriptors);
 void PtdQueue_clear(PtdQueue *);
 bool PtdQueue_isEmpty(PtdQueue const *);
 uint16_t PtdQueue_nrOfBytesFree(PtdQueue const *, uint16_t[2]);
-bool PtdQueue_addDescriptor(PtdQueue *, PulseTrain const *, uint16_t sz);
+bool PtdQueue_addDescriptor(PtdQueue *, PulseTrain const *, uint16_t sz, uint8_t *err);
 bool PtdQueue_getNextBurst(PtdQueue *, Burst *);
 void PtdQueue_delete(PtdQueue *);
 

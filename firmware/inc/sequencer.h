@@ -7,7 +7,7 @@
  *
  *  Created on: 27 Feb 2024
  *      Author: mark
- *   Copyright  2024 Neostim™
+ *   Copyright  2024, 2025 Neostim™
  */
 
 #ifndef INC_SEQUENCER_H_
@@ -17,7 +17,7 @@
 
 typedef struct _Sequencer Sequencer;            // Opaque type.
 
-typedef enum { PS_UNKNOWN, PS_IDLE, PS_PAUSED, PS_PLAYING } PlayState;
+typedef enum { PS_UNKNOWN, PS_IDLE, PS_PAUSED, PS_PLAYING,PS_STREAMING } PlayState;
 
 // Class method.
 Sequencer *Sequencer_new(void);
@@ -34,7 +34,7 @@ uint8_t Sequencer_getIntensityPercentage(Sequencer const *);
 void Sequencer_notifyIntensity(Sequencer const *);
 void Sequencer_notifyPattern(Sequencer const *);
 void Sequencer_notifyPlayState(Sequencer const *);
-void Sequencer_notifyPtQueue(Sequencer const *);
+void Sequencer_notifyPtQueue(Sequencer const *, uint16_t trans_id);
 
 void Sequencer_stop(Sequencer *);
 void Sequencer_delete(Sequencer *);

@@ -88,13 +88,13 @@ static void readPatternNames(Controller *me, AttributeAction const *aa)
 }
 
 
-static void attributeChanged(Controller *me, AttributeId ai, ElementEncoding enc, uint8_t const *data, uint16_t data_size)
+static void attributeChanged(Controller *me, AttributeId ai, uint16_t trans_id, ElementEncoding enc, uint8_t const *data, uint16_t data_size)
 {
     // BSP_logf("Controller_%s(%hu) size=%hu\n", __func__, ai, data_size);
     uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
     uint8_t packet[nbtw + Matter_encodedDataLength(enc, data_size)];
     initResponsePacket((PacketHeader *)packet);
-    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), 0, OC_REPORT_DATA, ai);
+    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), trans_id, OC_REPORT_DATA, ai);
     nbtw += Matter_encode(packet + nbtw, enc, data, data_size);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
 }
@@ -124,16 +124,16 @@ static void handleReadRequest(Controller *me, AttributeAction const *aa)
     {
         case AI_FIRMWARE_VERSION: {
             char const *fw_version = BSP_firmwareVersion();
-            attributeChanged(me, aa->attribute_id, EE_UTF8_1LEN, (uint8_t const *)fw_version, strlen(fw_version));
+            attributeChanged(me, aa->attribute_id, aa->transaction_id, EE_UTF8_1LEN, (uint8_t const *)fw_version, strlen(fw_version));
             break;
         }
         case AI_VOLTAGES:
-            Attribute_awaitRead(aa->attribute_id, (AttrNotifier)&attributeChanged, me);
+            Attribute_awaitRead(aa->attribute_id, aa->transaction_id, (AttrNotifier)&attributeChanged, me);
             BSP_triggerADC();
             break;
         case AI_CLOCK_MICROS: {
             uint64_t clock_micros = BSP_microsecondsSinceBoot();
-            attributeChanged(me, aa->attribute_id, EE_UNSIGNED_INT, (uint8_t const *)&clock_micros, sizeof clock_micros);
+            attributeChanged(me, aa->attribute_id, aa->transaction_id, EE_UNSIGNED_INT, (uint8_t const *)&clock_micros, sizeof clock_micros);
             break;
         }
         case AI_ALL_PATTERN_NAMES:
@@ -149,10 +149,10 @@ static void handleReadRequest(Controller *me, AttributeAction const *aa)
             Sequencer_notifyPlayState(me->sequencer);
             break;
         case AI_BOX_NAME:
-            attributeChanged(me, aa->attribute_id, EE_UTF8_1LEN, (uint8_t const *)me->box_name, strlen(me->box_name));
+            attributeChanged(me, aa->attribute_id, aa->transaction_id, EE_UTF8_1LEN, (uint8_t const *)me->box_name, strlen(me->box_name));
             break;
         case AI_PT_DESCRIPTOR_QUEUE:
-            Sequencer_notifyPtQueue(me->sequencer);
+            Sequencer_notifyPtQueue(me->sequencer, aa->transaction_id);
             break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
@@ -253,12 +253,12 @@ static void handleRequest(Controller *me, AttributeAction const *aa)
             handleReadRequest(me, aa);
             break;
         case OC_WRITE_REQUEST:
-            logTransaction(aa, "write");
+            // logTransaction(aa, "write");
             handleWriteRequest(me, aa);
             break;
         case OC_SUBSCRIBE_REQUEST:
             logTransaction(aa, "subscribe to");
-            Attribute_subscribe(aa->attribute_id, (AttrNotifier)&attributeChanged, me);
+            Attribute_subscribe(aa->attribute_id, aa->transaction_id, (AttrNotifier)&attributeChanged, me);
             handleReadRequest(me, aa);
             break;
         case OC_INVOKE_REQUEST:
@@ -332,7 +332,7 @@ Controller *Controller_new()
 
 void Controller_init(Controller *me, Sequencer *sequencer, DataLink *datalink)
 {
-    strncpy(me->box_name, "Mean Machine", sizeof me->box_name - 1);
+    strncpy(me->box_name, "Neostim Mean Machine", sizeof me->box_name - 1);
     me->sequencer = sequencer;
     me->datalink  = datalink;
 }

@@ -82,8 +82,13 @@ static void dispatchEvent(Boss *me, AOEvent const *evt)
         case ET_BUTTON_RELEASED:
             // Ignore for now.
             break;
+        case ET_LOG_FROM_IRQ: {
+            LogArgs const *la = (LogArgs const *)AOEvent_data(evt);
+            BSP_logf(la->fmt, la->as);
+            break;
+        }
         default:
-            BSP_logf("%s(%hu)?\n", __func__, evt_type);
+            BSP_logf("Boss_%s(%hu)?\n", __func__, evt_type);
     }
 }
 
