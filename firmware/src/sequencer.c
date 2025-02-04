@@ -131,7 +131,7 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
         case ET_SELECT_PATTERN_BY_NAME: {
             PatternDescr const *pd = Patterns_findByName((char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
             if (pd != NULL) { switchPattern(me, pd); break; }
-            me->pattern = NULL;
+            // me->pattern = NULL;
             return &stateIdle;                  // Transition.
         }
         case ET_QUEUE_PULSE_TRAIN:
@@ -197,7 +197,7 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
     switch (AOEvent_type(evt))
     {
         case ET_AO_ENTRY:
-            me->pattern = &stream_pd;
+            // me->pattern = &stream_pd;
             me->pi.pattern_descr = &stream_pd;
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
             setPlayState(me, PS_PLAYING);
@@ -292,7 +292,7 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
         case ET_SELECT_PATTERN_BY_NAME: {
             PatternDescr const *pd = Patterns_findByName((char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
             if (pd != NULL) switchPattern(me, pd);
-            else me->pattern = NULL;
+            // else me->pattern = NULL;
             return &stateIdle;                  // Transition.
         }
         case ET_TOGGLE_PLAY_PAUSE:
