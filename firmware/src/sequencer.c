@@ -37,7 +37,6 @@ struct _Sequencer {
     uint8_t intensity_percent;
     uint8_t play_state;
     uint8_t stream_busy;
-    uint8_t stream_paused;
 };
 
 
@@ -127,11 +126,10 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
             return &stateIdle;                  // Transition.
         case ET_SELECT_NEXT_PATTERN:
             switchPattern(me, Patterns_getNext(me->pattern));
-            break;
+            return &stateIdle;                  // Transition.
         case ET_SELECT_PATTERN_BY_NAME: {
             PatternDescr const *pd = Patterns_findByName((char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
-            if (pd != NULL) { switchPattern(me, pd); break; }
-            // me->pattern = NULL;
+            if (pd != NULL) switchPattern(me, pd);
             return &stateIdle;                  // Transition.
         }
         case ET_QUEUE_PULSE_TRAIN:
@@ -202,7 +200,6 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
             setPlayState(me, PS_PLAYING);
             me->stream_busy = scheduleFirstBurst(me);
-            me->stream_paused = false;
             break;
         case ET_AO_EXIT:
             BSP_stopSequencerClock();
@@ -214,14 +211,14 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
             // Superfluous, ignore.
             break;
         case ET_PLAY:
-            if (me->stream_paused) resumeStream(me);
+            if (me->play_state == PS_PAUSED) resumeStream(me);
             break;
         case ET_PAUSE:
-            if (!me->stream_paused) pauseStream(me);
+            if (me->play_state == PS_PLAYING) pauseStream(me);
             break;
         case ET_TOGGLE_PLAY_PAUSE:
-            if (me->stream_paused) resumeStream(me);
-            else pauseStream(me);
+            if (me->play_state == PS_PAUSED) resumeStream(me);
+            else if (me->play_state == PS_PLAYING) pauseStream(me);
             break;
         case ET_STOP_STREAM:
             return &stateIdle;                  // Transition.
@@ -259,6 +256,9 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
                 return &statePulsing;           // Transition.
             }
             break;
+        case ET_STOP:
+            // Ignore.
+            break;
         case ET_START_STREAM:
             if (PtdQueue_isEmpty(me->ptd_queue)) break;
             return &stateStreaming;             // Transition.
@@ -292,7 +292,6 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
         case ET_SELECT_PATTERN_BY_NAME: {
             PatternDescr const *pd = Patterns_findByName((char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
             if (pd != NULL) switchPattern(me, pd);
-            // else me->pattern = NULL;
             return &stateIdle;                  // Transition.
         }
         case ET_TOGGLE_PLAY_PAUSE:
@@ -300,6 +299,9 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
             // Fall through.
         case ET_PLAY:
             return &statePulsing;               // Transition.
+        case ET_START_STREAM:
+            if (PtdQueue_isEmpty(me->ptd_queue)) break;
+            return &stateStreaming;             // Transition.
         case ET_BURST_EXPIRED:
             if (PatternIterator_done(&me->pi)) {
                 CLI_logf("Finished '%s'\n", PatternIterator_name(&me->pi));
@@ -320,6 +322,7 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
     {
         case ET_AO_ENTRY:
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
+            Sequencer_notifyPattern(me);
             setPlayState(me, PS_PLAYING);
             PatternIterator_scheduleNextBurst(&me->pi);
             break;
@@ -374,8 +377,9 @@ Sequencer *Sequencer_new()
 
 Sequencer *Sequencer_init(Sequencer *me)
 {
+    static char const default_pattern_name[] = "Toggle";
+
     me->state = &stateNop;
-    char const default_pattern_name[] = "Toggle";
     me->pattern = Patterns_findByName(default_pattern_name, strlen(default_pattern_name));
     me->intensity_percent = 0;
     me->play_state = PS_UNKNOWN;
@@ -388,7 +392,6 @@ void Sequencer_start(Sequencer *me)
 {
     Patterns_checkAll();
     me->stream_busy = false;
-    me->stream_paused = false;
     me->state = stateIdle;
     me->state(me, AOEvent_newEntryEvent());
     setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
