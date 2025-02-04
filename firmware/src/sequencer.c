@@ -36,7 +36,8 @@ struct _Sequencer {
     PatternIterator pi;
     uint8_t intensity_percent;
     uint8_t play_state;
-    uint8_t busy;
+    uint8_t stream_busy;
+    uint8_t stream_paused;
 };
 
 
@@ -64,8 +65,8 @@ static void setIntensityPercentage(Sequencer *me, uint8_t perc)
 static void switchPattern(Sequencer *me, PatternDescr const *pd)
 {
     CLI_logf("Switching to '%s'\n", Patterns_name(pd));
-    PatternIterator_init(&me->pi, pd);
     me->pattern = pd;
+    PatternIterator_init(&me->pi, pd);
     setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
     Sequencer_notifyPattern(me);
 }
@@ -78,7 +79,7 @@ static void setPlayState(Sequencer *me, PlayState play_state)
 }
 
 
-static void handleAdcValues(uint16_t const *v, uint16_t trans_id)
+static void handleAdcValues(uint16_t const *v, TransactionId trans_id)
 {
     struct {
         uint16_t Vbat_mV, Vcap_mV, Iprim_mA;
@@ -96,6 +97,18 @@ static void *stateNop(Sequencer *me, AOEvent const *evt)
 {
     BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
     return NULL;
+}
+
+
+static void queueDescriptor(Sequencer *me, PulseTrain const *pt, uint16_t sz)
+{
+    uint8_t err = PE_NONE;
+    if (PtdQueue_addDescriptor(me->ptd_queue, pt, sz, &err)) {
+        Sequencer_notifyPtQueue(me, NO_TRANS_ID);
+    } else {
+        BSP_logf("Pt discarded, err=%u:\n  ", err);
+        PulseTrain_print(pt, sz);
+    }
 }
 
 // Forward declarations.
@@ -117,12 +130,15 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
             break;
         case ET_SELECT_PATTERN_BY_NAME: {
             PatternDescr const *pd = Patterns_findByName((char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
-            if (pd == NULL) return &stateIdle;
-            switchPattern(me, pd);
-            break;
+            if (pd != NULL) { switchPattern(me, pd); break; }
+            me->pattern = NULL;
+            return &stateIdle;                  // Transition.
         }
+        case ET_QUEUE_PULSE_TRAIN:
+            queueDescriptor(me, (PulseTrain const *)AOEvent_data(evt), AOEvent_dataSize(evt));
+            break;
         case ET_SET_INTENSITY:
-            setIntensityPercentage(me, *(uint8_t const *)AOEvent_data(evt));
+            setIntensityPercentage(me, *AOEvent_data(evt));
             break;
         case ET_BURST_COMPLETED:
             // BSP_logf("Last pulse done\n");
@@ -137,23 +153,15 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
 }
 
 
-static void addDescriptor(Sequencer *me, PulseTrain const *pt, uint16_t sz)
-{
-    PulseTrain_print(pt, sz);
-    uint8_t err = 0;
-    if (PtdQueue_addDescriptor(me->ptd_queue, pt, sz, &err)) {
-        Sequencer_notifyPtQueue(me, 0);
-    } else {
-        BSP_logf("Pt discarded, err=%hhu:\n  ", err);
-        PulseTrain_print(pt, sz);
-    }
-}
-
-
-static bool processNextBurst(PtdQueue *pq)
+static bool scheduleFirstBurst(Sequencer *me)
 {
     Burst burst;
-    return PtdQueue_getNextBurst(pq, &burst) && BSP_scheduleBurst(&burst);
+    bool ok = PtdQueue_getNextBurst(me->ptd_queue, &burst);
+    if (ok) {
+        BSP_startSequencerClock(burst.start_time_µs - 40);
+        ok = BSP_scheduleBurst(&burst);
+    }
+    return ok;
 }
 
 
@@ -161,12 +169,24 @@ static bool scheduleNextBurst(Sequencer *me)
 {
     Burst burst;
     bool ok = PtdQueue_getNextBurst(me->ptd_queue, &burst) && BSP_scheduleBurst(&burst);
-    if (ok) {
-        int32_t margin = burst.start_time_µs - BSP_getSequencerClock();
-        // BSP_logf("SB(%c), w=%hhu, d=%d µs\n", '0' + burst.phase, Burst_pulseWidth_µs(&burst), margin);
-        if (margin >= 2000 && (burst.flags & 0x1)) Sequencer_notifyPtQueue(me, 0);
-    }
+    if (burst.flags & QF_QUEUE_CHANGED) Sequencer_notifyPtQueue(me, NO_TRANS_ID);
     return ok;
+}
+
+
+static void pauseStream(Sequencer *me)
+{
+    BSP_stopSequencerClock();
+    setPlayState(me, PS_PAUSED);
+    CLI_logf("Pausing stream\n");
+}
+
+
+static void resumeStream(Sequencer *me)
+{
+    setPlayState(me, PS_PLAYING);
+    CLI_logf("Resuming stream\n");
+    BSP_resumeSequencerClock();
 }
 
 
@@ -177,38 +197,42 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
     switch (AOEvent_type(evt))
     {
         case ET_AO_ENTRY:
+            me->pattern = &stream_pd;
             me->pi.pattern_descr = &stream_pd;
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
-            setPlayState(me, PS_STREAMING);
-            BSP_startSequencerClock(-40);
-            me->busy = processNextBurst(me->ptd_queue);
+            setPlayState(me, PS_PLAYING);
+            me->stream_busy = scheduleFirstBurst(me);
+            me->stream_paused = false;
             break;
         case ET_AO_EXIT:
             BSP_stopSequencerClock();
             PtdQueue_clear(me->ptd_queue);
-            Sequencer_notifyPtQueue(me, 0);
+            Sequencer_notifyPtQueue(me, NO_TRANS_ID);
             BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
-        case ET_QUEUE_PULSE_TRAIN:
-            addDescriptor(me, (PulseTrain const *)AOEvent_data(evt), AOEvent_dataSize(evt));
-            break;
         case ET_START_STREAM:
-            // BSP_logf("Start stream\n");
+            // Superfluous, ignore.
+            break;
+        case ET_PLAY:
+            if (me->stream_paused) resumeStream(me);
+            break;
+        case ET_PAUSE:
+            if (!me->stream_paused) pauseStream(me);
+            break;
+        case ET_TOGGLE_PLAY_PAUSE:
+            if (me->stream_paused) resumeStream(me);
+            else pauseStream(me);
             break;
         case ET_STOP_STREAM:
             return &stateIdle;                  // Transition.
-        case ET_SELECT_NEXT_PATTERN:
-        case ET_SELECT_PATTERN_BY_NAME:
-            // Ignore for now.
-            break;
         case ET_BURST_STARTED:
-            me->busy = scheduleNextBurst(me);
+            me->stream_busy = scheduleNextBurst(me);
             break;
         case ET_BURST_COMPLETED:
             // BSP_logf("Last pulse done\n");
             break;
         case ET_BURST_EXPIRED:
-            if (me->busy) break;
+            if (me->stream_busy) break;
             return &stateIdle;                  // No more descriptors, leave this state.
         default:
             return stateCanopy(me, evt);        // Forward the event.
@@ -230,11 +254,10 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             break;
         case ET_TOGGLE_PLAY_PAUSE:
         case ET_PLAY:
-            PatternIterator_init(&me->pi, me->pattern);
-            CLI_logf("Starting '%s'\n", PatternIterator_name(&me->pi));
-            return &statePulsing;               // Transition.
-        case ET_QUEUE_PULSE_TRAIN:
-            addDescriptor(me, (PulseTrain const *)AOEvent_data(evt), AOEvent_dataSize(evt));
+            if (PatternIterator_init(&me->pi, me->pattern)) {
+                CLI_logf("Starting '%s'\n", PatternIterator_name(&me->pi));
+                return &statePulsing;           // Transition.
+            }
             break;
         case ET_START_STREAM:
             if (PtdQueue_isEmpty(me->ptd_queue)) break;
@@ -269,6 +292,7 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
         case ET_SELECT_PATTERN_BY_NAME: {
             PatternDescr const *pd = Patterns_findByName((char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
             if (pd != NULL) switchPattern(me, pd);
+            else me->pattern = NULL;
             return &stateIdle;                  // Transition.
         }
         case ET_TOGGLE_PLAY_PAUSE:
@@ -363,7 +387,8 @@ Sequencer *Sequencer_init(Sequencer *me)
 void Sequencer_start(Sequencer *me)
 {
     Patterns_checkAll();
-    me->busy = false;
+    me->stream_busy = false;
+    me->stream_paused = false;
     me->state = stateIdle;
     me->state(me, AOEvent_newEntryEvent());
     setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
@@ -385,24 +410,24 @@ uint8_t Sequencer_getIntensityPercentage(Sequencer const *me)
 
 void Sequencer_notifyIntensity(Sequencer const *me)
 {
-    Attribute_changed(AI_INTENSITY_PERCENT, 0, EE_UNSIGNED_INT_1, &me->intensity_percent, sizeof me->intensity_percent);
+    Attribute_changed(AI_INTENSITY_PERCENT, NO_TRANS_ID, EE_UNSIGNED_INT_1, &me->intensity_percent, sizeof me->intensity_percent);
 }
 
 
 void Sequencer_notifyPattern(Sequencer const *me)
 {
     char const *name = Patterns_name(me->pattern);
-    Attribute_changed(AI_CURRENT_PATTERN_NAME, 0, EE_UTF8_1LEN, (uint8_t const *)name, strlen(name));
+    Attribute_changed(AI_CURRENT_PATTERN_NAME, NO_TRANS_ID, EE_UTF8_1LEN, (uint8_t const *)name, strlen(name));
 }
 
 
 void Sequencer_notifyPlayState(Sequencer const *me)
 {
-    Attribute_changed(AI_PLAY_PAUSE_STOP, 0, EE_UNSIGNED_INT_1, &me->play_state, sizeof me->play_state);
+    Attribute_changed(AI_PLAY_PAUSE_STOP, NO_TRANS_ID, EE_UNSIGNED_INT_1, &me->play_state, sizeof me->play_state);
 }
 
 
-void Sequencer_notifyPtQueue(Sequencer const *me, uint16_t trans_id)
+void Sequencer_notifyPtQueue(Sequencer const *me, TransactionId trans_id)
 {
     uint16_t nqbf[2];                           // We have one queue per phase.
     PtdQueue_nrOfBytesFree(me->ptd_queue, nqbf);

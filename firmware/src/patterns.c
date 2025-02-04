@@ -162,6 +162,7 @@ uint16_t Patterns_getCount()
 
 char const *Patterns_name(PatternDescr const *pd)
 {
+    M_ASSERT(pd != NULL);
     return pd->name;
 }
 
@@ -199,7 +200,10 @@ PatternDescr const *Patterns_findByName(char const *name, uint16_t len)
 
 PatternDescr const *Patterns_getNext(PatternDescr const *pd)
 {
-    uint16_t index = (pd == NULL ? 0 : pd - pattern_descriptors);
-    if (++index == M_DIM(pattern_descriptors)) index = 0;
+    uint16_t index = 0;
+    if (pd != NULL) {
+        index = pd - pattern_descriptors;
+        if (++index == M_DIM(pattern_descriptors)) index = 0;
+    }
     return &pattern_descriptors[index];
 }

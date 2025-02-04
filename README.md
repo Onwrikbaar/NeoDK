@@ -43,7 +43,7 @@ This project is intended for experienced electronics hobbyists and professionals
 - a pulse-based device that can store and play user-created routines (planned for 2025).
 
 ### Caveat
-NeoDK is _NOT_ a ready-for-play e-stim box. It is a minimal viable design (MVD) of a powerful and highly efficient electrostimulation device that is not limited by 2-pole 'channels' or strictly TENS-like waveforms. Schematic and board CAD files are included, but to get a working device involves some soldering. To get more than the basic functionality requires programming in C.
+NeoDK is _NOT_ a ready-for-play e-stim box. It is a minimal viable design (MVD) of a powerful and highly efficient electrostimulation device that is not limited by 2-pole 'channels' or strictly TENS-like waveforms. Schematic and board CAD files are included, but to get a working device involves some (easy) soldering. To get more than the basic functionality requires programming in C, or being patient.
 
 ### How to get a working NeoDK
 By far the easiest way to build NeoDK, is to order the SMD-populated PCB from JLCPCB (using the files in directory JLCPCB_prod) and buy the six through hole components separately. Soldering the through hole components onto the board is easy.

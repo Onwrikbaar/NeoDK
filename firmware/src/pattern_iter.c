@@ -53,7 +53,7 @@ static bool getNextBurst(PatternIterator *me, Burst *burst)
     uint8_t const *elcon = getNextPattern(me, &burst->nr_of_pulses);
     burst->elcon[0] = elcon[0];
     burst->elcon[1] = elcon[1];
-    burst->pulse_width_¼_µs = me->pulse_width_micros * 4;
+    burst->pulse_width_¼µs = me->pulse_width_micros * 4;
     burst->pace_µs = me->pattern_descr->pace_µs;
     return true;
 }
@@ -80,14 +80,15 @@ static bool startBurst(Burst const *burst, Deltas const *deltas)
  * Below are the functions implementing this module's interface.
  */
 
-void PatternIterator_init(PatternIterator *me, PatternDescr const *pd)
+bool PatternIterator_init(PatternIterator *me, PatternDescr const *pd)
 {
     me->pattern_descr = pd;
+    me->amplitude = 0;
     me->nr_of_reps = pd->nr_of_reps;
     me->elcon_nr = 0;
-    M_ASSERT(pd->nr_of_steps != 0);
     me->step_nr = 0;
     me->segment_nr = 0;                         // 0 or 1.
+    return pd->nr_of_steps != 0;
 }
 
 
@@ -102,11 +103,12 @@ bool PatternIterator_scheduleNextBurst(PatternIterator *me)
 {
     Burst burst;
     if (getNextBurst(me, &burst)) {
-        if (burst.pulse_width_¼_µs > MAX_PULSE_WIDTH_¼_µs) {
-            burst.pulse_width_¼_µs = MAX_PULSE_WIDTH_¼_µs;
+        if (burst.pulse_width_¼µs > MAX_PULSE_WIDTH_¼µs) {
+            burst.pulse_width_¼µs = MAX_PULSE_WIDTH_¼µs;
         }
-        // BSP_logf("Pulse width is %hu µs\n", burst.pulse_width_¼_µs / 4);
+        // BSP_logf("Pulse width is %hu µs\n", Burst_pulseWidth_µs(&burst));
         burst.phase = getPhase(burst.elcon);
+        // TODO Set burst.amplitude?
         Deltas deltas = {0};
         return startBurst(&burst, &deltas);
     }
@@ -115,7 +117,7 @@ bool PatternIterator_scheduleNextBurst(PatternIterator *me)
 }
 
 
-char const *PatternIterator_name(PatternIterator *me)
+char const *PatternIterator_name(PatternIterator const *me)
 {
     return Patterns_name(me->pattern_descr);
 }

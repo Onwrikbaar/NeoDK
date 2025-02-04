@@ -21,7 +21,7 @@ bool Burst_isValid(Burst const *me)
     // Pulse repetition rate must be in [16..200] Hz.
     if (me->pace_µs < (MIN_PULSE_PACE_µs)) return false;         
     if (me->pace_µs > (MAX_PULSE_PACE_µs)) return false;
-    if (me->pulse_width_¼_µs < MIN_PULSE_WIDTH_¼_µs) return false;
+    if (me->pulse_width_¼µs < MIN_PULSE_WIDTH_¼µs) return false;
     if (me->nr_of_pulses == 0) return false;
     return true;
 }
@@ -36,16 +36,16 @@ uint32_t Burst_duration_µs(Burst const *me)
 
 uint8_t Burst_pulseWidth_µs(Burst const *me)
 {
-    return (me->pulse_width_¼_µs + 2) / 4;
+    return (me->pulse_width_¼µs + 2) / 4;
 }
 
 
 void Burst_applyDeltas(Burst *me, Deltas const *deltas)
 {
-    int32_t new_pw = me->pulse_width_¼_µs + deltas->delta_width_¼_µs;
-    if (new_pw < MIN_PULSE_WIDTH_¼_µs) new_pw = MIN_PULSE_WIDTH_¼_µs;
-    if (new_pw > MAX_PULSE_WIDTH_¼_µs) new_pw = MAX_PULSE_WIDTH_¼_µs;
-    me->pulse_width_¼_µs = new_pw;
+    int32_t new_pw = me->pulse_width_¼µs + deltas->delta_width_¼µs;
+    if (new_pw < MIN_PULSE_WIDTH_¼µs) new_pw = MIN_PULSE_WIDTH_¼µs;
+    if (new_pw > MAX_PULSE_WIDTH_¼µs) new_pw = MAX_PULSE_WIDTH_¼µs;
+    me->pulse_width_¼µs = new_pw;
 
     int32_t new_pace = me->pace_µs + deltas->delta_pace_µs;
     if (new_pace < MIN_PULSE_PACE_µs) new_pace = MIN_PULSE_PACE_µs;

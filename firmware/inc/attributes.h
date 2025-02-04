@@ -15,22 +15,23 @@
 
 #include "matter.h"
 
-
 typedef enum {
     AI_FIRMWARE_VERSION = 2, AI_VOLTAGES, AI_CLOCK_MICROS,
     AI_ALL_PATTERN_NAMES, AI_CURRENT_PATTERN_NAME, AI_INTENSITY_PERCENT, AI_PLAY_PAUSE_STOP,
     AI_BOX_NAME, AI_PT_DESCRIPTOR_QUEUE
 } AttributeId;
 
-typedef void (*AttrNotifier)(void *target, AttributeId, uint16_t trans_id, ElementEncoding, uint8_t const *data, uint16_t size);
+typedef void (*AttrNotifier)(void *target, AttributeId, TransactionId, ElementEncoding, uint8_t const *data, uint16_t size);
+
+#define NO_TRANS_ID     (TransactionId)0U
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-SubscriptionId Attribute_awaitRead(AttributeId, uint16_t trans_id, AttrNotifier, void *target);
-SubscriptionId Attribute_subscribe(AttributeId, uint16_t trans_id, AttrNotifier, void *target);
-void Attribute_changed(AttributeId, uint16_t trans_id, ElementEncoding, uint8_t const *data, uint16_t size);
+SubscriptionId Attribute_awaitRead(AttributeId, TransactionId, AttrNotifier, void *target);
+SubscriptionId Attribute_subscribe(AttributeId, TransactionId, AttrNotifier, void *target);
+void Attribute_changed(AttributeId, TransactionId, ElementEncoding, uint8_t const *data, uint16_t size);
 
 #ifdef __cplusplus
 }

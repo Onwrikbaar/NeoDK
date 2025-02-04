@@ -447,6 +447,15 @@ static uint16_t Vcap_mV_ToDacVal(uint16_t Vcap_mV)
 }
 
 
+static void setPrimaryVoltage(Burst const *burst)
+{
+    if (bsp.burst.amplitude != 0) {             // 0 means do not change.
+        // Scale amplitude 0..255 to 0..8160 mV (for now).
+        BSP_setPrimaryVoltage_mV(bsp.burst.amplitude * 32);
+    }
+}
+
+
 static void doUartAction(USART_TypeDef *uart, ChannelAction action)
 {
     switch (action)
@@ -555,11 +564,9 @@ void TIM2_IRQHandler(void)
 {
     if (seq_clock->SR & TIM_SR_CC1IF) {
         seq_clock->SR &= ~TIM_SR_CC1IF;         // Clear the interrupt.
-        // BSP_logf("T2 at %u µs\n",seq_clock->CNT);
-        if (bsp.burst.amplitude != 0) {
-            // Scale amplitude 0..255 to 0..8160 mV (for now).
-            BSP_setPrimaryVoltage_mV(bsp.burst.amplitude * 32);
-        }
+        // BSP_logf("T2 at %u µs\n", seq_clock->CNT);
+        setPrimaryVoltage(&bsp.burst);
+        bsp.pulse_seqnr = 0;
         BSP_startBurst(&bsp.burst);
     } else {
         spuriousIRQ(&bsp);
@@ -698,7 +705,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.52-beta";
+    return "v0.53-beta";
 }
 
 
@@ -878,7 +885,14 @@ void BSP_stopSequencerClock()
 }
 
 
-uint32_t BSP_getSequencerClock(void)
+void BSP_resumeSequencerClock()
+{
+    BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
+    seq_clock->CR1 |= TIM_CR1_CEN;              // Enable the counter.
+}
+
+
+uint32_t BSP_getSequencerClock()
 {
     return seq_clock->CNT;
 }
@@ -888,6 +902,7 @@ bool BSP_scheduleBurst(Burst const *burst)
 {
     bsp.burst = *burst;
     seq_clock->CCR1 = burst->start_time_µs;
+    // setPrimaryVoltage(burst);
     // BSP_logf("SB(%hhu) for t=%u @ %d µs\n", burst->phase, burst->start_time_µs, seq_clock->CNT);
     // BSP_logf("SB(%hhu) d=%d µs\n", burst->phase, burst->start_time_µs - seq_clock->CNT);
     return true;
@@ -896,7 +911,6 @@ bool BSP_scheduleBurst(Burst const *burst)
 
 bool BSP_startBurst(Burst const *burst)
 {
-    bsp.pulse_seqnr = 0;
     // BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
     pulse_timer->ARR = burst->pace_µs - 1;
     pulse_timer->RCR = burst->nr_of_pulses - 1;

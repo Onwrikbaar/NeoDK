@@ -16,8 +16,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MIN_PULSE_WIDTH_¼_µs      6
-#define MAX_PULSE_WIDTH_¼_µs    800
+#define MIN_PULSE_WIDTH_¼µs       6
+#define MAX_PULSE_WIDTH_¼µs     800
 
 #define MIN_PULSE_PACE_µs      5000
 #define MAX_PULSE_PACE_µs     62500             // 16 Hz.
@@ -27,14 +27,14 @@ typedef struct {
     uint8_t  elcon[2];
     uint16_t pace_µs;
     uint16_t nr_of_pulses;
-    uint16_t pulse_width_¼_µs;
+    uint16_t pulse_width_¼µs;
     uint8_t  phase;
     uint8_t  amplitude;
     uint8_t  flags;
 } Burst;
 
 typedef struct {
-    int8_t delta_width_¼_µs;                    // [0.25 µs]. Changes the duration of a pulse.
+    int8_t delta_width_¼µs;                     // [0.25 µs]. Changes the duration of a pulse.
     int8_t delta_pace_µs;                       // [µs]. Modifies the time between pulses.
 } Deltas;
 

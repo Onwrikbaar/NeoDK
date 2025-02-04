@@ -20,16 +20,18 @@ typedef struct {
     PatternDescr const *pattern_descr;
     uint16_t elcon_nr;
     uint8_t pulse_width_micros;
+    uint8_t amplitude;
     uint8_t step_nr;
     uint16_t nr_of_reps;
     uint8_t segment_nr;
 } PatternIterator;
 
 
-void PatternIterator_init(PatternIterator *, PatternDescr const *);
+bool PatternIterator_init(PatternIterator *, PatternDescr const *);
 void PatternIterator_setPulseWidth(PatternIterator *, uint8_t width_µs);
+void PatternIterator_setIntensity(PatternIterator *, uint8_t intensity);
 bool PatternIterator_scheduleNextBurst(PatternIterator *);
-char const *PatternIterator_name(PatternIterator *);
+char const *PatternIterator_name(PatternIterator const *);
 bool PatternIterator_done(PatternIterator *);
 
 #endif

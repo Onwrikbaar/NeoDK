@@ -37,6 +37,7 @@ typedef enum {
     EE_NULL, EE_STRUCT, EE_ARRAY, EE_LIST, EE_END_OF_CONTAINER
 } ElementEncoding;
 
+typedef uint16_t TransactionId;
 typedef uint16_t SubscriptionId;
 
 #ifdef __cplusplus
