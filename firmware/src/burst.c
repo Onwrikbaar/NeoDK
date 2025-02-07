@@ -48,8 +48,8 @@ void Burst_applyDeltas(Burst *me, Deltas const *deltas)
     me->pulse_width_¼µs = new_pw;
 
     int32_t new_pace = me->pace_µs + deltas->delta_pace_µs;
-    if (new_pace < MIN_PULSE_PACE_µs) new_pace = MIN_PULSE_PACE_µs;
-    else if (new_pace > MAX_PULSE_PACE_µs) new_pace = MAX_PULSE_PACE_µs;
+    /* if (new_pace < MIN_PULSE_PACE_µs) new_pace = MIN_PULSE_PACE_µs;
+    else */ if (new_pace > MAX_PULSE_PACE_µs) new_pace = MAX_PULSE_PACE_µs;
     me->pace_µs = new_pace;
 }
 

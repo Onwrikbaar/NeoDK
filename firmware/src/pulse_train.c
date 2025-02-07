@@ -52,8 +52,8 @@ uint16_t PulseTrain_size()
 PulseTrain *PulseTrain_copy(void *addr, uint16_t nb, PulseTrain const *original)
 {
     if (addr == NULL || nb < PulseTrain_size()) return NULL;
-    if (original == NULL) return memset(addr, 0, nb);
-    return memcpy(addr, original, PulseTrain_size());
+    if (original == NULL) return (PulseTrain *)memset(addr, 0, nb);
+    return (PulseTrain *)memcpy(addr, original, PulseTrain_size());
 }
 
 
@@ -144,7 +144,7 @@ Deltas const *PulseTrain_getDeltas(PulseTrain const *me, uint16_t sz, Deltas *de
 
 void PulseTrain_print(PulseTrain const *me, uint16_t sz)
 {
-    BSP_logf("Pt %3hhu: t=%u µs, ec=0x%x<>0x%x, phase=%hhu, np=%hu, pace=%hhu ¼ms, amp=%hhu, pw=%hhu µs, Δ=%hhd ¼µs\n",
+    BSP_logf("Pt %3hhu: t=%u µs, ec=0x%x<>0x%x, phase=%hhu, np=%2hu, pace=%hhu ¼ms, amp=%hhu, pw=%3hhu µs, Δ=%hhd ¼µs\n",
             me->sequence_number, me->start_time_µs, me->electrode_set[0], me->electrode_set[1],
             me->phase, me->nr_of_pulses, me->pace_¼ms, me->amplitude, me->pulse_width_µs,
             sz > offsetof(PulseTrain, delta_pulse_width_¼µs) ? me->delta_pulse_width_¼µs : 0);

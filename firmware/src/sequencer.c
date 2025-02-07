@@ -204,7 +204,7 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
         case ET_AO_EXIT:
             BSP_stopSequencerClock();
             PtdQueue_clear(me->ptd_queue);
-            Sequencer_notifyPtQueue(me, NO_TRANS_ID);
+            // Sequencer_notifyPtQueue(me, NO_TRANS_ID);
             BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
         case ET_START_STREAM:

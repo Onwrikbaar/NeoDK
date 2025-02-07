@@ -29,7 +29,7 @@ PulseTrain *PulseTrain_init(PulseTrain *, uint8_t seq_nr, uint32_t timestamp, Bu
 bool     PulseTrain_isValid(PulseTrain const *, uint16_t sz);
 uint32_t PulseTrain_timestamp(PulseTrain const *);
 void     PulseTrain_clearDeltas(PulseTrain *);
-void     PulseTrain_setDeltas(PulseTrain *, int8_t delta_width_¼_µs, int8_t delta_pace_µs);
+void     PulseTrain_setDeltas(PulseTrain *, int8_t delta_width_¼µs, int8_t delta_pace_µs);
 uint16_t PulseTrain_amplitude(PulseTrain const *);
 uint8_t  PulseTrain_phase(PulseTrain const *);
 uint8_t  PulseTrain_pulseWidth(PulseTrain const *);

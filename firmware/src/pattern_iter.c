@@ -72,7 +72,8 @@ static bool startBurst(Burst const *burst, Deltas const *deltas)
         return BSP_startBurst(burst);
     }
 
-    BSP_logf("Invalid burst\n");
+    BSP_logf("Invalid burst\n   ");
+    Burst_print(burst);
     return false;
 }
 
