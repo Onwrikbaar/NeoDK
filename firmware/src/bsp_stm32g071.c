@@ -526,7 +526,8 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
         pulse_timer->CR1 &= ~TIM_CR1_CEN;       // Stop the counter.
         pulse_timer->DIER &= ~(TIM_DIER_CC1IE | TIM_DIER_CC2IE);
         pulse_timer->SR &= ~(TIM_SR_UIF | TIM_SR_CC1IF | TIM_SR_CC2IF);
-        setSwitches(0);                         // Disconnect the output stage from the electrodes.
+        TRIAC_GPIO_PORT->BSRR = ALL_TRIAC_PINS; // Disconnect the output stage from the electrodes.
+        LED_GPIO_PORT->BSRR = LED_1_PIN << 16;  // Turn off the LED.
         // BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
         EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_EXPIRED, NULL, 0);
     } else {
@@ -541,18 +542,16 @@ void TIM1_CC_IRQHandler(void)
     if ((pulse_timer->DIER & TIM_DIER_CC1IE) && (pulse_timer->SR & TIM_SR_CC1IF)) {
         pulse_timer->SR &= ~TIM_SR_CC1IF;
         bsp.pulse_seqnr += 1;
-        // BSP_logf("CC1 %hu at t=%u\n", bsp.pulse_seqnr, seq_clock->CNT);
         // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
     }
     if ((pulse_timer->DIER & TIM_DIER_CC2IE) && (pulse_timer->SR & TIM_SR_CC2IF)) {
         pulse_timer->SR &= ~TIM_SR_CC2IF;
         bsp.pulse_seqnr += 1;
-        // BSP_logf("CC2 %hu at t=%u\n", bsp.pulse_seqnr, seq_clock->CNT);
         // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
     }
-    if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-        EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, NULL, 0);
-    }
+    // if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
+    //     EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, NULL, 0);
+    // }
     if (pulse_timer->SR & 0xcffe0) {
         BSP_logf("Pt SR=0x%x\n", pulse_timer->SR & 0xcffe0);
         spuriousIRQ(&bsp);
@@ -567,6 +566,9 @@ void TIM2_IRQHandler(void)
         // BSP_logf("T2 at %u µs\n", seq_clock->CNT);
         setPrimaryVoltage(&bsp.burst);
         bsp.pulse_seqnr = 0;
+        if (bsp.burst.nr_of_pulses == 1) {      // Prevent overlap.
+            bsp.burst.pace_µs = (bsp.burst.pace_µs + Burst_pulseWidth_µs(&bsp.burst)) / 2;
+        }
         BSP_startBurst(&bsp.burst);
     } else {
         spuriousIRQ(&bsp);
@@ -705,7 +707,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.53-beta";
+    return "v0.54-beta";
 }
 
 
@@ -900,18 +902,18 @@ uint32_t BSP_getSequencerClock()
 
 bool BSP_scheduleBurst(Burst const *burst)
 {
+    BSP_criticalSectionEnter();                 // To copy the burst atomically.
     bsp.burst = *burst;
-    seq_clock->CCR1 = burst->start_time_µs;
-    // setPrimaryVoltage(burst);
-    // BSP_logf("SB(%hhu) for t=%u @ %d µs\n", burst->phase, burst->start_time_µs, seq_clock->CNT);
-    // BSP_logf("SB(%hhu) d=%d µs\n", burst->phase, burst->start_time_µs - seq_clock->CNT);
+    BSP_criticalSectionExit();
+    seq_clock->CCR1 = bsp.burst.start_time_µs;
+    // setPrimaryVoltage(&bsp.burst);
+    // BSP_logf("SB(%hhu) d=%d µs\n", bsp.burst.phase, bsp.burst.start_time_µs - seq_clock->CNT);
     return true;
 }
 
 
 bool BSP_startBurst(Burst const *burst)
 {
-    // BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
     pulse_timer->ARR = burst->pace_µs - 1;
     pulse_timer->RCR = burst->nr_of_pulses - 1;
     pulse_timer->CNT = 0;
