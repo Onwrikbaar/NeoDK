@@ -144,8 +144,8 @@ Deltas const *PulseTrain_getDeltas(PulseTrain const *me, uint16_t sz, Deltas *de
 
 void PulseTrain_print(PulseTrain const *me, uint16_t sz)
 {
-    BSP_logf("Pt %3hhu: t=%u µs, ec=0x%x<>0x%x, phase=%hhu, np=%2hu, pace=%hhu ¼ms, amp=%hhu, pw=%3hhu µs, Δ=%hhd ¼µs\n",
+    BSP_logf("Pt %3hhu: t=%u µs, ec=0x%x<>0x%x, phase=%c, np=%2hu, pace=%hhu ¼ms, amp=%hhu, pw=%3hhu µs, Δ=%hhd ¼µs\n",
             me->sequence_number, me->start_time_µs, me->electrode_set[0], me->electrode_set[1],
-            me->phase, me->nr_of_pulses, me->pace_¼ms, me->amplitude, me->pulse_width_µs,
+            '0' + me->phase, me->nr_of_pulses, me->pace_¼ms, me->amplitude, me->pulse_width_µs,
             sz > offsetof(PulseTrain, delta_pulse_width_¼µs) ? me->delta_pulse_width_¼µs : 0);
 }

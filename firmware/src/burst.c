@@ -40,6 +40,16 @@ uint8_t Burst_pulseWidth_µs(Burst const *me)
 }
 
 
+Burst *Burst_adjust(Burst *me)
+{
+    // Prevent timing troubles with the last (or only) pulse of the burst.
+    if (me->nr_of_pulses == 1) {
+        me->pace_µs = Burst_pulseWidth_µs(me) + 20;
+    }
+    return me;
+}
+
+
 void Burst_applyDeltas(Burst *me, Deltas const *deltas)
 {
     int32_t new_pw = me->pulse_width_¼µs + deltas->delta_width_¼µs;
@@ -56,7 +66,7 @@ void Burst_applyDeltas(Burst *me, Deltas const *deltas)
 
 void Burst_print(Burst const *me)
 {
-    BSP_logf("Burst: t=%u µs, ec=0x%x<>0x%x, phase=%hhu, np=%hu, pace=%hu µs, amp=%hhu, pw=%hhu µs\n",
-            me->start_time_µs, me->elcon[0], me->elcon[1], me->phase,
+    BSP_logf("Burst: t=%u µs, ec=0x%x<>0x%x, phase=%c, np=%hu, pace=%hu µs, amp=%hhu, pw=%hhu µs\n",
+            me->start_time_µs, me->elcon[0], me->elcon[1], '0' + me->phase,
             me->nr_of_pulses, me->pace_µs, me->amplitude, Burst_pulseWidth_µs(me));
 }

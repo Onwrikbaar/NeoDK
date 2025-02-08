@@ -550,7 +550,7 @@ void TIM1_CC_IRQHandler(void)
         // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
     }
     // if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-    //     EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, NULL, 0);
+    //     EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
     // }
     if (pulse_timer->SR & 0xcffe0) {
         BSP_logf("Pt SR=0x%x\n", pulse_timer->SR & 0xcffe0);
@@ -566,10 +566,7 @@ void TIM2_IRQHandler(void)
         // BSP_logf("T2 at %u µs\n", seq_clock->CNT);
         setPrimaryVoltage(&bsp.burst);
         bsp.pulse_seqnr = 0;
-        if (bsp.burst.nr_of_pulses == 1) {      // Prevent overlap.
-            bsp.burst.pace_µs = (bsp.burst.pace_µs + Burst_pulseWidth_µs(&bsp.burst)) / 2;
-        }
-        BSP_startBurst(&bsp.burst);
+        BSP_startBurst(Burst_adjust(&bsp.burst));
     } else {
         spuriousIRQ(&bsp);
     }
@@ -902,9 +899,7 @@ uint32_t BSP_getSequencerClock()
 
 bool BSP_scheduleBurst(Burst const *burst)
 {
-    BSP_criticalSectionEnter();                 // To copy the burst atomically.
     bsp.burst = *burst;
-    BSP_criticalSectionExit();
     seq_clock->CCR1 = bsp.burst.start_time_µs;
     // setPrimaryVoltage(&bsp.burst);
     // BSP_logf("SB(%hhu) d=%d µs\n", bsp.burst.phase, bsp.burst.start_time_µs - seq_clock->CNT);
@@ -930,7 +925,7 @@ bool BSP_startBurst(Burst const *burst)
     setSwitches(burst->elcon[0] | burst->elcon[1]);
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
-    EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_STARTED, NULL, 0);
+    EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_STARTED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
     pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
     return true;
 }
