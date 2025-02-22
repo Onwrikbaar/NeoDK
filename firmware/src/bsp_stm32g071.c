@@ -399,12 +399,12 @@ static void setSwitches(uint16_t pattern)
     // Turn on the LED if at least one triac will be activated.
     setPinVal(LED_GPIO_PORT, LED_1_PIN, pattern);
 
-    // The triac enable signals are active low, so flip the bits.
-    pattern ^= (uint16_t)~0;
-    setPinVal(TRIAC_GPIO_PORT, TRIAC_1_PIN, pattern & 1);
-    setPinVal(TRIAC_GPIO_PORT, TRIAC_2_PIN, pattern & 2);
-    setPinVal(TRIAC_GPIO_PORT, TRIAC_3_PIN, pattern & 4);
-    setPinVal(TRIAC_GPIO_PORT, TRIAC_4_PIN, pattern & 8);
+    // The triac enable signals are active low.
+    TRIAC_GPIO_PORT->BSRR
+        = (pattern & 1 ? TRIAC_1_PIN << 16 : TRIAC_1_PIN)
+        | (pattern & 2 ? TRIAC_2_PIN << 16 : TRIAC_2_PIN)
+        | (pattern & 4 ? TRIAC_3_PIN << 16 : TRIAC_3_PIN)
+        | (pattern & 8 ? TRIAC_4_PIN << 16 : TRIAC_4_PIN);
 }
 
 
@@ -526,8 +526,7 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
         pulse_timer->CR1 &= ~TIM_CR1_CEN;       // Stop the counter.
         pulse_timer->DIER &= ~(TIM_DIER_CC1IE | TIM_DIER_CC2IE);
         pulse_timer->SR &= ~(TIM_SR_UIF | TIM_SR_CC1IF | TIM_SR_CC2IF);
-        TRIAC_GPIO_PORT->BSRR = ALL_TRIAC_PINS; // Disconnect the output stage from the electrodes.
-        LED_GPIO_PORT->BSRR = LED_1_PIN << 16;  // Turn off the LED.
+        LL_GPIO_ResetOutputPin(LED_GPIO_PORT, LED_1_PIN);
         // BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
         EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_EXPIRED, NULL, 0);
     } else {
@@ -549,9 +548,10 @@ void TIM1_CC_IRQHandler(void)
         bsp.pulse_seqnr += 1;
         // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
     }
-    // if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-    //     EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
-    // }
+    if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
+        LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
+        // EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
+    }
     if (pulse_timer->SR & 0xcffe0) {
         BSP_logf("Pt SR=0x%x\n", pulse_timer->SR & 0xcffe0);
         spuriousIRQ(&bsp);
@@ -562,6 +562,8 @@ void TIM1_CC_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
     if (seq_clock->SR & TIM_SR_CC1IF) {
+        // Briefly turn on all the triacs.
+        LL_GPIO_ResetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
         seq_clock->SR &= ~TIM_SR_CC1IF;         // Clear the interrupt.
         // BSP_logf("T2 at %u µs\n", seq_clock->CNT);
         setPrimaryVoltage(&bsp.burst);
@@ -704,7 +706,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.54-beta";
+    return "v0.55-beta";
 }
 
 
@@ -925,8 +927,8 @@ bool BSP_startBurst(Burst const *burst)
     setSwitches(burst->elcon[0] | burst->elcon[1]);
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
-    EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_STARTED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
     pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
+    EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_STARTED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
     return true;
 }
 

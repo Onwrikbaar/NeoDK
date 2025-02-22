@@ -167,7 +167,9 @@ static bool scheduleNextBurst(Sequencer *me)
 {
     Burst burst;
     bool ok = PtdQueue_getNextBurst(me->ptd_queue, &burst) && BSP_scheduleBurst(&burst);
-    if (burst.flags & QF_QUEUE_CHANGED) Sequencer_notifyPtQueue(me, NO_TRANS_ID);
+    if (burst.flags & QF_QUEUE_CHANGED) {
+        Sequencer_notifyPtQueue(me, NO_TRANS_ID);
+    }
     return ok;
 }
 
@@ -204,7 +206,6 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
         case ET_AO_EXIT:
             BSP_stopSequencerClock();
             PtdQueue_clear(me->ptd_queue);
-            // Sequencer_notifyPtQueue(me, NO_TRANS_ID);
             BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
         case ET_START_STREAM:
@@ -226,7 +227,7 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
             me->stream_busy = scheduleNextBurst(me);
             break;
         case ET_BURST_COMPLETED:
-            // BSP_logf("Last pulse done\n");
+            // BSP_logf("Burst done at %u µs\n", (uint32_t const *)AOEvent_data(evt));
             break;
         case ET_BURST_EXPIRED:
             if (me->stream_busy) break;
@@ -286,14 +287,6 @@ static void *statePaused(Sequencer *me, AOEvent const *evt)
         case ET_AO_EXIT:
             BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
-        case ET_SELECT_NEXT_PATTERN:
-            switchPattern(me, Patterns_getNext(me->pattern));
-            return &stateIdle;                  // Transition.
-        case ET_SELECT_PATTERN_BY_NAME: {
-            PatternDescr const *pd = Patterns_findByName((char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
-            if (pd != NULL) switchPattern(me, pd);
-            return &stateIdle;                  // Transition.
-        }
         case ET_TOGGLE_PLAY_PAUSE:
             CLI_logf("Resuming '%s'\n", PatternIterator_name(&me->pi));
             // Fall through.
@@ -329,6 +322,14 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
         case ET_AO_EXIT:
             BSP_logf("Sequencer_%s EXIT\n", __func__);
             break;
+        case ET_SELECT_NEXT_PATTERN:
+            switchPattern(me, Patterns_getNext(me->pattern));
+            break;
+        case ET_SELECT_PATTERN_BY_NAME: {
+            PatternDescr const *pd = Patterns_findByName((char const *)AOEvent_data(evt), AOEvent_dataSize(evt));
+            if (pd != NULL) switchPattern(me, pd);
+            break;
+        }
         case ET_TOGGLE_PLAY_PAUSE:
         case ET_PAUSE:
             return &statePaused;                // Transition.

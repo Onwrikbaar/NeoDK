@@ -56,7 +56,7 @@ The primary current is measured on the high side, by means of a 20 mΩ shunt res
 The primary voltage is measured through a ÷4 voltage divider connected to an ADC input of the microcontroller. This way, the maximum primary voltage that can be reliably measured is 4 * 3.3V = 13.2V.
 
 ### Primary voltage control
-The primary voltage is regulated by a (switching) buck converter, which is controlled through a DAC output of the microcontroller. This method ensures very efficient use of the battery capacity as well as negligible heat generation. The buck's maximum under-voltage lockout threshold is 4.95V, so the device requires a supply voltage of at least 5V for correct operation.
+The primary voltage is regulated by a (switching) buck converter, which is controlled through a DAC output of the microcontroller. This method ensures very efficient use of the battery capacity as well as negligible heat generation. Due to the buck's maximum under-voltage lockout threshold and the voltage drop across the resettable fuse, the device requires a minimum supply voltage of 6V for correct operation.
 
 ### Microcontroller
 The STM32G071 is an affordable 32-bit microcontroller with an ARM Cortex M0+ core, 128 KB flash and 36 KB RAM. Its maximum clock speed is 64 MHz, which yields considerably more processing power than required to run the application.

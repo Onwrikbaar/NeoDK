@@ -19,7 +19,7 @@
 
 typedef struct {
     AttributeId ai;                             // Key.
-    uint16_t times;
+    uint16_t times_left;
     AttrNotifier notify;
     void *target;
 } Subscription;
@@ -31,7 +31,7 @@ static uint8_t nr_of_subs = 0;
 
 static Subscription *findSubForId(AttributeId ai)
 {
-    for (uint8_t i = 0; i < M_DIM(subscriptions); i++) {
+    for (uint8_t i = 0; i < nr_of_subs; i++) {
         Subscription *sub = &subscriptions[i];
         if (ai == sub->ai) return sub;
     }
@@ -50,7 +50,7 @@ static SubscriptionId setSubForId(AttributeId ai, AttrNotifier notify, void *tar
     }
     sub->notify = notify;
     sub->target = target;
-    sub->times  = times;
+    sub->times_left = times;
     return 256 + (sub - subscriptions);
 }
 
@@ -78,10 +78,10 @@ void Attribute_changed(AttributeId ai, TransactionId trans_id, ElementEncoding e
     if (sub == NULL) return;
 
     sub->notify(sub->target, ai, trans_id, enc, data, size);
-    if (sub->times == 1) {                  // Subscription expired?
+    if (sub->times_left == 1) {                 // Subscription expired?
         // BSP_logf("Cancelling subscription for id=%hu\n", sub->ai);
-        *sub = subscriptions[--nr_of_subs]; // Cancel it.
-    } else if (sub->times != 0) {
-        sub->times -= 1;
+        *sub = subscriptions[--nr_of_subs];     // Cancel it.
+    } else if (sub->times_left != 0) {
+        sub->times_left -= 1;
     }
 }
