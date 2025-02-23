@@ -47,6 +47,7 @@ struct _Controller {
     StateFunc  state;
     Sequencer *sequencer;
     DataLink  *datalink;
+    uint32_t   heartbeat_interval_µs;
     char       box_name[24];
 };
 
@@ -335,6 +336,7 @@ void Controller_init(Controller *me, Sequencer *sequencer, DataLink *datalink)
     strncpy(me->box_name, "Neostim Mean Machine", sizeof me->box_name - 1);
     me->sequencer = sequencer;
     me->datalink  = datalink;
+    me->heartbeat_interval_µs = 15000000;
 }
 
 
@@ -351,6 +353,12 @@ void Controller_start(Controller *me)
 bool Controller_handleEvent(Controller *me)
 {
     return EventQueue_handleNextEvent(&me->event_queue, (EvtFunc)&dispatchEvent, me);
+}
+
+
+bool Controller_heartbeatElapsed(Controller const *me, uint32_t delta_µs)
+{
+    return me->heartbeat_interval_µs != 0 && delta_µs >= me->heartbeat_interval_µs;
 }
 
 

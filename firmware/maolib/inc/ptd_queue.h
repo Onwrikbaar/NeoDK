@@ -18,8 +18,6 @@
 
 #include "pulse_train.h"
 
-#define QF_QUEUE_CHANGED    0x1
-
 typedef enum { PE_NONE, PE_BAD_PHASE, PE_BUFFER_FULL, PE_BAD_TIMESTAMP, PE_WRITE_FAILED } PtdErrType;
 typedef struct _PtdQueue PtdQueue;              // Opaque type.
 

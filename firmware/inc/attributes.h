@@ -18,7 +18,7 @@
 typedef enum {
     AI_FIRMWARE_VERSION = 2, AI_VOLTAGES, AI_CLOCK_MICROS,
     AI_ALL_PATTERN_NAMES, AI_CURRENT_PATTERN_NAME, AI_INTENSITY_PERCENT, AI_PLAY_PAUSE_STOP,
-    AI_BOX_NAME, AI_PT_DESCRIPTOR_QUEUE
+    AI_BOX_NAME, AI_PT_DESCRIPTOR_QUEUE, AI_HEARTBEAT_INTERVAL_SECS
 } AttributeId;
 
 typedef void (*AttrNotifier)(void *target, AttributeId, TransactionId, ElementEncoding, uint8_t const *data, uint16_t size);

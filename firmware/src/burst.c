@@ -50,6 +50,12 @@ Burst *Burst_adjust(Burst *me)
 }
 
 
+bool Burst_keepLoadConnected(Burst const *me)
+{
+    return (me->flags & BF_KEEP_LOAD_CONN) != 0;
+}
+
+
 void Burst_applyDeltas(Burst *me, Deltas const *deltas)
 {
     int32_t new_pw = me->pulse_width_¼µs + deltas->delta_width_¼µs;

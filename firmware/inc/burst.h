@@ -22,6 +22,11 @@
 #define MIN_PULSE_PACE_µs      5000
 #define MAX_PULSE_PACE_µs     62500             // 16 Hz.
 
+enum BurstFlags {
+    BF_QUEUE_CHANGED  = 1 << 0,
+    BF_KEEP_LOAD_CONN = 1 << 7
+};
+
 typedef struct {
     uint32_t start_time_µs;
     uint8_t  elcon[2];
@@ -47,6 +52,7 @@ bool Burst_isValid(Burst const *);
 uint32_t Burst_duration_µs(Burst const *);
 uint8_t Burst_pulseWidth_µs(Burst const *);
 Burst *Burst_adjust(Burst *);
+bool Burst_keepLoadConnected(Burst const *);
 void Burst_applyDeltas(Burst *, Deltas const *);
 void Burst_print(Burst const *);
 

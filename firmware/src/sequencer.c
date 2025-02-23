@@ -167,7 +167,7 @@ static bool scheduleNextBurst(Sequencer *me)
 {
     Burst burst;
     bool ok = PtdQueue_getNextBurst(me->ptd_queue, &burst) && BSP_scheduleBurst(&burst);
-    if (burst.flags & QF_QUEUE_CHANGED) {
+    if (burst.flags & BF_QUEUE_CHANGED) {
         Sequencer_notifyPtQueue(me, NO_TRANS_ID);
     }
     return ok;

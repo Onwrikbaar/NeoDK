@@ -101,7 +101,7 @@ static void onButtonToggle(Boss *me, uint32_t pushed)
 
 static void onAppTimerTick(Boss *me, uint64_t app_timer_micros)
 {
-    if (app_timer_micros - me->prev_micros >= 15000000) {
+    if (Controller_heartbeatElapsed(me->controller, app_timer_micros - me->prev_micros)) {
         EventQueue_postEvent(&me->event_queue, ET_APP_HEARTBEAT, (uint8_t const *)&app_timer_micros, sizeof app_timer_micros);
         me->prev_micros = app_timer_micros;
     }

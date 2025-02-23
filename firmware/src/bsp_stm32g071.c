@@ -542,14 +542,19 @@ void TIM1_CC_IRQHandler(void)
         pulse_timer->SR &= ~TIM_SR_CC1IF;
         bsp.pulse_seqnr += 1;
         // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
+        // BSP_logf("CC1\n");
     }
     if ((pulse_timer->DIER & TIM_DIER_CC2IE) && (pulse_timer->SR & TIM_SR_CC2IF)) {
         pulse_timer->SR &= ~TIM_SR_CC2IF;
         bsp.pulse_seqnr += 1;
         // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
+        // BSP_logf("CC2\n");
     }
     if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-        LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
+        if (! Burst_keepLoadConnected(&bsp.burst)) {
+            // Disconnect from the electrodes by turning all triacs off.
+            LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
+        }
         // EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
     }
     if (pulse_timer->SR & 0xcffe0) {
@@ -562,8 +567,8 @@ void TIM1_CC_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
     if (seq_clock->SR & TIM_SR_CC1IF) {
-        // Briefly turn on all the triacs.
-        LL_GPIO_ResetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
+        // Briefly turn on all triacs to mitigate any 50 Hz interference.
+        // LL_GPIO_ResetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
         seq_clock->SR &= ~TIM_SR_CC1IF;         // Clear the interrupt.
         // BSP_logf("T2 at %u µs\n", seq_clock->CNT);
         setPrimaryVoltage(&bsp.burst);
@@ -658,7 +663,9 @@ void USART2_IRQHandler(void)
     if (USART2->ISR & USART_ISR_RXNE_RXFNE) {
         invokeSelector(&bsp.rx_sel, USART2->RDR);
     } else if (USART2->ISR & USART_ISR_TXE_TXFNF) {
-        bsp.tx_callback(bsp.tx_target, (uint8_t *)&USART2->TDR);
+        if (USART2->CR1 & USART_CR1_TXEIE_TXFNFIE) {
+            bsp.tx_callback(bsp.tx_target, (uint8_t *)&USART2->TDR);
+        }
     } else {
         spuriousIRQ(&bsp);
     }
@@ -706,7 +713,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.55-beta";
+    return "v0.56-beta";
 }
 
 
@@ -923,12 +930,12 @@ bool BSP_startBurst(Burst const *burst)
         pulse_timer->DIER |= TIM_DIER_CC2IE;
     } else return false;                        // We only have one output stage.
 
-    pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
     setSwitches(burst->elcon[0] | burst->elcon[1]);
+    pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
+    EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_STARTED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
     pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
-    EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_STARTED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
     return true;
 }
 
