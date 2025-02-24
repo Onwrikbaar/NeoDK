@@ -691,7 +691,7 @@ void assert_failed(uint8_t *filename, uint32_t line_nr)
     disableOutputStage();
     BSP_logf("%s(%s, %u)\n", __func__, filename, line_nr);
     // TODO Register the problem and then reboot.
-    while (1) {}
+    while (1) { /* Stay here */ }
 }
 
 /*
@@ -911,18 +911,16 @@ void BSP_resumeSequencerClock()
 }
 
 
-uint32_t BSP_getSequencerClock()
-{
-    return seq_clock->CNT;
-}
-
-
 bool BSP_scheduleBurst(Burst const *burst)
 {
     bsp.burst = *burst;
     seq_clock->CCR1 = bsp.burst.start_time_µs;
-    // setPrimaryVoltage(&bsp);
     // BSP_logf("SB(%hhu) d=%d µs\n", bsp.burst.phase, bsp.burst.start_time_µs - seq_clock->CNT);
+    uint32_t cnt = seq_clock->CNT;
+    if (cnt > seq_clock->CCR1 && seq_clock->CCR1 != 0) {
+        BSP_logf("%s CNT = %u CCR1 = %u\n", __func__, seq_clock->CNT, seq_clock->CCR1);
+        M_ASSERT(seq_clock->CNT < seq_clock->CCR1);
+    }
     return true;
 }
 
@@ -967,6 +965,14 @@ void BSP_close()
 void BSP_sleepMCU()
 {
     HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+}
+
+
+void BSP_assertionFailed(char const *filename, unsigned int line_number, char const *predicate)
+{
+    disableOutputStage();
+    BSP_logf("ASSERTION FAILED (%s : %u) %s\n", filename, line_number, predicate);
+    while (1) { /* Stay here. */ }
 }
 
 
