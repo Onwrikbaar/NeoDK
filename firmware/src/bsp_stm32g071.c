@@ -448,11 +448,25 @@ static uint16_t Vcap_mV_ToDacVal(uint16_t Vcap_mV)
 }
 
 
-static void setPrimaryVoltage(Burst const *burst)
+static void setPrimaryVoltage(BSP *me)
 {
-    if (bsp.burst.amplitude != 0) {             // 0 means do not change.
+    if (me->burst.amplitude != 0) {             // 0 means do not change.
         // Scale amplitude 0..255 to 0..8160 mV (for now).
-        BSP_setPrimaryVoltage_mV(bsp.burst.amplitude * 32);
+        BSP_setPrimaryVoltage_mV(me->burst.amplitude * 32);
+    }
+}
+
+
+static void kickOffBurst(BSP *me)
+{
+    setPrimaryVoltage(me);
+    Burst *burst = &me->burst;
+    if (Burst_pulseWidth_µs(burst) == 0) {
+        setSwitches(burst->elcon[0] | burst->elcon[1]);
+    } else {
+        me->pulse_seqnr = 0;
+        me->keep_load_connected = Burst_keepLoadConnected(burst);
+        BSP_startBurst(Burst_adjust(burst));
     }
 }
 
@@ -567,13 +581,10 @@ void TIM2_IRQHandler(void)
 {
     if (seq_clock->SR & TIM_SR_CC1IF) {
         // Briefly turn on all triacs to mitigate any 50 Hz interference.
-        // LL_GPIO_ResetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
+        LL_GPIO_ResetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
         seq_clock->SR &= ~TIM_SR_CC1IF;         // Clear the interrupt.
         // BSP_logf("T2 at %u µs\n", seq_clock->CNT);
-        setPrimaryVoltage(&bsp.burst);
-        bsp.pulse_seqnr = 0;
-        bsp.keep_load_connected = Burst_keepLoadConnected(&bsp.burst);
-        BSP_startBurst(Burst_adjust(&bsp.burst));
+        kickOffBurst(&bsp);
     } else {
         spuriousIRQ(&bsp);
     }
@@ -910,7 +921,7 @@ bool BSP_scheduleBurst(Burst const *burst)
 {
     bsp.burst = *burst;
     seq_clock->CCR1 = bsp.burst.start_time_µs;
-    // setPrimaryVoltage(&bsp.burst);
+    // setPrimaryVoltage(&bsp);
     // BSP_logf("SB(%hhu) d=%d µs\n", bsp.burst.phase, bsp.burst.start_time_µs - seq_clock->CNT);
     return true;
 }
