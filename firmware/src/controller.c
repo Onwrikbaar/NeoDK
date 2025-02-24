@@ -211,6 +211,14 @@ static void handleWriteRequest(Controller *me, AttributeAction const *aa)
                 EventQueue_postEvent((EventQueue *)me->sequencer, ET_QUEUE_PULSE_TRAIN, aa->data + 2, aa->data[1]);
             }
             break;
+        case AI_HEARTBEAT_INTERVAL_SECS:
+            if (aa->data[0] == EE_UNSIGNED_INT_2) {
+                uint16_t interval_secs = aa->data[1] | (aa->data[2] << 8);
+                if (interval_secs > 3600) interval_secs = 3600;
+                // BSP_logf("Setting heartbeat interval to %hu seconds\n", interval_secs);
+                me->heartbeat_interval_µs = interval_secs * 1000000UL;
+            }
+            break;
         default:
             BSP_logf("%s: unknown attribute id=%hu\n", __func__, aa->attribute_id);
             sendStatusResponse(me, aa, SC_UNSUPPORTED_ATTRIBUTE);

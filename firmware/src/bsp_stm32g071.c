@@ -95,6 +95,7 @@ typedef struct {
     uint16_t V_prim_mV;
     uint16_t volatile pulse_seqnr;
     Burst burst;
+    bool keep_load_connected;
     // Deltas deltas;
 } BSP;
 
@@ -542,17 +543,15 @@ void TIM1_CC_IRQHandler(void)
         pulse_timer->SR &= ~TIM_SR_CC1IF;
         bsp.pulse_seqnr += 1;
         // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
-        // BSP_logf("CC1\n");
     }
     if ((pulse_timer->DIER & TIM_DIER_CC2IE) && (pulse_timer->SR & TIM_SR_CC2IF)) {
         pulse_timer->SR &= ~TIM_SR_CC2IF;
         bsp.pulse_seqnr += 1;
         // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
-        // BSP_logf("CC2\n");
     }
     if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-        if (! Burst_keepLoadConnected(&bsp.burst)) {
-            // Disconnect from the electrodes by turning all triacs off.
+        if (! bsp.keep_load_connected) {
+            // Disconnect the output stage from the electrodes by turning all triacs off.
             LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
         }
         // EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
@@ -573,6 +572,7 @@ void TIM2_IRQHandler(void)
         // BSP_logf("T2 at %u µs\n", seq_clock->CNT);
         setPrimaryVoltage(&bsp.burst);
         bsp.pulse_seqnr = 0;
+        bsp.keep_load_connected = Burst_keepLoadConnected(&bsp.burst);
         BSP_startBurst(Burst_adjust(&bsp.burst));
     } else {
         spuriousIRQ(&bsp);
