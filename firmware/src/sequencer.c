@@ -156,6 +156,7 @@ static bool scheduleFirstBurst(Sequencer *me)
     Burst burst;
     bool ok = PtdQueue_getNextBurst(me->ptd_queue, &burst);
     if (ok) {
+        BSP_setElectrodeConfiguration(burst.elcon);
         BSP_startSequencerClock(burst.start_time_µs - 40);
         ok = BSP_scheduleBurst(&burst);
     }
@@ -221,6 +222,9 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
             if (me->play_state == PS_PAUSED) resumeStream(me);
             else if (me->play_state == PS_PLAYING) pauseStream(me);
             break;
+        case ET_BAD_BURST:
+            Burst_print((Burst const*)AOEvent_data(evt));
+            // Fall through.
         case ET_STOP_STREAM:
             return &stateIdle;                  // Transition.
         case ET_BURST_STARTED:

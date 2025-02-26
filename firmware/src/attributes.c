@@ -81,7 +81,7 @@ void Attribute_changed(AttributeId ai, TransactionId trans_id, ElementEncoding e
     if (sub->times_left == 1) {                 // Subscription expired?
         // BSP_logf("Cancelling subscription for id=%hu\n", sub->ai);
         *sub = subscriptions[--nr_of_subs];     // Cancel it.
-    } else if (sub->times_left != 0) {
+    } else if (sub->times_left) {
         sub->times_left -= 1;
     }
 }

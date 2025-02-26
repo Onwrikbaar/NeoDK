@@ -69,6 +69,7 @@ static uint8_t getPhase(uint8_t const elcon[2])
 static bool startBurst(Burst const *burst, Deltas const *deltas)
 {
     if (Burst_isValid(burst)) {
+        BSP_setElectrodeConfiguration(burst->elcon);
         return BSP_startBurst(burst);
     }
 

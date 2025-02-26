@@ -37,6 +37,7 @@ int BSP_closeSerialPort(int fd);
 // Pulse generation related functions.
 uint16_t BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV);
 void BSP_primaryVoltageEnable(bool must_be_on);
+void BSP_setElectrodeConfiguration(uint8_t const [2]);
 void BSP_startSequencerClock(uint32_t time_µs);
 void BSP_stopSequencerClock(void);
 void BSP_resumeSequencerClock(void);

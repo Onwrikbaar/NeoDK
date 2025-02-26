@@ -10,17 +10,24 @@
  *   Copyright  2025 Neostim™
  */
 
+#include <string.h>
 #include "bsp_dbg.h"
 
 // This module implements:
 #include "burst.h"
 
 
+void Burst_clear(Burst *me)
+{
+    memset(me, 0, sizeof(Burst));
+}
+
+
 bool Burst_isValid(Burst const *me)
 {
-    // Pulse repetition rate must be in [16..200] Hz.
-    if (me->pace_µs < (MIN_PULSE_PACE_µs)) return false;         
-    if (me->pace_µs > (MAX_PULSE_PACE_µs)) return false;
+    // Pulse repetition rate must be in range [16..200] Hz.
+    // if (me->pace_µs < MIN_PULSE_PACE_µs) return false;
+    if (me->pace_µs > MAX_PULSE_PACE_µs) return false;
     if (me->pulse_width_¼µs < MIN_PULSE_WIDTH_¼µs) return false;
     if (me->nr_of_pulses == 0) return false;
     return true;
@@ -50,12 +57,6 @@ Burst *Burst_adjust(Burst *me)
 }
 
 
-bool Burst_keepLoadConnected(Burst const *me)
-{
-    return (me->flags & BF_KEEP_LOAD_CONN) != 0;
-}
-
-
 void Burst_applyDeltas(Burst *me, Deltas const *deltas)
 {
     int32_t new_pw = me->pulse_width_¼µs + deltas->delta_width_¼µs;
@@ -72,7 +73,7 @@ void Burst_applyDeltas(Burst *me, Deltas const *deltas)
 
 void Burst_print(Burst const *me)
 {
-    BSP_logf("Burst: t=%u µs, ec=0x%x<>0x%x, phase=%c, np=%hu, pace=%hu µs, amp=%hhu, pw=%hhu µs\n",
+    BSP_logf("burst: t=%u µs, ec=0x%x<>0x%x, phase=%c, np=%hu, pace=%hu µs, amp=%hhu, pw=%hhu µs\n",
             me->start_time_µs, me->elcon[0], me->elcon[1], '0' + me->phase,
             me->nr_of_pulses, me->pace_µs, me->amplitude, Burst_pulseWidth_µs(me));
 }

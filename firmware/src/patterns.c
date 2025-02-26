@@ -107,7 +107,7 @@ static PatternDescr const pattern_descriptors[] =
         .name = "Toggle",
         .pattern = pattern_toggle,
         .nr_of_elcons = M_DIM(pattern_toggle),
-        .pace_µs = 50000,
+        .pace_µs = 25000,
         .nr_of_steps = 5,
         .nr_of_reps = 300,
     },

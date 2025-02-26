@@ -16,15 +16,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MIN_PULSE_WIDTH_¼µs       6
-#define MAX_PULSE_WIDTH_¼µs     800
+#define MIN_PULSE_WIDTH_¼µs     (  2 * 4)
+#define BASE_PULSE_WIDTH_¼µs    ( 50 * 4)
+#define HIGH_PULSE_WIDTH_¼µs    (150 * 4)
+#define MAX_PULSE_WIDTH_¼µs     (200 * 4)
+#define MIN_DEAD_TIME_¼µs       ( 40 * 4)
 
 #define MIN_PULSE_PACE_µs      5000
 #define MAX_PULSE_PACE_µs     62500             // 16 Hz.
 
 enum BurstFlags {
     BF_QUEUE_CHANGED  = 1 << 0,
-    BF_KEEP_LOAD_CONN = 1 << 7
 };
 
 typedef struct {
@@ -48,11 +50,11 @@ typedef struct {
 extern "C" {
 #endif
 
+void Burst_clear(Burst *);
 bool Burst_isValid(Burst const *);
 uint32_t Burst_duration_µs(Burst const *);
 uint8_t Burst_pulseWidth_µs(Burst const *);
 Burst *Burst_adjust(Burst *);
-bool Burst_keepLoadConnected(Burst const *);
 void Burst_applyDeltas(Burst *, Deltas const *);
 void Burst_print(Burst const *);
 

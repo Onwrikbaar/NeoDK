@@ -114,7 +114,6 @@ Burst const *PulseTrain_getBurst(PulseTrain const *me, Burst *burst)
     burst->pulse_width_¼µs = me->pulse_width_µs * 4;
     burst->nr_of_pulses = me->nr_of_pulses;
     burst->amplitude = me->amplitude;
-    burst->flags = me->phase & BF_KEEP_LOAD_CONN;
     return burst;
 }
 

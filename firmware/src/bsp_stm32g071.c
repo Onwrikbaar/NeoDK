@@ -82,7 +82,7 @@ typedef struct {
     void *app_timer_target;
     uint32_t clock_ticks_per_app_timer_tick;
     Selector button_sel;
-    EventQueue *pulse_delegate;
+    EventQueue *delegate;
     Selector rx_sel;
     Selector rx_err_sel;
     void (*tx_callback)(void *, uint8_t *);
@@ -94,9 +94,8 @@ typedef struct {
     uint16_t volatile adc_1_samples[3];         // Must match the number of ADC1 ranks.
     uint16_t V_prim_mV;
     uint16_t volatile pulse_seqnr;
-    Burst burst;
-    bool keep_load_connected;
-    // Deltas deltas;
+    Burst next_burst;
+    // Deltas next_deltas;
 } BSP;
 
 // The interrupt request priorities, from high to low.
@@ -450,24 +449,26 @@ static uint16_t Vcap_mV_ToDacVal(uint16_t Vcap_mV)
 
 static void setPrimaryVoltage(BSP *me)
 {
-    if (me->burst.amplitude != 0) {             // 0 means do not change.
+    if (me->next_burst.amplitude != 0) {        // 0 means do not change.
         // Scale amplitude 0..255 to 0..8160 mV (for now).
-        BSP_setPrimaryVoltage_mV(me->burst.amplitude * 32);
+        BSP_setPrimaryVoltage_mV(me->next_burst.amplitude * 32);
     }
 }
 
 
-static void kickOffBurst(BSP *me)
+static bool kickOffBurst(BSP *me)
 {
-    setPrimaryVoltage(me);
-    Burst *burst = &me->burst;
-    if (Burst_pulseWidth_µs(burst) == 0) {
-        setSwitches(burst->elcon[0] | burst->elcon[1]);
-    } else {
-        me->pulse_seqnr = 0;
-        me->keep_load_connected = Burst_keepLoadConnected(burst);
-        BSP_startBurst(Burst_adjust(burst));
+    Burst *burst = &me->next_burst;
+    if (Burst_isValid(burst)) {
+        setPrimaryVoltage(me);
+        if ((pulse_timer->CR1 & TIM_CR1_CEN) == 0) {
+            me->pulse_seqnr = 0;
+            return BSP_startBurst(Burst_adjust(burst));
+        }
+        BSP_logf("Timer busy at t=%u µs\n", seq_clock->CNT);
     }
+    EventQueue_postEvent(bsp.delegate, ET_BAD_BURST, (uint8_t const *)burst, sizeof(Burst));
+    return false;
 }
 
 
@@ -543,7 +544,7 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
         pulse_timer->SR &= ~(TIM_SR_UIF | TIM_SR_CC1IF | TIM_SR_CC2IF);
         LL_GPIO_ResetOutputPin(LED_GPIO_PORT, LED_1_PIN);
         // BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
-        EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_EXPIRED, NULL, 0);
+        EventQueue_postEvent(bsp.delegate, ET_BURST_EXPIRED, NULL, 0);
     } else {
         BSP_logf("Pt SR=0x%x\n", __func__, pulse_timer->SR);
         // spuriousIRQ(&bsp);
@@ -556,22 +557,20 @@ void TIM1_CC_IRQHandler(void)
     if ((pulse_timer->DIER & TIM_DIER_CC1IE) && (pulse_timer->SR & TIM_SR_CC1IF)) {
         pulse_timer->SR &= ~TIM_SR_CC1IF;
         bsp.pulse_seqnr += 1;
-        // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
+        // Burst_applyDeltas(&bsp.next_burst, &bsp.deltas);
     }
     if ((pulse_timer->DIER & TIM_DIER_CC2IE) && (pulse_timer->SR & TIM_SR_CC2IF)) {
         pulse_timer->SR &= ~TIM_SR_CC2IF;
         bsp.pulse_seqnr += 1;
-        // Burst_applyDeltas(&bsp.burst, &bsp.deltas);
+        // Burst_applyDeltas(&bsp.next_burst, &bsp.deltas);
     }
+    pulse_timer->SR &= ~(TIM_SR_CC6IF | TIM_SR_CC5IF | TIM_SR_CC4IF | TIM_SR_CC3IF);
     if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-        if (! bsp.keep_load_connected) {
-            // Disconnect the output stage from the electrodes by turning all triacs off.
-            LL_GPIO_SetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
-        }
-        // EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_COMPLETED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
+        setSwitches(bsp.next_burst.elcon[0] | bsp.next_burst.elcon[1]);
+        // EventQueue_postEvent(bsp.delegate, ET_BURST_COMPLETED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
     }
-    if (pulse_timer->SR & 0xcffe0) {
-        BSP_logf("Pt SR=0x%x\n", pulse_timer->SR & 0xcffe0);
+    if (pulse_timer->SR & ~(TIM_SR_CC2IF | TIM_SR_CC1IF | TIM_SR_UIF)) {
+        BSP_logf("PT SR=0x%x\n", pulse_timer->SR);
         spuriousIRQ(&bsp);
     }
 }
@@ -580,11 +579,10 @@ void TIM1_CC_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
     if (seq_clock->SR & TIM_SR_CC1IF) {
-        // Briefly turn on all triacs to mitigate any 50 Hz interference.
-        LL_GPIO_ResetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
         seq_clock->SR &= ~TIM_SR_CC1IF;         // Clear the interrupt.
-        // BSP_logf("T2 at %u µs\n", seq_clock->CNT);
+        // BSP_logf("TIM2 at %u µs\n", seq_clock->CNT);
         kickOffBurst(&bsp);
+        Burst_clear(&bsp.next_burst);
     } else {
         spuriousIRQ(&bsp);
     }
@@ -657,7 +655,7 @@ void DMA1_Channel1_IRQHandler(void)
 {
     if (DMA1->ISR & DMA_ISR_TCIF1) {
         DMA1->IFCR = DMA_IFCR_CTCIF1;           // Clear transfer complete flag.
-        EventQueue_postEvent(bsp.pulse_delegate, ET_ADC_DATA_AVAILABLE, (uint8_t const *)bsp.adc_1_samples, sizeof bsp.adc_1_samples);
+        EventQueue_postEvent(bsp.delegate, ET_ADC_DATA_AVAILABLE, (uint8_t const *)bsp.adc_1_samples, sizeof bsp.adc_1_samples);
     } else if (DMA1->ISR & DMA_ISR_TEIF1) {
         DMA1->IFCR = DMA_IFCR_CTEIF1;           // Clear transfer error flag.
         BSP_logf("%s, TEIF1\n", __func__);
@@ -686,12 +684,9 @@ void USART2_IRQHandler(void)
  * Support for STM32Cube LL drivers.
  */
 
-void assert_failed(uint8_t *filename, uint32_t line_nr)
+void assert_failed(char const *filename, uint32_t line_nr)
 {
-    disableOutputStage();
-    BSP_logf("%s(%s, %u)\n", __func__, filename, line_nr);
-    // TODO Register the problem and then reboot.
-    while (1) { /* Stay here */ }
+    BSP_assertionFailed(filename, line_nr, "STM LL");
 }
 
 /*
@@ -724,7 +719,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.56-beta";
+    return "v0.57-beta";
 }
 
 
@@ -784,9 +779,9 @@ void BSP_registerAppTimerHandler(void (*handler)(void *, uint64_t), void *target
 }
 
 
-void BSP_registerPulseDelegate(EventQueue *pdq)
+void BSP_registerPulseDelegate(EventQueue *dq)
 {
-    bsp.pulse_delegate = pdq;
+    bsp.delegate = dq;
     initPulseTimer();
     initSequencerClock();
 }
@@ -879,6 +874,13 @@ void BSP_primaryVoltageEnable(bool must_be_on)
 }
 
 
+void BSP_setElectrodeConfiguration(uint8_t const elcon[2])
+{
+    // BSP_logf("%s {0x%hhx, 0x%hhx}\n", __func__, elcon[0], elcon[1]);
+    setSwitches(elcon[0] | elcon[1]);
+}
+
+
 uint16_t BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
 {
     bsp.V_prim_mV = V_prim_mV;
@@ -913,14 +915,15 @@ void BSP_resumeSequencerClock()
 
 bool BSP_scheduleBurst(Burst const *burst)
 {
-    bsp.burst = *burst;
-    seq_clock->CCR1 = bsp.burst.start_time_µs;
-    // BSP_logf("SB(%hhu) d=%d µs\n", bsp.burst.phase, bsp.burst.start_time_µs - seq_clock->CNT);
-    uint32_t cnt = seq_clock->CNT;
-    if (cnt > seq_clock->CCR1 && seq_clock->CCR1 != 0) {
-        BSP_logf("%s CNT = %u CCR1 = %u\n", __func__, seq_clock->CNT, seq_clock->CCR1);
-        M_ASSERT(seq_clock->CNT < seq_clock->CCR1);
+    int32_t sc_cnt = seq_clock->CNT;
+    if (sc_cnt > (int32_t)burst->start_time_µs) {
+        BSP_logf("%s CNT=%d, CCR1=%u\n", __func__, sc_cnt, burst->start_time_µs);
+        EventQueue_postEvent(bsp.delegate, ET_BAD_BURST, (uint8_t const *)burst, sizeof(Burst));
+        return false;
     }
+
+    bsp.next_burst = *burst;
+    seq_clock->CCR1 = bsp.next_burst.start_time_µs;
     return true;
 }
 
@@ -939,9 +942,8 @@ bool BSP_startBurst(Burst const *burst)
         pulse_timer->DIER |= TIM_DIER_CC2IE;
     } else return false;                        // We only have one output stage.
 
-    setSwitches(burst->elcon[0] | burst->elcon[1]);
     pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
-    EventQueue_postEvent(bsp.pulse_delegate, ET_BURST_STARTED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
+    EventQueue_postEvent(bsp.delegate, ET_BURST_STARTED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
     pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
@@ -972,6 +974,7 @@ void BSP_assertionFailed(char const *filename, unsigned int line_number, char co
 {
     disableOutputStage();
     BSP_logf("ASSERTION FAILED (%s : %u) %s\n", filename, line_number, predicate);
+    // TODO Register the problem and then reboot.
     while (1) { /* Stay here. */ }
 }
 
