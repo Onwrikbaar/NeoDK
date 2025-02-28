@@ -1,5 +1,16 @@
 {
     "files.associations": {
-        "matter.h": "c"
+        "matter.h": "c",
+        "pulse_train.h": "c",
+        "burst.h": "c",
+        "array": "c",
+        "iterator": "c",
+        "string": "c",
+        "string_view": "c",
+        "vector": "c",
+        "pattern_iter.h": "c",
+        "ptd_queue.h": "c",
+        "bsp_dbg.h": "c",
+        "pt_factory.h": "c"
     }
 }
