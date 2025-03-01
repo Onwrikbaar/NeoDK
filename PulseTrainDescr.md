@@ -1,8 +1,8 @@
 # The Pulse Train Descriptor
 ## Purpose
-Pulse train descriptors are a means to efficiently stream in real time electrostimulation patterns from a phone or computer to a power box. A pulse train descriptor specifies the electrode configuration, polarity, timing, and intensity of a sequence of pulses.
+Pulse train descriptors are a means to efficiently stream in real time electrostimulation patterns from a phone or computer to a power box. A pulse train descriptor specifies the output stage, polarity, electrode configuration, timing, and intensity of a sequence of pulses.
 ## Structure
-A pulse train descriptor consists of up to 11 members, for a total of up to 16 bytes. Multi-byte members are stored little-Endian.
+A pulse train descriptor consists of up to 11 members, occupying up to 16 bytes. Multi-byte members are stored little-Endian.
 ```
     uint8_t  meta;                  // Type, version, flags, etc., for correct interpretation of this descriptor.
     uint8_t  sequence_number;       // For diagnostics. Wraps around to 0 after 255.
@@ -28,8 +28,8 @@ A pulse train descriptor consists of up to 11 members, for a total of up to 16 b
 - `meta` must be set to 0x00, for now.
 - Bits 7..3 of `phase` are reserved for future use.
 ## Example: generating TENS-style pulses
-1. Send a pulse train, followed by the same pulse train time-shifted and with opposite phase.
-Pt 1: t=  0 µs, ec=0x5<>0xa, phase=0, np=50, pace=80 ¼ms, amp=0, pw=130 µs, Δ=0 ¼µs
-Pt 2: t=180 µs, ec=0x5<>0xa, phase=1, np=50, pace=80 ¼ms, amp=0, pw=130 µs, Δ=0 ¼µs
+1. Send a pulse train, followed by the same pulse train time-shifted and with opposite phase.<br/>
+Pt 1: t=  0 µs, ec=0x5<>0xa, phase=0, np=50, pace=80 ¼ms, amp=0, pw=130 µs, Δ=0 ¼µs<br/>
+Pt 2: t=180 µs, ec=0x5<>0xa, phase=1, np=50, pace=80 ¼ms, amp=0, pw=130 µs, Δ=0 ¼µs<br/>
 The time shift needs to be at least the pulse width plus the minimum dead time.
-2. Send the command to execute the received pulse trains. This implies that the firmware is able to buffer several pulse train descriptors.
+2. Send the command to execute the received pulse trains. This implies that the firmware be able to buffer several pulse train descriptors.

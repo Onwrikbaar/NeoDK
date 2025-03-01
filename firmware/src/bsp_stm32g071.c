@@ -96,6 +96,7 @@ typedef struct {
     uint16_t volatile pulse_seqnr;
     Burst next_burst;
     // Deltas next_deltas;
+    uint8_t volatile switches_are_set;
 } BSP;
 
 // The interrupt request priorities, from high to low.
@@ -450,8 +451,8 @@ static uint16_t Vcap_mV_ToDacVal(uint16_t Vcap_mV)
 static void setPrimaryVoltage(BSP *me)
 {
     if (me->next_burst.amplitude != 0) {        // 0 means do not change.
-        // Scale amplitude 0..255 to 0..8160 mV (for now).
-        BSP_setPrimaryVoltage_mV(me->next_burst.amplitude * 32);
+        // Scale amplitude 0..255 to 0..10200 mV (for now).
+        BSP_setPrimaryVoltage_mV(me->next_burst.amplitude * 40);
     }
 }
 
@@ -463,12 +464,25 @@ static bool kickOffBurst(BSP *me)
         setPrimaryVoltage(me);
         if ((pulse_timer->CR1 & TIM_CR1_CEN) == 0) {
             me->pulse_seqnr = 0;
-            return BSP_startBurst(Burst_adjust(burst));
+            return BSP_startBurst(Burst_adjust(burst, 20));
         }
         BSP_logf("Timer busy at t=%u µs\n", seq_clock->CNT);
     }
     EventQueue_postEvent(bsp.delegate, ET_BAD_BURST, (uint8_t const *)burst, sizeof(Burst));
     return false;
+}
+
+
+static void onePulseDone(BSP *me)
+{
+    if (me->pulse_seqnr++ == pulse_timer->RCR) {
+        if (me->switches_are_set) {
+            me->switches_are_set = false;
+        } else {
+            setSwitches(me->next_burst.elcon[0] | me->next_burst.elcon[1]);
+        }
+    }
+    // Burst_applyDeltas(&me->next_burst, &me->deltas);
 }
 
 
@@ -556,19 +570,13 @@ void TIM1_CC_IRQHandler(void)
 {
     if ((pulse_timer->DIER & TIM_DIER_CC1IE) && (pulse_timer->SR & TIM_SR_CC1IF)) {
         pulse_timer->SR &= ~TIM_SR_CC1IF;
-        bsp.pulse_seqnr += 1;
-        // Burst_applyDeltas(&bsp.next_burst, &bsp.deltas);
+        onePulseDone(&bsp);
     }
     if ((pulse_timer->DIER & TIM_DIER_CC2IE) && (pulse_timer->SR & TIM_SR_CC2IF)) {
         pulse_timer->SR &= ~TIM_SR_CC2IF;
-        bsp.pulse_seqnr += 1;
-        // Burst_applyDeltas(&bsp.next_burst, &bsp.deltas);
+        onePulseDone(&bsp);
     }
     pulse_timer->SR &= ~(TIM_SR_CC6IF | TIM_SR_CC5IF | TIM_SR_CC4IF | TIM_SR_CC3IF);
-    if (bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-        setSwitches(bsp.next_burst.elcon[0] | bsp.next_burst.elcon[1]);
-        // EventQueue_postEvent(bsp.delegate, ET_BURST_COMPLETED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
-    }
     if (pulse_timer->SR & ~(TIM_SR_CC2IF | TIM_SR_CC1IF | TIM_SR_UIF)) {
         BSP_logf("PT SR=0x%x\n", pulse_timer->SR);
         spuriousIRQ(&bsp);
@@ -719,7 +727,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.57-beta";
+    return "v0.58-beta";
 }
 
 
@@ -876,7 +884,7 @@ void BSP_primaryVoltageEnable(bool must_be_on)
 
 void BSP_setElectrodeConfiguration(uint8_t const elcon[2])
 {
-    // BSP_logf("%s {0x%hhx, 0x%hhx}\n", __func__, elcon[0], elcon[1]);
+    bsp.switches_are_set = true;                // Set first to prevent race.
     setSwitches(elcon[0] | elcon[1]);
 }
 
@@ -915,16 +923,20 @@ void BSP_resumeSequencerClock()
 
 bool BSP_scheduleBurst(Burst const *burst)
 {
-    int32_t sc_cnt = seq_clock->CNT;
-    if (sc_cnt > (int32_t)burst->start_time_µs) {
-        BSP_logf("%s CNT=%d, CCR1=%u\n", __func__, sc_cnt, burst->start_time_µs);
-        EventQueue_postEvent(bsp.delegate, ET_BAD_BURST, (uint8_t const *)burst, sizeof(Burst));
-        return false;
+    // Accept the burst only if there is enough time ('do less sooner').
+    // Minimum margin yet to be determined; trying 20 µs.
+    if ((int32_t)seq_clock->CNT < (int32_t)burst->start_time_µs - 20) {
+        bsp.next_burst = *burst;
+        if (/*(pulse_timer->CR1 & TIM_CR1_CEN) == 0 || */bsp.pulse_seqnr == pulse_timer->RCR + 1) {
+            BSP_setElectrodeConfiguration(burst->elcon);
+        }
+        seq_clock->CCR1 = burst->start_time_µs;
+        return true;
     }
 
-    bsp.next_burst = *burst;
-    seq_clock->CCR1 = bsp.next_burst.start_time_µs;
-    return true;
+    BSP_logf("%s clock=%d, t=%d\n", __func__, seq_clock->CNT, burst->start_time_µs);
+    EventQueue_postEvent(bsp.delegate, ET_BAD_BURST, (uint8_t const *)burst, sizeof(Burst));
+    return false;
 }
 
 

@@ -20,7 +20,7 @@
 #include "pulse_train.h"
 
 /**
- * This 16-byte structure specifies a pulse train's polarity, intensity, timing and electrode configuration.
+ * This 16-byte structure specifies a pulse train's output stage, polarity, electrode configuration, timing and intensity.
  * Multi-byte members are little-Endian.
  */
 struct _PulseTrain {
@@ -33,8 +33,8 @@ struct _PulseTrain {
     uint16_t nr_of_pulses;          // Length of this burst.
     uint8_t  pace_¼ms;              // [0.25 ms] time between the start of consecutive pulses.
     uint8_t  amplitude;             // Voltage, current or power, in units of 1/255 of the set maximum.
-    // The following two members [-128..127] are applied after each pulse.
-    int8_t   delta_pulse_width_¼µs; // [0.25 µs]. Changes the duration of a pulse.
+    // The following members [-128..127] are applied after each pulse of this train.
+    int8_t   delta_pulse_width_¼µs; // [0.25 µs]. Changes the duration of the pulses.
     int8_t   delta_pace_µs;         // [µs]. Modifies the time between pulses.
 //  int8_t   delta_amplitude;       // Under consideration.
 };
@@ -76,7 +76,7 @@ PulseTrain *PulseTrain_init(PulseTrain *me, uint8_t seq_nr, uint32_t timestamp, 
 bool PulseTrain_isValid(PulseTrain const *me, uint16_t sz)
 {
     // TODO More checks.
-    return sz >= 14 && sz <= sizeof(PulseTrain);
+    return sz >= 10 && sz <= sizeof(PulseTrain) && me->meta == 0x00;
 }
 
 

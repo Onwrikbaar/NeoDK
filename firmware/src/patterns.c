@@ -35,7 +35,9 @@ static uint8_t const pattern_jackhammer[][2] =
 static uint8_t const pattern_toggle[][2] =
 {
     {EL_A, EL_B},
+    {EL_A, EL_B},
     {EL_C, EL_D},
+    {EL_B, EL_A},
     {EL_B, EL_A},
     {EL_D, EL_C},
 };

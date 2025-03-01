@@ -47,11 +47,11 @@ uint8_t Burst_pulseWidth_µs(Burst const *me)
 }
 
 
-Burst *Burst_adjust(Burst *me)
+Burst *Burst_adjust(Burst *me, uint16_t margin_µs)
 {
     // Prevent timing troubles with the last (or only) pulse of the burst.
     if (me->nr_of_pulses == 1) {
-        me->pace_µs = Burst_pulseWidth_µs(me) + 20;
+        me->pace_µs = Burst_pulseWidth_µs(me) + margin_µs;
     }
     return me;
 }

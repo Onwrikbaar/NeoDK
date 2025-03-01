@@ -138,9 +138,6 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
         case ET_SET_INTENSITY:
             setIntensityPercentage(me, *AOEvent_data(evt));
             break;
-        case ET_BURST_COMPLETED:
-            // BSP_logf("Last pulse done\n");
-            break;
         case ET_UNKNOWN_COMMAND:
             BSP_logf("Unknown command\n");
             break;
@@ -229,9 +226,6 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
             return &stateIdle;                  // Transition.
         case ET_BURST_STARTED:
             me->stream_busy = scheduleNextBurst(me);
-            break;
-        case ET_BURST_COMPLETED:
-            // BSP_logf("Burst done at %u µs\n", (uint32_t const *)AOEvent_data(evt));
             break;
         case ET_BURST_EXPIRED:
             if (me->stream_busy) break;

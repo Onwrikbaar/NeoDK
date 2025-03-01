@@ -66,7 +66,7 @@ static uint8_t getPhase(uint8_t const elcon[2])
 }
 
 
-static bool startBurst(Burst const *burst, Deltas const *deltas)
+static bool startBurst(Burst const *burst)
 {
     if (Burst_isValid(burst)) {
         BSP_setElectrodeConfiguration(burst->elcon);
@@ -111,8 +111,7 @@ bool PatternIterator_scheduleNextBurst(PatternIterator *me)
         // BSP_logf("Pulse width is %hu µs\n", Burst_pulseWidth_µs(&burst));
         burst.phase = getPhase(burst.elcon);
         // TODO Set burst.amplitude?
-        Deltas deltas = {0};
-        return startBurst(&burst, &deltas);
+        return startBurst(&burst);
     }
 
     return false;
