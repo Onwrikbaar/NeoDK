@@ -68,6 +68,7 @@
 #define LED_GPIO_PORT           GPIOC
 #define LED_1_PIN               LL_GPIO_PIN_6   // The on-board LED.
 
+#define ALL_TRIACS_OFF          0x00
 
 // #define ADC_TIMER_FREQ_Hz        100000UL
 #define SEQUENCER_CLOCK_FREQ_Hz 1000000UL
@@ -94,9 +95,9 @@ typedef struct {
     uint16_t volatile adc_1_samples[3];         // Must match the number of ADC1 ranks.
     uint16_t V_prim_mV;
     uint16_t volatile pulse_seqnr;
-    Burst next_burst;
+    Burst volatile next_burst;
     // Deltas next_deltas;
-    uint8_t volatile switches_are_set;
+    uint8_t volatile elcon_available;
 } BSP;
 
 // The interrupt request priorities, from high to low.
@@ -258,7 +259,6 @@ static void initAppTimer()
 static void initSequencerClock()
 {
     seq_clock->PSC = SystemCoreClock / SEQUENCER_CLOCK_FREQ_Hz - 1;
-    // BSP_logf("%s: PSC=%u\n", __func__, seq_clock->PSC);
     seq_clock->CCMR1 |= TIM_CCMR1_OC1M_0;
     seq_clock->DIER |= TIM_DIER_CC1IE;          // Interrupt on match with compare register.
     seq_clock->EGR |= TIM_EGR_UG;               // Force update of the shadow registers.
@@ -269,7 +269,6 @@ static void initSequencerClock()
 static void initPulseTimer()
 {
     pulse_timer->PSC = SystemCoreClock / PULSE_TIMER_FREQ_Hz - 1;
-    // BSP_logf("%s: PSC=%u\n", __func__, pulse_timer->PSC);
     // PWM mode 1 for timer channels 1 and 2, enable preload.
     pulse_timer->CCMR1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1PE
                        | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2PE;
@@ -302,7 +301,6 @@ static void initDAC()
 
 static void initADC1()
 {
-    // BSP_logf("%s\n", __func__);
     LL_ADC_InitTypeDef gis = {
         // .Clock = LL_ADC_CLOCK_SYNC_PCLK_DIV4,
         .Resolution    = LL_ADC_RESOLUTION_12B,
@@ -457,9 +455,20 @@ static void setPrimaryVoltage(BSP *me)
 }
 
 
+static void setConfigAndClock(BSP *me)
+{
+    if (me->pulse_seqnr == pulse_timer->RCR + 1) {
+        BSP_setElectrodeConfiguration((uint8_t const *)me->next_burst.elcon);
+    } else {
+        me->elcon_available = true;
+    }
+    seq_clock->CCR1 = me->next_burst.start_time_µs;
+}
+
+
 static bool kickOffBurst(BSP *me)
 {
-    Burst *burst = &me->next_burst;
+    Burst *burst = (Burst *)&me->next_burst;
     if (Burst_isValid(burst)) {
         setPrimaryVoltage(me);
         if ((pulse_timer->CR1 & TIM_CR1_CEN) == 0) {
@@ -475,12 +484,9 @@ static bool kickOffBurst(BSP *me)
 
 static void onePulseDone(BSP *me)
 {
-    if (me->pulse_seqnr++ == pulse_timer->RCR) {
-        if (me->switches_are_set) {
-            me->switches_are_set = false;
-        } else {
-            setSwitches(me->next_burst.elcon[0] | me->next_burst.elcon[1]);
-        }
+    if (me->pulse_seqnr++ == pulse_timer->RCR && me->elcon_available) {
+        BSP_setElectrodeConfiguration((uint8_t const *)me->next_burst.elcon);
+        me->elcon_available = false;
     }
     // Burst_applyDeltas(&me->next_burst, &me->deltas);
 }
@@ -560,7 +566,7 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
         // BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
         EventQueue_postEvent(bsp.delegate, ET_BURST_EXPIRED, NULL, 0);
     } else {
-        BSP_logf("Pt SR=0x%x\n", __func__, pulse_timer->SR);
+        BSP_logf("PT SR=0x%x\n", __func__, pulse_timer->SR);
         // spuriousIRQ(&bsp);
     }
 }
@@ -590,7 +596,6 @@ void TIM2_IRQHandler(void)
         seq_clock->SR &= ~TIM_SR_CC1IF;         // Clear the interrupt.
         // BSP_logf("TIM2 at %u µs\n", seq_clock->CNT);
         kickOffBurst(&bsp);
-        Burst_clear(&bsp.next_burst);
     } else {
         spuriousIRQ(&bsp);
     }
@@ -727,7 +732,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.58-beta";
+    return "v0.59-beta";
 }
 
 
@@ -779,7 +784,7 @@ uint64_t BSP_microsecondsSinceBoot()
 
 void BSP_registerAppTimerHandler(void (*handler)(void *, uint64_t), void *target, uint32_t microseconds_per_app_timer_tick)
 {
-    BSP_logf("%s\n", __func__);
+    // BSP_logf("%s\n", __func__);
     bsp.app_timer_handler = handler;
     bsp.app_timer_target  = target;
     bsp.clock_ticks_per_app_timer_tick = microseconds_per_app_timer_tick * TICKS_PER_MICROSECOND;
@@ -884,7 +889,6 @@ void BSP_primaryVoltageEnable(bool must_be_on)
 
 void BSP_setElectrodeConfiguration(uint8_t const elcon[2])
 {
-    bsp.switches_are_set = true;                // Set first to prevent race.
     setSwitches(elcon[0] | elcon[1]);
 }
 
@@ -911,12 +915,14 @@ void BSP_stopSequencerClock()
 {
     BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
     seq_clock->CR1 &= ~TIM_CR1_CEN;             // Disable the counter.
+    setSwitches(ALL_TRIACS_OFF);
 }
 
 
 void BSP_resumeSequencerClock()
 {
     BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
+    BSP_setElectrodeConfiguration((uint8_t const *)bsp.next_burst.elcon);
     seq_clock->CR1 |= TIM_CR1_CEN;              // Enable the counter.
 }
 
@@ -925,14 +931,15 @@ bool BSP_scheduleBurst(Burst const *burst)
 {
     // Accept the burst only if there is enough time ('do less sooner').
     // Minimum margin yet to be determined; trying 20 µs.
+    BSP_criticalSectionEnter();
     if ((int32_t)seq_clock->CNT < (int32_t)burst->start_time_µs - 20) {
-        bsp.next_burst = *burst;
-        if (/*(pulse_timer->CR1 & TIM_CR1_CEN) == 0 || */bsp.pulse_seqnr == pulse_timer->RCR + 1) {
-            BSP_setElectrodeConfiguration(burst->elcon);
-        }
-        seq_clock->CCR1 = burst->start_time_µs;
+        bsp.next_burst = *burst;                // Copy.
+        __DSB();                                // Probably not needed.
+        setConfigAndClock(&bsp);
+        BSP_criticalSectionExit();
         return true;
     }
+    BSP_criticalSectionExit();
 
     BSP_logf("%s clock=%d, t=%d\n", __func__, seq_clock->CNT, burst->start_time_µs);
     EventQueue_postEvent(bsp.delegate, ET_BAD_BURST, (uint8_t const *)burst, sizeof(Burst));
@@ -955,6 +962,7 @@ bool BSP_startBurst(Burst const *burst)
     } else return false;                        // We only have one output stage.
 
     pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
+    bsp.elcon_available = false;
     EventQueue_postEvent(bsp.delegate, ET_BURST_STARTED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;

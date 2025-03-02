@@ -28,8 +28,8 @@ A pulse train descriptor consists of up to 11 members, occupying up to 16 bytes.
 - `meta` must be set to 0x00, for now.
 - Bits 7..3 of `phase` are reserved for future use.
 ## Example: generating TENS-style pulses
-1. Send a pulse train, followed by the same pulse train time-shifted and with opposite phase.<br/>
-Pt 1: t=  0 µs, ec=0x5<>0xa, phase=0, np=50, pace=80 ¼ms, amp=0, pw=130 µs, Δ=0 ¼µs<br/>
-Pt 2: t=180 µs, ec=0x5<>0xa, phase=1, np=50, pace=80 ¼ms, amp=0, pw=130 µs, Δ=0 ¼µs<br/>
+1. Send a pulse train, followed by the same pulse train time-shifted and with opposite phase. For instance:<br/>
+`Pt 1: t=  0 µs, ec=0x5<>0xa, phase=0, np=50, pace=80 ¼ms, amp=0, pw=130 µs, Δ=0 ¼µs`<br/>
+`Pt 2: t=180 µs, ec=0x5<>0xa, phase=1, np=50, pace=80 ¼ms, amp=0, pw=130 µs, Δ=0 ¼µs`<br/>
 The time shift needs to be at least the pulse width plus the minimum dead time.
 2. Send the command to execute the received pulse trains. This implies that the firmware be able to buffer several pulse train descriptors.
