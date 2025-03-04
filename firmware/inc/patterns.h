@@ -10,6 +10,9 @@
  *   Copyright  2025 Neostim™
  */
 
+#ifndef INC_PATTERNS_H_
+#define INC_PATTERNS_H_
+
 #include <stdint.h>
 
 typedef struct _PatternDescr PatternDescr;
@@ -30,3 +33,5 @@ void Patterns_getNames(char const *[], uint8_t cnt);
 void Patterns_checkAll();
 PatternDescr const *Patterns_findByName(char const *, uint16_t len);
 PatternDescr const *Patterns_getNext(PatternDescr const *);
+
+#endif

@@ -34,16 +34,22 @@ bool Burst_isValid(Burst const *me)
 }
 
 
-uint32_t Burst_duration_µs(Burst const *me)
+uint8_t Burst_phase(Burst const *me)
 {
-    // TODO Also account for delta_pace.
-    return me->nr_of_pulses * me->pace_µs;
+    return me->phase & 0x3;
 }
 
 
 uint8_t Burst_pulseWidth_µs(Burst const *me)
 {
     return (me->pulse_width_¼µs + 2) / 4;
+}
+
+
+uint32_t Burst_duration_µs(Burst const *me)
+{
+    // TODO Also account for delta_pace.
+    return me->nr_of_pulses * me->pace_µs;
 }
 
 

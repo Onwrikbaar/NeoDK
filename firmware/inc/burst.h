@@ -52,8 +52,9 @@ extern "C" {
 
 void Burst_clear(Burst *);
 bool Burst_isValid(Burst const *);
-uint32_t Burst_duration_µs(Burst const *);
+uint8_t Burst_phase(Burst const *);
 uint8_t Burst_pulseWidth_µs(Burst const *);
+uint32_t Burst_duration_µs(Burst const *);
 Burst *Burst_adjust(Burst *, uint16_t margin_µs);
 void Burst_applyDeltas(Burst *, Deltas const *);
 void Burst_print(Burst const *);

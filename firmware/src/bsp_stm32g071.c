@@ -475,7 +475,7 @@ static bool kickOffBurst(BSP *me)
             me->pulse_seqnr = 0;
             return BSP_startBurst(Burst_adjust(burst, 20));
         }
-        BSP_logf("Timer busy at t=%u µs\n", seq_clock->CNT);
+        BSP_logf("Pulse timer busy at t=%u µs\n", seq_clock->CNT);
     }
     EventQueue_postEvent(bsp.delegate, ET_BAD_BURST, (uint8_t const *)burst, sizeof(Burst));
     return false;
@@ -608,11 +608,6 @@ void TIM17_IRQHandler(void)
         app_timer->SR &= ~TIM_SR_CC1IF;         // Clear the interrupt.
         bsp.app_timer_handler(bsp.app_timer_target, BSP_microsecondsSinceBoot());
         app_timer->CCR1 += bsp.clock_ticks_per_app_timer_tick;
-        return;
-    }
-    if (app_timer->SR & TIM_SR_UIF) {
-        app_timer->SR &= ~TIM_SR_UIF;           // Clear the interrupt.
-        // TODO ?
     } else {
         spuriousIRQ(&bsp);
     }
@@ -784,7 +779,6 @@ uint64_t BSP_microsecondsSinceBoot()
 
 void BSP_registerAppTimerHandler(void (*handler)(void *, uint64_t), void *target, uint32_t microseconds_per_app_timer_tick)
 {
-    // BSP_logf("%s\n", __func__);
     bsp.app_timer_handler = handler;
     bsp.app_timer_target  = target;
     bsp.clock_ticks_per_app_timer_tick = microseconds_per_app_timer_tick * TICKS_PER_MICROSECOND;
@@ -934,7 +928,6 @@ bool BSP_scheduleBurst(Burst const *burst)
     BSP_criticalSectionEnter();
     if ((int32_t)seq_clock->CNT < (int32_t)burst->start_time_µs - 20) {
         bsp.next_burst = *burst;                // Copy.
-        __DSB();                                // Probably not needed.
         setConfigAndClock(&bsp);
         BSP_criticalSectionExit();
         return true;
@@ -953,17 +946,19 @@ bool BSP_startBurst(Burst const *burst)
     pulse_timer->RCR = burst->nr_of_pulses - 1;
     pulse_timer->CNT = 0;
     pulse_timer->SR &= ~(TIM_SR_CC1IF | TIM_SR_CC2IF);
-    if (burst->phase == 0) {
+    uint8_t phase = Burst_phase(burst);
+    if (phase == 0) {
         pulse_timer->CCR1 = Burst_pulseWidth_µs(burst);
         pulse_timer->DIER |= TIM_DIER_CC1IE;
-    } else if (burst->phase == 1) {
+    } else if (phase == 1) {
         pulse_timer->CCR2 = Burst_pulseWidth_µs(burst);
         pulse_timer->DIER |= TIM_DIER_CC2IE;
     } else return false;                        // We only have one output stage.
 
-    pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
-    bsp.elcon_available = false;
     EventQueue_postEvent(bsp.delegate, ET_BURST_STARTED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
+    pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
+    // Keep at least one instruction between the shadow register update and clearing the CCRs.
+    bsp.elcon_available = false;
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
     pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
