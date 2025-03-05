@@ -36,7 +36,7 @@ bool Burst_isValid(Burst const *me)
 
 uint8_t Burst_phase(Burst const *me)
 {
-    return me->phase & 0x3;
+    return me->phase & 0x7;
 }
 
 

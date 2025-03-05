@@ -484,9 +484,12 @@ static bool kickOffBurst(BSP *me)
 
 static void onePulseDone(BSP *me)
 {
-    if (me->pulse_seqnr++ == pulse_timer->RCR && me->elcon_available) {
-        BSP_setElectrodeConfiguration((uint8_t const *)me->next_burst.elcon);
-        me->elcon_available = false;
+    if (me->pulse_seqnr++ == pulse_timer->RCR) {
+        if (me->elcon_available) {
+            BSP_setElectrodeConfiguration((uint8_t const *)me->next_burst.elcon);
+            me->elcon_available = false;
+        }
+        EventQueue_postEvent(bsp.delegate, ET_BURST_COMPLETED, NULL, 0);
     }
     // Burst_applyDeltas(&me->next_burst, &me->deltas);
 }

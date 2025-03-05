@@ -227,9 +227,12 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
         case ET_BURST_STARTED:
             me->stream_busy = scheduleNextBurst(me);
             break;
-        case ET_BURST_EXPIRED:
+        case ET_BURST_COMPLETED:
             if (me->stream_busy) break;
             return &stateIdle;                  // No more descriptors, leave this state.
+        case ET_BURST_EXPIRED:
+            // Not used here.
+            break;
         default:
             return stateCanopy(me, evt);        // Forward the event.
     }
@@ -333,6 +336,9 @@ static void *statePulsing(Sequencer *me, AOEvent const *evt)
             return &statePaused;                // Transition.
         case ET_BURST_STARTED:
             // BSP_logf("Burst started\n");
+            break;
+        case ET_BURST_COMPLETED:
+            // Not used here.
             break;
         case ET_BURST_EXPIRED:
             if (! PatternIterator_scheduleNextBurst(&me->pi)) {
