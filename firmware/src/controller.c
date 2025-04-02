@@ -354,7 +354,7 @@ void Controller_start(Controller *me)
     me->state(me, AOEvent_newEntryEvent());
     DataLink_open(me->datalink, &me->event_queue);
     DataLink_awaitSync(me->datalink);
-    BSP_logf("Welcome to NeoDK!\n%s", welcome_msg);
+    BSP_logf("Welcome to Neostim!\n%s", welcome_msg);
 }
 
 

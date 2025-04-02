@@ -40,12 +40,13 @@ struct _Sequencer {
 };
 
 
-static void setPrimaryVoltage_mV(uint16_t new_voltage_mV)
+static void setVoltagePercent(uint8_t voltage_percent)
 {
-    static uint16_t current_voltage_mV = 0;
-    if (new_voltage_mV != current_voltage_mV) {
-        BSP_logf("Setting Vcap to %hu mV\n", new_voltage_mV);
-        BSP_setPrimaryVoltage_mV(new_voltage_mV);
+    static uint8_t current_voltage_percent = 0;
+    if (voltage_percent != current_voltage_percent) {
+        uint16_t voltage_mV = BSP_setPrimaryVoltagePercent(voltage_percent);
+        current_voltage_percent = voltage_percent;
+        BSP_logf("Primary voltage set to %hu mV\n", voltage_mV);
     }
 }
 
@@ -55,7 +56,7 @@ static void setIntensityPercentage(Sequencer *me, uint8_t perc)
     BSP_logf("Setting intensity to %hhu%%\n", perc);
     me->intensity_percent = perc;
     // TODO Ramp up to the previous intensity?
-    setPrimaryVoltage_mV(perc * 80);
+    setVoltagePercent(perc);
     Sequencer_notifyIntensity(me);
     PatternIterator_setPulseWidth(&me->pi, 50 + perc + perc / 2);
 }
@@ -78,17 +79,10 @@ static void setPlayState(Sequencer *me, PlayState play_state)
 }
 
 
-static void handleAdcValues(uint16_t const *v, TransactionId trans_id)
+static void handleAdcValues(AdcValues const *vi, TransactionId trans_id)
 {
-    struct {
-        uint16_t Vbat_mV, Vcap_mV, Iprim_mA;
-    } vi = {
-        .Vbat_mV = ((uint32_t)v[2] * 52813UL) / 16384,
-        .Vcap_mV = ((uint32_t)v[1] * 52813UL) / 16384,
-        .Iprim_mA = ((uint32_t)v[0] * 2063UL) /  1024,
-    };
-    CLI_logf("Vbat=%hu mV, Vcap=%hu mV, Iprim=%hu mA\n", vi.Vbat_mV, vi.Vcap_mV, vi.Iprim_mA);
-    Attribute_changed(AI_VOLTAGES, trans_id, EE_BYTES_1LEN, (uint8_t const *)&vi, sizeof vi);
+    CLI_logf("Vbat=%hu mV, Vcap=%hu mV, Iprim=%hu mA\n", vi->Vbat_mV, vi->Vcap_mV, vi->Iprim_mA);
+    Attribute_changed(AI_VOLTAGES, trans_id, EE_BYTES_1LEN, (uint8_t const *)vi, sizeof vi);
 }
 
 
@@ -120,7 +114,7 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
     switch (AOEvent_type(evt))
     {
         case ET_ADC_DATA_AVAILABLE:
-            handleAdcValues((uint16_t const *)AOEvent_data(evt), 0);
+            handleAdcValues((AdcValues const *)AOEvent_data(evt), 0);
             break;
         case ET_STOP:
             return &stateIdle;                  // Transition.

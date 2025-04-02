@@ -1,0 +1,26 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${HOME}/STM32Cube/Repository/STM32Cube_FW_G0_V1.6.0/Drivers/STM32G0xx_HAL_Driver/Inc",
+                "${HOME}/STM32Cube/Repository/STM32Cube_FW_G0_V1.6.0/Drivers/CMSIS/Device/ST/STM32G0xx/Include"
+            ],
+            "defines": [
+                "STM32G071xx",
+                "cpu=cortex-m0plus",
+                "float-abi=softfp",
+                "USE_FULL_LL_DRIVER"
+            ],
+            "macFrameworkPath": [
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk/System/Library/Frameworks"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "macos-clang-arm"
+        }
+    ],
+    "version": 4
+}

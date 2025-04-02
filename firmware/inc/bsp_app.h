@@ -17,6 +17,10 @@
 #include "eventqueue.h"
 #include "burst.h"
 
+typedef struct {
+    uint16_t Vbat_mV, Vcap_mV, Iprim_mA;
+} AdcValues;
+
 
 void BSP_init(void);                            // Get the hardware ready for action.
 void BSP_registerPulseDelegate(EventQueue *);
@@ -35,7 +39,7 @@ DeviceId BSP_openSerialPort(char const *name);
 int BSP_closeSerialPort(int fd);
 
 // Pulse generation related functions.
-uint16_t BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV);
+uint16_t BSP_setPrimaryVoltagePercent(uint8_t perc);
 void BSP_primaryVoltageEnable(bool must_be_on);
 void BSP_setElectrodeConfiguration(uint8_t const [2]);
 void BSP_startSequencerClock(uint32_t time_µs);

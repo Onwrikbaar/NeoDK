@@ -269,11 +269,13 @@ static void initSequencerClock()
 static void initPulseTimer()
 {
     pulse_timer->PSC = SystemCoreClock / PULSE_TIMER_FREQ_Hz - 1;
-    // PWM mode 1 for timer channels 1 and 2, enable preload.
+    // PWM mode 1 for channels 1 and 2, enable preload.
     pulse_timer->CCMR1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1PE
                        | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2PE;
-    // Enable both outputs.
-    pulse_timer->CCER = TIM_CCER_CC1E | TIM_CCER_CC2E;
+    // PWM mode 2 for channel 4, which is used to trigger the ADC.
+    pulse_timer->CCMR2 = TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_0 | TIM_CCMR2_OC4PE;
+    // Enable the outputs.
+    pulse_timer->CCER = TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC4E;
     pulse_timer->CR2  = TIM_CR2_CCPC;           // Compare control signals are preloaded.
     pulse_timer->CR1  = TIM_CR1_ARPE | TIM_CR1_URS;
     pulse_timer->DIER = TIM_DIER_UIE;           // Enable update interrupt.
@@ -344,7 +346,7 @@ static void initADC1()
         .SequencerLength  = LL_ADC_REG_SEQ_SCAN_ENABLE_3RANKS,
         .SequencerDiscont = LL_ADC_REG_SEQ_DISCONT_DISABLE,
         .ContinuousMode   = LL_ADC_REG_CONV_SINGLE,
-        // .TriggerSource    = LL_ADC_REG_TRIG_EXT_TIM3_TRGO,
+        .TriggerSource    = LL_ADC_REG_TRIG_EXT_TIM1_CH4,
         .DMATransfer      = LL_ADC_REG_DMA_TRANSFER_UNLIMITED,
         .Overrun          = LL_ADC_REG_OVR_DATA_OVERWRITTEN,
     };
@@ -446,12 +448,11 @@ static uint16_t Vcap_mV_ToDacVal(uint16_t Vcap_mV)
 }
 
 
-static void setPrimaryVoltage(BSP *me)
+static void setPrimaryVoltage_mV(uint16_t mV)
 {
-    if (me->next_burst.amplitude != 0) {        // 0 means do not change.
-        // Scale amplitude 0..255 to 0..10200 mV (for now).
-        BSP_setPrimaryVoltage_mV(me->next_burst.amplitude * 40);
-    }
+    bsp.V_prim_mV = mV;
+    // TODO Ensure a rising step on the buck regulator's feedback pin does not exceed 80 mV.
+    DAC1->DHR12R2 = Vcap_mV_ToDacVal(mV);
 }
 
 
@@ -470,9 +471,11 @@ static bool kickOffBurst(BSP *me)
 {
     Burst *burst = (Burst *)&me->next_burst;
     if (Burst_isValid(burst)) {
-        setPrimaryVoltage(me);
+        if (burst->amplitude != 0) {            // 0 means do not change.
+            // Scale amplitude 0..255 to 0..10200 mV (for now).
+            setPrimaryVoltage_mV(burst->amplitude * 40);
+        }
         if ((pulse_timer->CR1 & TIM_CR1_CEN) == 0) {
-            me->pulse_seqnr = 0;
             return BSP_startBurst(Burst_adjust(burst, 20));
         }
         BSP_logf("Pulse timer busy at t=%u µs\n", seq_clock->CNT);
@@ -488,6 +491,8 @@ static void onePulseDone(BSP *me)
         if (me->elcon_available) {
             BSP_setElectrodeConfiguration((uint8_t const *)me->next_burst.elcon);
             me->elcon_available = false;
+        } else {
+            LL_GPIO_ResetOutputPin(TRIAC_GPIO_PORT, ALL_TRIAC_PINS);
         }
         EventQueue_postEvent(bsp.delegate, ET_BURST_COMPLETED, NULL, 0);
     }
@@ -563,7 +568,7 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
 {
     if (pulse_timer->SR & TIM_SR_UIF) {         // An update event.
         pulse_timer->CR1 &= ~TIM_CR1_CEN;       // Stop the counter.
-        pulse_timer->DIER &= ~(TIM_DIER_CC1IE | TIM_DIER_CC2IE);
+        pulse_timer->DIER &= ~(TIM_DIER_CC1IE | TIM_DIER_CC2IE | TIM_DIER_CC4IE);
         pulse_timer->SR &= ~(TIM_SR_UIF | TIM_SR_CC1IF | TIM_SR_CC2IF);
         LL_GPIO_ResetOutputPin(LED_GPIO_PORT, LED_1_PIN);
         // BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
@@ -666,7 +671,8 @@ void DMA1_Channel1_IRQHandler(void)
 {
     if (DMA1->ISR & DMA_ISR_TCIF1) {
         DMA1->IFCR = DMA_IFCR_CTCIF1;           // Clear transfer complete flag.
-        EventQueue_postEvent(bsp.delegate, ET_ADC_DATA_AVAILABLE, (uint8_t const *)bsp.adc_1_samples, sizeof bsp.adc_1_samples);
+        // BSP_logf("DMA1_1\n");
+        // EventQueue_postEvent(bsp.delegate, ET_ADC_DATA_AVAILABLE, (uint8_t const *)bsp.adc_1_samples, sizeof bsp.adc_1_samples);
     } else if (DMA1->ISR & DMA_ISR_TEIF1) {
         DMA1->IFCR = DMA_IFCR_CTEIF1;           // Clear transfer error flag.
         BSP_logf("%s, TEIF1\n", __func__);
@@ -723,6 +729,7 @@ void BSP_init()
     initDMAforADC1(bsp.adc_1_samples, M_DIM(bsp.adc_1_samples));
     initADC1();
     LL_ADC_Enable(ADC1);
+    LL_ADC_REG_StartConversion(ADC1);
 
     bsp.nr_of_serial_devices = 1;               // Device 0 is the SEGGER console.
 }
@@ -730,7 +737,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.59-beta";
+    return "v0.60-beta";
 }
 
 
@@ -890,11 +897,9 @@ void BSP_setElectrodeConfiguration(uint8_t const elcon[2])
 }
 
 
-uint16_t BSP_setPrimaryVoltage_mV(uint16_t V_prim_mV)
+uint16_t BSP_setPrimaryVoltagePercent(uint8_t perc)
 {
-    bsp.V_prim_mV = V_prim_mV;
-    // TODO Ensure a rising step on the buck regulator's feedback pin does not exceed 80 mV.
-    DAC1->DHR12R2 = Vcap_mV_ToDacVal(bsp.V_prim_mV);
+    setPrimaryVoltage_mV(perc * 85);
     return bsp.V_prim_mV;
 }
 
@@ -947,23 +952,27 @@ bool BSP_startBurst(Burst const *burst)
 {
     pulse_timer->ARR = burst->pace_µs - 1;
     pulse_timer->RCR = burst->nr_of_pulses - 1;
+    bsp.pulse_seqnr = 0;
     pulse_timer->CNT = 0;
     pulse_timer->SR &= ~(TIM_SR_CC1IF | TIM_SR_CC2IF);
     uint8_t phase = Burst_phase(burst);
+    uint8_t pulse_width_µs = Burst_pulseWidth_µs(burst);
     if (phase == 0) {
-        pulse_timer->CCR1 = Burst_pulseWidth_µs(burst);
+        pulse_timer->CCR1 = pulse_width_µs;
         pulse_timer->DIER |= TIM_DIER_CC1IE;
     } else if (phase == 1) {
-        pulse_timer->CCR2 = Burst_pulseWidth_µs(burst);
+        pulse_timer->CCR2 = pulse_width_µs;
         pulse_timer->DIER |= TIM_DIER_CC2IE;
     } else return false;                        // We only have one output stage.
 
+    if (pulse_width_µs > 10) pulse_timer->CCR4 = 10;
     EventQueue_postEvent(bsp.delegate, ET_BURST_STARTED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
     pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
     // Keep at least one instruction between the shadow register update and clearing the CCRs.
     bsp.elcon_available = false;
     pulse_timer->CCR1 = 0;
     pulse_timer->CCR2 = 0;
+    pulse_timer->CCR4 = 0;
     pulse_timer->CR1 |= TIM_CR1_CEN;            // Enable the counter.
     return true;
 }
@@ -972,7 +981,13 @@ bool BSP_startBurst(Burst const *burst)
 void BSP_triggerADC(void)
 {
     BSP_logf("%s\n", __func__);
-    LL_ADC_REG_StartConversion(ADC1);
+    uint16_t const *v = (uint16_t const *)bsp.adc_1_samples;
+    AdcValues const av = {
+        .Vbat_mV = ((uint32_t)v[2] * 52813UL) / 16384,
+        .Vcap_mV = ((uint32_t)v[1] * 52813UL) / 16384,
+        .Iprim_mA = ((uint32_t)v[0] * 2063UL) /  1024,
+    };
+    EventQueue_postEvent(bsp.delegate, ET_ADC_DATA_AVAILABLE, (uint8_t const *)&av, sizeof av);
 }
 
 
