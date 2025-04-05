@@ -33,11 +33,6 @@ uint64_t BSP_microsecondsSinceBoot(void);
 void BSP_registerIdleHandler(Selector *);
 void BSP_registerButtonHandler(Selector *);
 
-// Serial communications related functions.
-void BSP_initComms(void);
-DeviceId BSP_openSerialPort(char const *name);
-int BSP_closeSerialPort(int fd);
-
 // Pulse generation related functions.
 uint16_t BSP_setPrimaryVoltagePercent(uint8_t perc);
 void BSP_primaryVoltageEnable(bool must_be_on);

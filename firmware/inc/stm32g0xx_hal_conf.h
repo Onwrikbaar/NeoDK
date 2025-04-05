@@ -21,6 +21,7 @@ extern "C" {
 #define HAL_CORTEX_MODULE_ENABLED
 #define HAL_FLASH_MODULE_ENABLED
 #define HAL_GPIO_MODULE_ENABLED
+#define HAL_PCD_MODULE_ENABLED
 #define HAL_PWR_MODULE_ENABLED
 #define HAL_RCC_MODULE_ENABLED
 
@@ -177,6 +178,10 @@ The real value may vary depending on the variations in voltage and temperature.*
 #ifdef HAL_FLASH_MODULE_ENABLED
 #include "stm32g0xx_hal_flash.h"
 #endif /* HAL_FLASH_MODULE_ENABLED */
+
+#ifdef HAL_PCD_MODULE_ENABLED
+#include "stm32g0xx_hal_pcd.h"
+#endif /* HAL_PCD_MODULE_ENABLED */
 
 #ifdef HAL_PWR_MODULE_ENABLED
 #include "stm32g0xx_hal_pwr.h"

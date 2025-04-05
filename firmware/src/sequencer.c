@@ -135,6 +135,9 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
         case ET_UNKNOWN_COMMAND:
             BSP_logf("Unknown command\n");
             break;
+        case ET_BURST_COMPLETED:
+            // Ignore.
+            break;
         default:
             BSP_logf("Sequencer_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
     }

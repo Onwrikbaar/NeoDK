@@ -14,7 +14,7 @@
 
 #include "bsp_dbg.h"
 #include "bsp_mao.h"
-#include "bsp_app.h"
+#include "bsp_comms.h"
 #include "app_event.h"
 #include "net_frame.h"
 #include "debug_cli.h"                          // Temporary.

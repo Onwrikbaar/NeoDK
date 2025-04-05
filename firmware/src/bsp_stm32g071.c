@@ -17,7 +17,7 @@
 // #include "stm32g0xx_ll_rcc.h"
 // #include "stm32g0xx_ll_pwr.h"
 #include "stm32g0xx_hal_pwr.h"
-#include "stm32g0xx_hal_pwr_ex.h"
+// #include "stm32g0xx_hal_pwr_ex.h"
 #include "stm32g0xx_ll_system.h"
 #include "stm32g0xx_ll_gpio.h"
 #include "stm32g0xx_ll_exti.h"
@@ -41,10 +41,6 @@
 
 #define DAC_GPIO_PORT           GPIOA
 #define VCAP_BUCK_CTRL_PIN      LL_GPIO_PIN_5   // DAC1_OUT2.
-
-#define USART_GPIO_PORT         GPIOA
-#define USART2_TX_PIN           LL_GPIO_PIN_2
-#define USART2_RX_PIN           LL_GPIO_PIN_3
 
 #define PUSHBUTTON_PORT         GPIOA
 #define PUSHBUTTON_PIN          LL_GPIO_PIN_4   // Digital in with pulldown.
@@ -84,14 +80,8 @@ typedef struct {
     uint32_t clock_ticks_per_app_timer_tick;
     Selector button_sel;
     EventQueue *delegate;
-    Selector rx_sel;
-    Selector rx_err_sel;
-    void (*tx_callback)(void *, uint8_t *);
-    void *tx_target;
-    Selector tx_err_sel;
-    // The following members get updated regularly.
+    // The following members may get updated regularly.
     uint8_t critical_section_level;
-    uint8_t nr_of_serial_devices;
     uint16_t volatile adc_1_samples[3];         // Must match the number of ADC1 ranks.
     uint16_t V_prim_mV;
     uint16_t volatile pulse_seqnr;
@@ -224,11 +214,6 @@ static void initGPIO()
     GPIO_InitStruct.Pin = MOSFET_1_PIN | MOSFET_2_PIN;
     LL_GPIO_ResetOutputPin(MOSFET_GPIO_PORT, GPIO_InitStruct.Pin);
     LL_GPIO_Init(MOSFET_GPIO_PORT, &GPIO_InitStruct);
-
-    // GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-    GPIO_InitStruct.Alternate = LL_GPIO_AF_1;
-    GPIO_InitStruct.Pin = USART2_TX_PIN | USART2_RX_PIN;
-    LL_GPIO_Init(USART_GPIO_PORT, &GPIO_InitStruct);
 }
 
 
@@ -377,14 +362,6 @@ static void initDMAforADC1(uint16_t volatile samples[], size_t nr_of_samples)
 }
 
 
-static void initUSART2(uint32_t serial_speed_bps)
-{
-    RCC->CCIPR |= LL_RCC_USART2_CLKSOURCE_HSI;
-    USART2->BRR = (uint16_t)((HSI_VALUE + serial_speed_bps / 2) / serial_speed_bps);
-    USART2->CR1 |= USART_CR1_UE | USART_CR1_FIFOEN;
-}
-
-
 static void setPinVal(GPIO_TypeDef *GPIOx, uint16_t gpio_pin, uint8_t pin_state)
 {
     if (pin_state != 0) {
@@ -497,42 +474,6 @@ static void onePulseDone(BSP *me)
         EventQueue_postEvent(bsp.delegate, ET_BURST_COMPLETED, NULL, 0);
     }
     // Burst_applyDeltas(&me->next_burst, &me->deltas);
-}
-
-
-static void doUartAction(USART_TypeDef *uart, ChannelAction action)
-{
-    switch (action)
-    {
-        case CA_RX_CB_ENABLE:
-            uart->CR1 |= USART_CR1_RXNEIE_RXFNEIE;
-            break;
-        case CA_RX_CB_DISABLE:
-            uart->CR1 &= ~USART_CR1_RXNEIE_RXFNEIE;
-            break;
-        case CA_TX_CB_ENABLE:
-            uart->CR1 |= USART_CR1_TXEIE_TXFNFIE;
-            break;
-        case CA_TX_CB_DISABLE:
-            uart->CR1 &= ~USART_CR1_TXEIE_TXFNFIE;
-            break;
-        case CA_OVERRUN_CB_ENABLE:
-            break;
-        case CA_OVERRUN_CB_DISABLE:
-            break;
-        case CA_FRAMING_CB_ENABLE:
-            break;
-        case CA_FRAMING_CB_DISABLE:
-            break;
-        case CA_CLEAR_ERRORS:
-            uart->ICR = USART_ICR_ORECF | USART_ICR_PECF | USART_ICR_NECF | USART_ICR_UDRCF;
-            break;
-        case CA_CLOSE:
-            // TODO Deinit the UART?
-            break;
-        default:
-            BSP_logf("%s(%u): unknown UART action\n", __func__, action);
-    }
 }
 
 /*
@@ -683,20 +624,6 @@ void DMA1_Channel1_IRQHandler(void)
     }
 }
 
-
-void USART2_IRQHandler(void)
-{
-    if (USART2->ISR & USART_ISR_RXNE_RXFNE) {
-        invokeSelector(&bsp.rx_sel, USART2->RDR);
-    } else if (USART2->ISR & USART_ISR_TXE_TXFNF) {
-        if (USART2->CR1 & USART_CR1_TXEIE_TXFNFIE) {
-            bsp.tx_callback(bsp.tx_target, (uint8_t *)&USART2->TDR);
-        }
-    } else {
-        spuriousIRQ(&bsp);
-    }
-}
-
 /*
  * Support for STM32Cube LL drivers.
  */
@@ -716,7 +643,7 @@ void BSP_init()
     initGPIO();
 
     LL_RCC_SetADCClockSource(LL_RCC_ADC_CLKSOURCE_HSI);
-    RCC->APBENR1 = RCC_APBENR1_TIM2EN | RCC_APBENR1_TIM3EN | RCC_APBENR1_USART2EN | RCC_APBENR1_PWREN | RCC_APBENR1_DAC1EN;
+    RCC->APBENR1 = RCC_APBENR1_TIM2EN | RCC_APBENR1_TIM3EN | RCC_APBENR1_PWREN | RCC_APBENR1_DAC1EN;
     RCC->APBENR2 = RCC_APBENR2_TIM1EN | RCC_APBENR2_TIM16EN | RCC_APBENR2_TIM17EN | RCC_APBENR2_ADCEN | RCC_APBENR2_SYSCFGEN;
     RCC->AHBENR |= RCC_AHBENR_DMA1EN;
     // Enable instruction cache and prefetch buffer.
@@ -730,20 +657,12 @@ void BSP_init()
     initADC1();
     LL_ADC_Enable(ADC1);
     LL_ADC_REG_StartConversion(ADC1);
-
-    bsp.nr_of_serial_devices = 1;               // Device 0 is the SEGGER console.
 }
 
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.60-beta";
-}
-
-
-void BSP_initComms(void)
-{
-    initUSART2(115200UL);
+    return "v0.61-beta";
 }
 
 
@@ -811,67 +730,15 @@ void BSP_registerButtonHandler(Selector *sel)
 }
 
 
+void BSP_enableUartInterrupt(int intr)
+{
+    enableInterruptWithPrio((IRQn_Type)intr, IRQ_PRIO_USART);
+}
+
+
 void BSP_toggleTheLED()
 {
     LL_GPIO_TogglePin(LED_GPIO_PORT, LED_1_PIN);
-}
-
-
-DeviceId BSP_openSerialPort(char const *name)
-{
-    if (bsp.nr_of_serial_devices > 1) {
-        BSP_logf("Can only use one serial port at a time, for now\n");
-        return -1;
-    }
-
-    enableInterruptWithPrio(USART2_IRQn, IRQ_PRIO_USART);
-    return bsp.nr_of_serial_devices++;
-}
-
-
-void BSP_registerRxCallback(DeviceId device_id, Selector const *rx_sel, Selector const *rx_err_sel)
-{
-    M_ASSERT(rx_sel != NULL && rx_err_sel != NULL);
-    if (device_id == 1) {
-        bsp.rx_sel = *rx_sel;
-        bsp.rx_err_sel = *rx_err_sel;
-        USART2->CR1 |= USART_CR1_RE;            // Enable the receiver.
-    }
-}
-
-
-void BSP_registerTxCallback(DeviceId device_id, void (*cb)(void *, uint8_t *), void *target, Selector const *tx_err_sel)
-{
-    M_ASSERT(cb != NULL && target != NULL);
-    if (device_id == 1) {
-        bsp.tx_target = target;
-        bsp.tx_callback = cb;
-        bsp.tx_err_sel = *tx_err_sel;
-        USART2->CR1 |= USART_CR1_TE;            // Enable the transmitter.
-    }
-}
-
-
-void BSP_doChannelAction(DeviceId device_id, ChannelAction action)
-{
-    // BSP_logf("%s(%u, %u)\n", __func__, device_id, action);
-    switch (device_id)
-    {
-        case 1:
-            doUartAction(USART2, action);
-            break;
-        default:
-            BSP_logf("%s(%u): unknown device id\n", __func__, device_id);
-    }
-}
-
-
-int BSP_closeSerialPort(int device_id)
-{
-    M_ASSERT(device_id == bsp.nr_of_serial_devices - 1);
-    // TODO De-initialise USART2?
-    NVIC_DisableIRQ(USART2_IRQn);
-    return 0;
 }
 
 

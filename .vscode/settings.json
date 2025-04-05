@@ -11,6 +11,11 @@
         "pattern_iter.h": "c",
         "ptd_queue.h": "c",
         "bsp_dbg.h": "c",
-        "pt_factory.h": "c"
+        "pt_factory.h": "c",
+        "bsp_app.h": "c",
+        "bsp_mao.h": "c",
+        "convenience.h": "c",
+        "eventqueue.h": "c",
+        "ao_event.h": "c"
     }
 }

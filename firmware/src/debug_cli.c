@@ -107,6 +107,7 @@ static void interpretCommand(CmndInterp *me, char ch)
             CLI_logf("Firmware %s\n", BSP_firmwareVersion());
             break;
         case 'w':                               // Allow rediscovery by Dweeb.
+            CLI_logf("Accept connection from Dweeb\n");
             DataLink_awaitSync(me->datalink);
             break;
         default:

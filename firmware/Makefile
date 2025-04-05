@@ -1,23 +1,22 @@
 #
-#      Author  mark
+#  NOTICE (do not remove):
+#      This file is part of project NeoDK (https://github.com/Onwrikbaar/NeoDK).
+#      See https://github.com/Onwrikbaar/NeoDK/blob/main/LICENSE.txt for full license details.
+#
+#   Author     mark
 #   Copyright  2023..2025 Neostim™
 #
 
-PROJECT_NAME     := neodk
-OUTPUT_DIRECTORY := build
-
 MAO_LIB_INC := maolib/inc
-MAO_LIB_SRC := maolib/src
 PROJ_DIR_INC := inc
 PROJ_DIR_SRC := src
 STM32REPO := $(HOME)/STM32Cube/Repository
 STM32CUBE_G0 ?= $(STM32REPO)/STM32Cube_FW_G0_V1.6.0
 SEGGER ?= $(HOME)/SEGGER_RTT
+OUTPUT_DIRECTORY := build
 
 $(OUTPUT_DIRECTORY)/neodk_g071.out: \
   LINKER_SCRIPT := STM32G071_FLASH.ld
-$(OUTPUT_DIRECTORY)/neodk_g0b1.out: \
-  LINKER_SCRIPT := STM32G0B1_FLASH.ld
 
 # Target-dependent source files
 STM32G0xx_SRC := \
@@ -59,9 +58,9 @@ STM32G0xx_INC += \
 # OPT = -O3 -g3
 OPT = -O2
 # Uncomment the line below to enable link time optimization
-neodk_g071 neodk_g0b1: OPT += -flto=auto
+OPT += -flto=auto
 # Use newlib in nano version
-neodk_g071 neodk_g0b1: OPT += --specs=nano.specs
+OPT += --specs=nano.specs
 
 # C flags common to all targets
 CFLAGS += $(OPT)
@@ -71,13 +70,12 @@ CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin # -fshort-enums
 
 # Target-specific C flags.
-neodk_g071 libmao_g071.a: CFLAGS += -DSTM32G071xx
-neodk_g0b1 libmao_g0b1.a: CFLAGS += -DSTM32G0B1xx
-neodk_g071 neodk_g0b1 libmao_g071.a libmao_g0b1.a: CFLAGS += -mcpu=cortex-m0plus
-neodk_g071 neodk_g0b1 libmao_g071.a libmao_g0b1.a: CFLAGS += -mfloat-abi=softfp
-neodk_g071 neodk_g0b1 libmao_g071.a libmao_g0b1.a: CFLAGS += -mthumb -mabi=aapcs
-neodk_g071 neodk_g0b1: CFLAGS += -DBUFFER_SIZE_UP=8192
-neodk_g071 neodk_g0b1: CFLAGS += -DUSE_FULL_LL_DRIVER
+CFLAGS += -DSTM32G071xx
+CFLAGS += -mcpu=cortex-m0plus
+CFLAGS += -mfloat-abi=softfp
+CFLAGS += -mthumb -mabi=aapcs
+CFLAGS += -DBUFFER_SIZE_UP=8192
+CFLAGS += -DUSE_FULL_LL_DRIVER
 
 # C++ flags common to all targets
 CXXFLAGS += $(OPT)
@@ -91,36 +89,27 @@ LDFLAGS += -Wl,--gc-sections
 # LDFLAGS += --no-warn-rwx-segment
 
 # Target-specific linker flags.
-neodk_g071 neodk_g0b1: LDFLAGS += $(OPT)
-neodk_g071 neodk_g0b1: LDFLAGS += -mthumb -mabi=aapcs -T$(LINKER_SCRIPT)
-neodk_g071 neodk_g0b1: LDFLAGS += -mcpu=cortex-m0plus
-neodk_g071 neodk_g0b1: LDFLAGS += -mfloat-abi=softfp
-neodk_g071 neodk_g0b1: LDFLAGS += -Lmaolib
+LDFLAGS += $(OPT)
+LDFLAGS += -mthumb -mabi=aapcs -T$(LINKER_SCRIPT)
+LDFLAGS += -mcpu=cortex-m0plus
+LDFLAGS += -mfloat-abi=softfp
+LDFLAGS += -Lmaolib
 
 # Target-specific assembler flags.
-neodk_g071 neodk_g0b1: LDFLAGS += -mcpu=cortex-m0plus
-neodk_g071 neodk_g0b1: LDFLAGS += -mthumb -mabi=aapcs
-neodk_g071 neodk_g0b1: LDFLAGS += -mfloat-abi=softfp
-neodk_g071 neodk_g0b1: ASMFLAGS += -D__HEAP_SIZE=4096
-neodk_g071 neodk_g0b1: ASMFLAGS += -D__STACK_SIZE=4096
+LDFLAGS += -mcpu=cortex-m0plus
+LDFLAGS += -mthumb -mabi=aapcs
+LDFLAGS += -mfloat-abi=softfp
+ASMFLAGS += -D__HEAP_SIZE=4096
+ASMFLAGS += -D__STACK_SIZE=4096
 
 # Add standard libraries at the very end of the linker input,
 # after all objects that may need symbols provided by these libraries.
-LIB_FILES += -lc -lnosys -lm
-neodk_g071: LIB_FILES += -lmao_g071
-neodk_g0b1: LIB_FILES += -lmao_g0b1
+LIB_FILES += -lmao_g071 -lc -lnosys -lm
 
 .PHONY: default
 
 # Default target - first one defined.
 default: neodk_g071
-
-libmao_g071.a libmao_g0b1.a:
-	$(CC) $(CFLAGS) -I$(MAO_LIB_INC) -I$(PROJ_DIR_INC) -I$(SEGGER) -c $(MAO_LIB_SRC)/*.c
-	$(AR) maolib/$@ *.o
-	rm *.o
-
-all: neodk_g071 neodk_g0b1
 
 TEMPLATE_PATH := toolchain/gcc
 include $(TEMPLATE_PATH)/Makefile.common
@@ -133,20 +122,9 @@ neodk_g071:
   SRC_FILES := \
   $(PROJ_DIR_SRC)/startup_stm32g071xx.s \
   $(PROJ_DIR_SRC)/bsp_stm32g071.c \
+  $(PROJ_DIR_SRC)/bsp_uart_comms.c \
   $(STM32G0xx_SRC) \
   $(PROJ_COMMON_SRC)
   $(call define_target, neodk_g071)
-
-neodk_g0b1:
-  INC_FOLDERS := \
-  $(STM32G0xx_INC) \
-  $(PROJ_DIR_INC) \
-  $(MAO_LIB_INC)
-  SRC_FILES := \
-  $(PROJ_DIR_SRC)/startup_stm32g0b1xx.s \
-  $(PROJ_DIR_SRC)/bsp_stm32g0b1.c \
-  $(STM32G0xx_SRC) \
-  $(PROJ_COMMON_SRC)
-  $(call define_target, neodk_g0b1)
 
 #EOF
