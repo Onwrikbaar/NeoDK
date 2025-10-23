@@ -92,7 +92,8 @@ class NeoDK {
             { usbVendorId: 0x067b },    // Prolific
             { usbVendorId: 0x10c4 },    // Silicon Labs
             { usbVendorId: 0x1a86 },    // WCH (CH340 chip)
-            { usbVendorId: 0x16d0, usbProductId: 0x12ef }
+            { usbVendorId: 0x16d0, usbProductId: 0x12ef },
+			{ bluetoothServiceClassId: '00001101-0000-1000-8000-00805f9b34fb' }	// HC-05, HC-06 virtual ports
         ];
         var port = await navigator.serial.requestPort({ filters });
         port.onconnect = () => {
