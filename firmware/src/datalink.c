@@ -179,11 +179,11 @@ static void handleIncomingFrame(DataLink *me, PhysFrame const *frame)
 static void rxCallback(DataLink *me, uint32_t ch)
 {
     if (! me->synced) {
+        // BSP_logf("B%2hu: 0x%02x\n", me->rx_nb, ch);
         if (ch == '\n') {                       // Dweeb's poll character.
             respondWithAckFrame(me, 0x7, NST_DATAGRAM);
             me->synced = true;
         } else if (assembleIncomingFrame(me, (uint8_t)ch) == FT_SYNC) {
-            // BSP_logf("Byte %2hu is 0x%02x\n", me->rx_nb, ch);
             handleIncomingFrame(me, (PhysFrame const *)me->rx_frame_buffer);
             me->synced = true;
         }

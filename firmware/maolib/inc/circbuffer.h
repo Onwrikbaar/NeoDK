@@ -3,7 +3,7 @@
  *
  *  Created on: 27 Mar 2021
  *      Author: mark
- *   Copyright  2021..2024 Neostim™
+ *   Copyright  2021..2025 Neostim™
  */
 
 #ifndef INC_CIRCBUFFER_H_

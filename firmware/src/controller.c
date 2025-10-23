@@ -11,6 +11,7 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "bsp_dbg.h"
@@ -341,7 +342,7 @@ Controller *Controller_new()
 
 void Controller_init(Controller *me, Sequencer *sequencer, DataLink *datalink)
 {
-    strncpy(me->box_name, "Neostim Mean Machine", sizeof me->box_name - 1);
+    snprintf(me->box_name, sizeof me->box_name, "Neostim %s", BSP_deviceTypeName());
     me->sequencer = sequencer;
     me->datalink  = datalink;
     me->heartbeat_interval_µs = 15000000;
@@ -354,7 +355,7 @@ void Controller_start(Controller *me)
     me->state(me, AOEvent_newEntryEvent());
     DataLink_open(me->datalink, &me->event_queue);
     DataLink_awaitSync(me->datalink);
-    BSP_logf("Welcome to Neostim!\n%s", welcome_msg);
+    BSP_logf("Welcome to the %s!\n%s", me->box_name, welcome_msg);
 }
 
 

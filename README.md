@@ -40,7 +40,7 @@ This project is intended for experienced electronics hobbyists and professionals
 - a high-intensity remotely controllable e-stim device to incorporate into a multi-toy setup or home control system.
 - a deeper understanding of advanced, energy-efficient electronic circuitry for pulse-based electrostimulation.
 - an innovative yet compact, proven design to base one's own developments on.
-- a pulse-based device that can store and play user-created routines (planned for 2025).
+- a pulse-based device that can store and play user-created routines (planned for 2026).
 
 ### Caveat
 NeoDK is _NOT_ a ready-for-play e-stim box. It is a minimal viable design (MVD) of a powerful and highly efficient electrostimulation device that is not limited by 2-pole 'channels' or strictly TENS-like waveforms. Schematic and board CAD files are included, but to get a working device involves some (easy) soldering. To get more than the basic functionality requires programming in C, or being patient.
@@ -59,4 +59,5 @@ Joanne's Reviews' always informative and entertaining YouTube [E-stim Livestream
 
 ## Other OSHW electrostimulation projects
 - [zc95](https://github.com/CrashOverride85/zc95). A feature-rich four channel machine.
+- [FOC-Stim](https://github.com/diglet48/FOC-Stim). Highly innovative, quickly rendering stereostim obsolete.
 - Noisy Cricket (soon to be published). An incredibly compact device primarily aimed at BDSM play.

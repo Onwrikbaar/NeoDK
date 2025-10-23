@@ -106,7 +106,7 @@ void USART2_IRQHandler(void)
             com.tx_callback(com.tx_target, (uint8_t *)&USART2->TDR);
         }
     } else {
-        BSP_logf("%s\n", __func__);
+        BSP_logf("%s ISR=0x%x\n", __func__, USART2->ISR);
     }
 }
 

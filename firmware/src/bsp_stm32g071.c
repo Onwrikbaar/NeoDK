@@ -14,10 +14,7 @@
 #include <string.h>
 
 #include "stm32g0xx_hal_rcc.h"
-// #include "stm32g0xx_ll_rcc.h"
-// #include "stm32g0xx_ll_pwr.h"
 #include "stm32g0xx_hal_pwr.h"
-// #include "stm32g0xx_hal_pwr_ex.h"
 #include "stm32g0xx_ll_system.h"
 #include "stm32g0xx_ll_gpio.h"
 #include "stm32g0xx_ll_exti.h"
@@ -54,8 +51,6 @@
 #define TRIAC_2_PIN             LL_GPIO_PIN_1   // Digital out, open drain.
 #define TRIAC_3_PIN             LL_GPIO_PIN_2   // Digital out, open drain.
 #define TRIAC_4_PIN             LL_GPIO_PIN_5   // Digital out, open drain.
-#define TRIAC_5_PIN             LL_GPIO_PIN_7   // Digital out, open drain.
-#define TRIAC_6_PIN             LL_GPIO_PIN_8   // Digital out, open drain.
 #define ALL_TRIAC_PINS          (TRIAC_1_PIN | TRIAC_2_PIN | TRIAC_3_PIN | TRIAC_4_PIN)
 
 #define BUCK_GPIO_PORT          GPIOB
@@ -651,7 +646,8 @@ void BSP_init()
 
     HAL_InitTick(IRQ_PRIO_SYSTICK);
     SystemClock_Config();
-    BSP_logf("DevId=0x%x, SystemCoreClock=%u\n", LL_DBGMCU_GetDeviceID(), SystemCoreClock);
+    BSP_logf("DevId=0x%x, SystemCoreClock=%u, flash size=%hu KB\n",
+            LL_DBGMCU_GetDeviceID(), SystemCoreClock, *(const uint16_t *)FLASHSIZE_BASE);
     initDAC();
     initDMAforADC1(bsp.adc_1_samples, M_DIM(bsp.adc_1_samples));
     initADC1();
@@ -662,7 +658,13 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.61-beta";
+    return "v0.62-beta";
+}
+
+
+char const *BSP_deviceTypeName()
+{
+    return "Development Kit";
 }
 
 

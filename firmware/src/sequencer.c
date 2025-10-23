@@ -67,7 +67,10 @@ static void switchPattern(Sequencer *me, PatternDescr const *pd)
     CLI_logf("Switching to '%s'\n", Patterns_name(pd));
     me->pattern = pd;
     PatternIterator_init(&me->pi, pd);
-    setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
+    if (me->intensity_percent > DEFAULT_INTENSITY_PERCENT) {
+        // Lower the intensity to a comfortable level.
+        setIntensityPercentage(me, DEFAULT_INTENSITY_PERCENT);
+    }
     Sequencer_notifyPattern(me);
 }
 
@@ -192,7 +195,6 @@ static void *stateStreaming(Sequencer *me, AOEvent const *evt)
     switch (AOEvent_type(evt))
     {
         case ET_AO_ENTRY:
-            // me->pattern = &stream_pd;
             me->pi.pattern_descr = &stream_pd;
             BSP_logf("Sequencer_%s ENTRY\n", __func__);
             setPlayState(me, PS_PLAYING);
@@ -257,6 +259,9 @@ static void *stateIdle(Sequencer *me, AOEvent const *evt)
             break;
         case ET_STOP:
             // Ignore.
+            break;
+        case ET_SELECT_NEXT_PATTERN:
+            switchPattern(me, Patterns_getNext(me->pattern));
             break;
         case ET_START_STREAM:
             if (PtdQueue_isEmpty(me->ptd_queue)) break;

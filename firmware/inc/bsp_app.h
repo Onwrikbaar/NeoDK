@@ -47,7 +47,9 @@ bool BSP_startBurst(Burst const *);
 void BSP_triggerADC(void);
 
 // Firmware update.
+uint32_t BSP_serialNumber(void);
 char const *BSP_firmwareVersion();
+char const *BSP_deviceTypeName();
 void BSP_gotoDfuMode(void);
 
 // Close any communication ports and release resources, if applicable.
