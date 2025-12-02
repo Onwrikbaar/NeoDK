@@ -7,7 +7,7 @@
  *
  *  Created on: 24 Feb 2024
  *      Author: mark
- *   Copyright  2024, 2025 Neostim™
+ *   Copyright  2024..2026 Neostim™
  */
 
 #include <stdlib.h>
@@ -77,6 +77,7 @@ static FrameType assembleIncomingFrame(DataLink *me, uint8_t ch)
         if ((me->rx_payload_size = PhysFrame_payloadSize(frame)) > MAX_PAYLOAD_SIZE) {
             // Report and skip this too large frame and search for a new valid header.
             BSP_logf("Frame payload too big: %hu bytes", me->rx_payload_size);
+            me->rx_nb = 0;
             me->rx_payload_size = 0;
             return FT_NONE;
         }
@@ -299,6 +300,6 @@ void DataLink_close(DataLink *me)
 
 void DataLink_delete(DataLink *me)
 {
-    M_ASSERT(me->channel_fd < 0);
+    M_ASSERT(me->channel_fd < 0);               // Ascertain the channel is closed.
     free(me);
 }

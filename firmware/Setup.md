@@ -30,7 +30,7 @@ A suitable probe is the Segger JLink or Segger JLink EDU. Other probes supportin
 3. In your home directory, create a softlink named 'SEGGER_RTT' to directory 'JLink_V792k/Samples/RTT/SEGGER_RTT_V792k/RTT' of the just installed tree.
 
 ### Checking your installation
-&nbsp;&nbsp;`cd NeoDK/firmware`<br/>
+&nbsp;&nbsp;`cd NeoDK/firmware/neodk`<br/>
 In this directory ('firmware'), at the command prompt type
 
 &nbsp;&nbsp;`make`
@@ -40,7 +40,7 @@ This should compile the demo code without errors and create file 'neodk_g071.hex
 ### Updating the firmware using Segger JLink
 Connect the JLink to a USB port of your computer, and to the 10-pin SWD header on the NeoDK board.
 On the commandline type<br/>
-&nbsp;&nbsp;`cd firmware`<br/>
+&nbsp;&nbsp;`cd firmware/neodk`<br/>
 &nbsp;&nbsp;`JLinkExe -device stm32g071kb -if SWD -speed 4000 -autoconnect 1`<br>
 (On Windows, the command is probably called JLink rather than JLinkExe)<br>
 At the JLink prompt, type<br>

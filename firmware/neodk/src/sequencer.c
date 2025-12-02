@@ -7,7 +7,7 @@
  *
  *  Created on: 27 Feb 2024
  *      Author: mark
- *   Copyright  2024, 2025 Neostim™
+ *   Copyright  2024..2026 Neostim™
  */
 
 #include <stdlib.h>

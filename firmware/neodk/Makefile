@@ -4,10 +4,10 @@
 #      See https://github.com/Onwrikbaar/NeoDK/blob/main/LICENSE.txt for full license details.
 #
 #   Author     mark
-#   Copyright  2023..2025 Neostim™
+#   Copyright  2023..2026 Neostim™
 #
 
-MAO_LIB_INC := maolib/inc
+MAO_LIB_INC := ../maolib/inc
 PROJ_DIR_INC := inc
 PROJ_DIR_SRC := src
 STM32REPO := $(HOME)/STM32Cube/Repository
@@ -54,15 +54,15 @@ STM32G0xx_INC += \
   $(STM32CUBE_G0)/Drivers/STM32G0xx_HAL_Driver/Inc \
   $(SEGGER) \
 
-# Optimization flags
+# Optimization flags.
 # OPT = -O3 -g3
 OPT = -O2
-# Uncomment the line below to enable link time optimization
+# Uncomment the line below to enable link time optimization.
 OPT += -flto=auto
-# Use newlib in nano version
+# Use newlib in nano version.
 OPT += --specs=nano.specs
 
-# C flags common to all targets
+# C flags common to all targets.
 CFLAGS += $(OPT)
 CFLAGS += -Wall -Werror
 # keep every function in a separate section, this allows the linker to discard unused ones.
@@ -77,14 +77,14 @@ CFLAGS += -mthumb -mabi=aapcs
 CFLAGS += -DBUFFER_SIZE_UP=8192
 CFLAGS += -DUSE_FULL_LL_DRIVER
 
-# C++ flags common to all targets
+# C++ flags common to all targets.
 CXXFLAGS += $(OPT)
 
-# Assembler flags common to all targets
+# Assembler flags common to all targets.
 ASMFLAGS += -g3
 
 # Linker flags.
-# Let linker dump unused sections
+# Let linker dump unused sections.
 LDFLAGS += -Wl,--gc-sections
 # LDFLAGS += --no-warn-rwx-segment
 
@@ -93,7 +93,7 @@ LDFLAGS += $(OPT)
 LDFLAGS += -mthumb -mabi=aapcs -T$(LINKER_SCRIPT)
 LDFLAGS += -mcpu=cortex-m0plus
 LDFLAGS += -mfloat-abi=softfp
-LDFLAGS += -Lmaolib
+LDFLAGS += -L../maolib
 
 # Target-specific assembler flags.
 LDFLAGS += -mcpu=cortex-m0plus
@@ -111,7 +111,7 @@ LIB_FILES += -lmao_g071 -lc -lnosys -lm
 # Default target - first one defined.
 default: neodk_g071
 
-TEMPLATE_PATH := toolchain/gcc
+TEMPLATE_PATH := ../toolchain/gcc
 include $(TEMPLATE_PATH)/Makefile.common
 
 neodk_g071:

@@ -1,5 +1,5 @@
 /*
- * neodk_main.c -- Main program of the Neostim™ Development Kit demo firmware.
+ * neodk_main.c -- Main program of the Neostim™ power box firmware.
  *
  *  NOTICE (do not remove):
  *      This file is part of project NeoDK (https://github.com/Onwrikbaar/NeoDK).
@@ -7,7 +7,7 @@
  *
  *  Created on: Oct 20, 2023
  *      Author: mark
- *   Copyright  2023..2025 Neostim™
+ *   Copyright  2023..2026 Neostim™
  */
 
 #include <stdlib.h>

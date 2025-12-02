@@ -7,7 +7,7 @@
  *
  *  Created on: 6 Oct 2020
  *      Author: mark
- *   Copyright  2020..2025 Neostim™
+ *   Copyright  2020..2026 Neostim™
  */
 
 #ifndef INC_BSP_APP_H_
@@ -47,7 +47,7 @@ bool BSP_startBurst(Burst const *);
 void BSP_triggerADC(void);
 
 // Firmware update.
-uint32_t BSP_serialNumber(void);
+uint32_t const *BSP_serialNumber(void);
 char const *BSP_firmwareVersion();
 char const *BSP_deviceTypeName();
 void BSP_gotoDfuMode(void);

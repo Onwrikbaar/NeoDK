@@ -7,7 +7,7 @@
  *
  *  Created on: 20 Oct 2023
  *      Author: mark
- *   Copyright  2023..2025 Neostim™
+ *   Copyright  2023..2026 Neostim™
  */
 
 #include <limits.h>
@@ -165,19 +165,24 @@ static void spuriousIRQ(BSP *me)
 }
 
 
+static void runBootLoader(uint32_t SYS_MEM[])
+{
+    __set_MSP(SYS_MEM[0]);                      // Set up the bootloader's stackpointer.
+    void (*startBootLoader)(void) = (void (*)(void))SYS_MEM[1];
+    startBootLoader();                          // This call does not return.
+}
+
+
 static void initGPIO()
 {
-    LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_DOWN;
-    GPIO_InitStruct.Pin  = PUSHBUTTON_PIN;
+    LL_GPIO_InitTypeDef GPIO_InitStruct = {
+        .Mode = LL_GPIO_MODE_INPUT,
+        .Pull = LL_GPIO_PULL_DOWN,
+        .Pin  = PUSHBUTTON_PIN
+    };
     LL_GPIO_Init(PUSHBUTTON_PORT, &GPIO_InitStruct);
     if (LL_GPIO_IsInputPinSet(PUSHBUTTON_PORT, GPIO_InitStruct.Pin)) {
-        uint32_t const *const SYS_MEM = (uint32_t *)0x1FFF0000;
-        __set_MSP(SYS_MEM[0]);                  // Set up the bootloader's stackpointer.
-        void (*startBootLoader)(void) = (void (*)(void))SYS_MEM[1];
-        startBootLoader();                      // This call does not return.
+        runBootLoader((uint32_t *)0x1FFF0000U); // This call does not return.
     }
 
     GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
@@ -230,7 +235,6 @@ static void initAppTimer()
     app_timer->PSC = SystemCoreClock / APP_TIMER_FREQ_Hz - 1;
     app_timer->CCR1 = BSP_millisecondsToTicks(100);
     app_timer->DIER |= TIM_DIER_CC1IE;          // Interrupt on match with compare register.
-    app_timer->EGR |= TIM_EGR_UG;               // Force update of the shadow registers.
     app_timer->CR1 = TIM_CR1_CEN;               // Enable the counter.
     enableInterruptWithPrio(app_timer_irq, IRQ_PRIO_APP_TIMER);
 }
@@ -241,7 +245,6 @@ static void initSequencerClock()
     seq_clock->PSC = SystemCoreClock / SEQUENCER_CLOCK_FREQ_Hz - 1;
     seq_clock->CCMR1 |= TIM_CCMR1_OC1M_0;
     seq_clock->DIER |= TIM_DIER_CC1IE;          // Interrupt on match with compare register.
-    seq_clock->EGR |= TIM_EGR_UG;               // Force update of the shadow registers.
     enableInterruptWithPrio(seq_clock_irq, IRQ_PRIO_SEQ_CLOCK);
 }
 
@@ -256,10 +259,9 @@ static void initPulseTimer()
     pulse_timer->CCMR2 = TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_0 | TIM_CCMR2_OC4PE;
     // Enable the outputs.
     pulse_timer->CCER = TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC4E;
-    pulse_timer->CR2  = TIM_CR2_CCPC;           // Compare control signals are preloaded.
     pulse_timer->CR1  = TIM_CR1_ARPE | TIM_CR1_URS;
     pulse_timer->DIER = TIM_DIER_UIE;           // Enable update interrupt.
-    pulse_timer->BDTR = TIM_BDTR_OSSR | TIM_BDTR_MOE;
+    pulse_timer->BDTR = TIM_BDTR_MOE;
     enableInterruptWithPrio(pulse_timer_upd_irq, IRQ_PRIO_PULSE);
     enableInterruptWithPrio(pulse_timer_cc_irq,  IRQ_PRIO_PULSE);
 }
@@ -432,7 +434,7 @@ static void setConfigAndClock(BSP *me)
 {
     if (me->pulse_seqnr == pulse_timer->RCR + 1) {
         BSP_setElectrodeConfiguration((uint8_t const *)me->next_burst.elcon);
-    } else {
+    } else {                                    // Pulse train is not finished yet.
         me->elcon_available = true;
     }
     seq_clock->CCR1 = me->next_burst.start_time_µs;
@@ -658,7 +660,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.62-beta";
+    return "v0.63-beta";
 }
 
 
