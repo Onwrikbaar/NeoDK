@@ -639,9 +639,6 @@ void assert_failed(char const *filename, uint32_t line_nr)
 
 void BSP_initSystemClock()
 {
-    RCC->APBENR1 = RCC_APBENR1_PWREN;
-    HAL_InitTick(IRQ_PRIO_SYSTICK);
-    SystemClock_Config();
 }
 
 
@@ -657,6 +654,8 @@ void BSP_init()
     // Enable instruction cache and prefetch buffer.
     FLASH->ACR |= FLASH_ACR_ICEN | FLASH_ACR_PRFTEN;
 
+    HAL_InitTick(IRQ_PRIO_SYSTICK);
+    SystemClock_Config();
     BSP_logf("DevId=0x%x, SystemCoreClock=%u, flash size=%hu KB\n",
             LL_DBGMCU_GetDeviceID(), SystemCoreClock, *(const uint16_t *)FLASHSIZE_BASE);
     initDAC();
