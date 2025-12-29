@@ -85,7 +85,7 @@ static void setPlayState(Sequencer *me, PlayState play_state)
 static void handleAdcValues(AdcValues const *vi, TransactionId trans_id)
 {
     CLI_logf("Vbat=%hu mV, Vcap=%hu mV, Iprim=%hu mA\n", vi->Vbat_mV, vi->Vcap_mV, vi->Iprim_mA);
-    Attribute_changed(AI_VOLTAGES, trans_id, EE_BYTES_1LEN, (uint8_t const *)vi, sizeof vi);
+    Attribute_changed(AI_VOLTAGES, trans_id, EE_BYTES_1LEN, (uint8_t const *)vi, sizeof(AdcValues));
 }
 
 
@@ -117,7 +117,7 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
     switch (AOEvent_type(evt))
     {
         case ET_ADC_DATA_AVAILABLE:
-            handleAdcValues((AdcValues const *)AOEvent_data(evt), 0);
+            handleAdcValues((AdcValues const *)AOEvent_data(evt), NO_TRANS_ID);
             break;
         case ET_STOP:
             return &stateIdle;                  // Transition.
@@ -138,6 +138,9 @@ static void *stateCanopy(Sequencer *me, AOEvent const *evt)
         case ET_UNKNOWN_COMMAND:
             BSP_logf("Unknown command\n");
             break;
+        case ET_BAD_BURST:
+            Burst_print((Burst const*)AOEvent_data(evt));
+            break;
         case ET_BURST_COMPLETED:
             // Ignore.
             break;
@@ -154,7 +157,7 @@ static bool scheduleFirstBurst(Sequencer *me)
     bool ok = PtdQueue_getNextBurst(me->ptd_queue, &burst);
     if (ok) {
         BSP_setElectrodeConfiguration(burst.elcon);
-        BSP_startSequencerClock(burst.start_time_µs - 40);
+        BSP_startSequencerClock(burst.start_time_µs - 200);
         ok = BSP_scheduleBurst(&burst);
     }
     return ok;

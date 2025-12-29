@@ -7,7 +7,7 @@
 #   Copyright  2023..2026 Neostim™
 #
 
-MAO_LIB_INC := ../maolib/inc
+MAO_LIB_INC := maolib/inc
 PROJ_DIR_INC := inc
 PROJ_DIR_SRC := src
 STM32REPO := $(HOME)/STM32Cube/Repository
@@ -36,7 +36,7 @@ STM32G0xx_SRC := \
 
 # Source files common to all targets.
 PROJ_COMMON_SRC += \
-  $(PROJ_DIR_SRC)/neodk_main.c \
+  $(PROJ_DIR_SRC)/neo_main.c \
   $(PROJ_DIR_SRC)/controller.c \
   $(PROJ_DIR_SRC)/sequencer.c \
   $(PROJ_DIR_SRC)/patterns.c \
@@ -93,12 +93,9 @@ LDFLAGS += $(OPT)
 LDFLAGS += -mthumb -mabi=aapcs -T$(LINKER_SCRIPT)
 LDFLAGS += -mcpu=cortex-m0plus
 LDFLAGS += -mfloat-abi=softfp
-LDFLAGS += -L../maolib
+LDFLAGS += -Lmaolib
 
 # Target-specific assembler flags.
-LDFLAGS += -mcpu=cortex-m0plus
-LDFLAGS += -mthumb -mabi=aapcs
-LDFLAGS += -mfloat-abi=softfp
 ASMFLAGS += -D__HEAP_SIZE=4096
 ASMFLAGS += -D__STACK_SIZE=4096
 
@@ -111,7 +108,7 @@ LIB_FILES += -lmao_g071 -lc -lnosys -lm
 # Default target - first one defined.
 default: neodk_g071
 
-TEMPLATE_PATH := ../toolchain/gcc
+TEMPLATE_PATH := toolchain/gcc
 include $(TEMPLATE_PATH)/Makefile.common
 
 neodk_g071:

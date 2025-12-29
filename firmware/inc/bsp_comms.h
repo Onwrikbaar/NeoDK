@@ -7,7 +7,7 @@
  *
  *  Created on: 5 Apr 2025
  *      Author: mark
- *   Copyright  2025 Neostim™
+ *   Copyright  2025, 2026 Neostim™
  */
 
 #ifndef INC_BSP_COMMS_H_

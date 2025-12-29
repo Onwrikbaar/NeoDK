@@ -1,5 +1,5 @@
 /*
- * neodk_main.c -- Main program of the Neostim™ power box firmware.
+ * neo_main.c -- Main program of Neostim™ power boxes firmware.
  *
  *  NOTICE (do not remove):
  *      This file is part of project NeoDK (https://github.com/Onwrikbaar/NeoDK).
@@ -26,7 +26,7 @@
 
 typedef struct {
     EventQueue event_queue;                     // This MUST be the first member.
-    uint8_t event_storage[100];
+    uint8_t event_storage[200];
     Controller *controller;
     Sequencer *sequencer;
     uint64_t prev_micros;
@@ -133,6 +133,7 @@ static void setupAndRunApplication(Boss *me)
     Selector button_selector;
     BSP_registerButtonHandler(Selector_init(&button_selector, (Action)&onButtonToggle, me));
 
+    DataLink_open(datalink, (EventQueue *)me->controller);
     Controller_start(me->controller);
     while (me->keep_running) {
         // Service the worker objects in order of decreasing priority.
@@ -142,6 +143,7 @@ static void setupAndRunApplication(Boss *me)
         BSP_idle((bool (*)(const void *))&noEventsPending, me);
     }
     Controller_stop(me->controller);
+    DataLink_close(datalink);
     Sequencer_stop(me->sequencer);
     DataLink_delete(datalink);
 }
@@ -151,6 +153,7 @@ int main()
 {
     BSP_initDebug();
     BSP_logf("Initialising %s...\n", BSP_firmwareVersion());
+    BSP_initSystemClock();
     BSP_init();                                 // Get the hardware ready.
 
     Boss boss;                                  // The supervisor object.

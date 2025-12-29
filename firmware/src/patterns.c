@@ -7,7 +7,7 @@
  *
  *  Created on: 11 Jan 2025
  *      Author: mark
- *   Copyright  2025 Neostim™
+ *   Copyright  2025, 2026 Neostim™
  */
 
 #include <string.h>

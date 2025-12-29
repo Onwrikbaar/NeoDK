@@ -7,7 +7,7 @@
  *
  *  Created on: 26 Mar 2024
  *      Author: mark
- *   Copyright  2024, 2025 Neostim™
+ *   Copyright  2024..2026 Neostim™
  */
 
 #include <stdio.h>
@@ -107,7 +107,7 @@ static void interpretCommand(CmndInterp *me, char ch)
             CLI_logf("Firmware %s\n", BSP_firmwareVersion());
             break;
         case 'w':                               // Allow rediscovery by Dweeb.
-            CLI_logf("Accept connection from Dweeb\n");
+            CLI_logf("Accept a new connection\n");
             DataLink_awaitSync(me->datalink);
             break;
         default:

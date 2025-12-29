@@ -3,7 +3,7 @@
  *
  *  Created on: 14 Oct 2020
  *      Author: mark
- *   Copyright  2020..2025 Neostim™
+ *   Copyright  2020..2026 Neostim™
  */
 
 #ifndef INC_CONVENIENCE_H_

@@ -7,7 +7,7 @@
  *
  *  Created on: 21 Aug 2024
  *      Author: mark
- *   Copyright  2024, 2025 Neostim™
+ *   Copyright  2024..2026 Neostim™
  */
 
 #ifndef INC_CONTROLLER_H_
@@ -25,6 +25,7 @@ Controller *Controller_new();
 void Controller_init(Controller *, Sequencer *, DataLink *);
 void Controller_start(Controller *);
 bool Controller_handleEvent(Controller *);
+void Controller_handlePacket(Controller *, uint8_t const *packet);
 bool Controller_heartbeatElapsed(Controller const *, uint32_t delta_µs);
 void Controller_stop(Controller *);
 void Controller_delete(Controller *);

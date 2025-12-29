@@ -44,7 +44,7 @@ typedef void *(*StateFunc)(Controller *, AOEvent const *);
 
 struct _Controller {
     EventQueue event_queue;                     // This MUST be the first member.
-    uint8_t    event_storage[400];
+    uint8_t    event_storage[500];
     StateFunc  state;
     Sequencer *sequencer;
     DataLink  *datalink;
@@ -303,8 +303,7 @@ static void *stateReady(Controller *me, AOEvent const *evt)
             DataLink_sendDebugPacket(me->datalink, welcome_msg, sizeof welcome_msg);
             break;
         case ET_INCOMING_PACKET:
-            // Ignore the packet header for now.
-            handleRequest(me, (AttributeAction const *)(AOEvent_data(evt) + sizeof(PacketHeader)));
+            Controller_handlePacket(me, AOEvent_data(evt));
             break;
         default:
             BSP_logf("Controller_%s unexpected event: %u\n", __func__, AOEvent_type(evt));
@@ -345,16 +344,14 @@ void Controller_init(Controller *me, Sequencer *sequencer, DataLink *datalink)
     snprintf(me->box_name, sizeof me->box_name, "Neostim %s", BSP_deviceTypeName());
     me->sequencer = sequencer;
     me->datalink  = datalink;
-    me->heartbeat_interval_µs = 15000000;
+    me->heartbeat_interval_µs = 15000000UL;
+    me->state = &stateReady;
+    me->state(me, AOEvent_newEntryEvent());
 }
 
 
 void Controller_start(Controller *me)
 {
-    me->state = &stateReady;
-    me->state(me, AOEvent_newEntryEvent());
-    DataLink_open(me->datalink, &me->event_queue);
-    DataLink_awaitSync(me->datalink);
     BSP_logf("Welcome to the %s!\n%s", me->box_name, welcome_msg);
 }
 
@@ -371,12 +368,18 @@ bool Controller_heartbeatElapsed(Controller const *me, uint32_t delta_µs)
 }
 
 
+void Controller_handlePacket(Controller *me, uint8_t const *packet)
+{
+    // Ignore the packet header for now.
+    handleRequest(me, (AttributeAction const *)(packet + sizeof(PacketHeader)));
+}
+
+
 void Controller_stop(Controller *me)
 {
     me->state(me, AOEvent_newExitEvent());
     me->state = stateNop;
     BSP_logf("End of session\n");
-    DataLink_close(me->datalink);
 }
 
 

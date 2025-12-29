@@ -3,7 +3,7 @@
  * 
  *  Created on: 11 Apr 2021
  *      Author: mark
- *   Copyright  2021..2025 Neostim™
+ *   Copyright  2021..2026 Neostim™
  */
 
 #ifndef INC_AO_EVENT_H_
@@ -25,7 +25,7 @@ typedef enum {
     ET_COMMS_CAN_ACCEPT_DATA, ET_COMMS_HAS_DATA_AVAILABLE, ET_COMMS_ERROR,
     ET_BUTTON_PUSHED, ET_BUTTON_HELD, ET_BUTTON_RELEASED,
     ET_CHARGING_STARTED, ET_CHARGING_STOPPED,
-    ET_LOG_FROM_IRQ, ET_APP_TIMER_EXPIRED,
+    ET_APP_TIMER_EXPIRED, ET_LOG_FROM_IRQ,
     // Application events start here.
     ET_AO_FIRST_APP_EVENT
 } EventType;

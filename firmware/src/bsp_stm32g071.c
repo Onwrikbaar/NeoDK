@@ -67,6 +67,8 @@
 #define APP_TIMER_FREQ_Hz       2000000UL
 #define TICKS_PER_MICROSECOND   (APP_TIMER_FREQ_Hz / 1000000UL)
 
+#define ADC_HOLDOFF_µs          10
+
 
 typedef struct {
     // The following members get set only once.
@@ -293,8 +295,6 @@ static void initADC1()
     };
     LL_ADC_Init(ADC1, &gis);
     LL_ADC_REG_SetSequencerConfigurable(ADC1, LL_ADC_REG_SEQ_CONFIGURABLE);
-    while (LL_ADC_IsActiveFlag_CCRDY(ADC1) == 0) { /* Wait. */ }
-    LL_ADC_ClearFlag_CCRDY(ADC1);
 
     LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_COMMON_1, LL_ADC_SAMPLINGTIME_7CYCLES_5);
     LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_COMMON_2, LL_ADC_SAMPLINGTIME_39CYCLES_5);
@@ -308,6 +308,9 @@ static void initADC1()
     // Configure a regular channel for the battery/supply voltage.
     LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_3, LL_ADC_CHANNEL_6);
     LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_6, LL_ADC_SAMPLINGTIME_COMMON_2);
+
+    while (LL_ADC_IsActiveFlag_CCRDY(ADC1) == 0) { /* Wait. */ }
+    LL_ADC_ClearFlag_CCRDY(ADC1);
 
     LL_ADC_EnableInternalRegulator(ADC1);
     uint32_t volatile wli = LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / 1000000);
@@ -512,7 +515,7 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
         // BSP_logf("%s at %u µs\n", __func__, seq_clock->CNT);
         EventQueue_postEvent(bsp.delegate, ET_BURST_EXPIRED, NULL, 0);
     } else {
-        BSP_logf("PT SR=0x%x\n", __func__, pulse_timer->SR);
+        BSP_logf("PT UP SR=0x%x\n", pulse_timer->SR);
         // spuriousIRQ(&bsp);
     }
 }
@@ -530,7 +533,7 @@ void TIM1_CC_IRQHandler(void)
     }
     pulse_timer->SR &= ~(TIM_SR_CC6IF | TIM_SR_CC5IF | TIM_SR_CC4IF | TIM_SR_CC3IF);
     if (pulse_timer->SR & ~(TIM_SR_CC2IF | TIM_SR_CC1IF | TIM_SR_UIF)) {
-        BSP_logf("PT SR=0x%x\n", pulse_timer->SR);
+        BSP_logf("PT CC SR=0x%x\n", pulse_timer->SR);
         spuriousIRQ(&bsp);
     }
 }
@@ -634,20 +637,26 @@ void assert_failed(char const *filename, uint32_t line_nr)
  * Below are the functions implementing this module's interface.
  */
 
+void BSP_initSystemClock()
+{
+    RCC->APBENR1 = RCC_APBENR1_PWREN;
+    HAL_InitTick(IRQ_PRIO_SYSTICK);
+    SystemClock_Config();
+}
+
+
 void BSP_init()
 {
     RCC->IOPENR = RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN;
     initGPIO();
 
     LL_RCC_SetADCClockSource(LL_RCC_ADC_CLKSOURCE_HSI);
-    RCC->APBENR1 = RCC_APBENR1_TIM2EN | RCC_APBENR1_TIM3EN | RCC_APBENR1_PWREN | RCC_APBENR1_DAC1EN;
-    RCC->APBENR2 = RCC_APBENR2_TIM1EN | RCC_APBENR2_TIM16EN | RCC_APBENR2_TIM17EN | RCC_APBENR2_ADCEN | RCC_APBENR2_SYSCFGEN;
+    RCC->APBENR1 = RCC_APBENR1_PWREN | RCC_APBENR1_TIM2EN | RCC_APBENR1_TIM3EN | RCC_APBENR1_DAC1EN;
+    RCC->APBENR2 = RCC_APBENR2_SYSCFGEN | RCC_APBENR2_TIM1EN | RCC_APBENR2_TIM16EN | RCC_APBENR2_TIM17EN | RCC_APBENR2_ADCEN;
     RCC->AHBENR |= RCC_AHBENR_DMA1EN;
     // Enable instruction cache and prefetch buffer.
     FLASH->ACR |= FLASH_ACR_ICEN | FLASH_ACR_PRFTEN;
 
-    HAL_InitTick(IRQ_PRIO_SYSTICK);
-    SystemClock_Config();
     BSP_logf("DevId=0x%x, SystemCoreClock=%u, flash size=%hu KB\n",
             LL_DBGMCU_GetDeviceID(), SystemCoreClock, *(const uint16_t *)FLASHSIZE_BASE);
     initDAC();
@@ -660,7 +669,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.63-beta";
+    return "v0.66-beta";
 }
 
 
@@ -777,9 +786,9 @@ uint16_t BSP_setPrimaryVoltagePercent(uint8_t perc)
 
 void BSP_startSequencerClock(uint32_t time_µs)
 {
-    BSP_logf("%s(%d)\n", __func__, time_µs);
     seq_clock->CCR1 = time_µs - 1;
     seq_clock->CNT = time_µs;
+    BSP_logf("%s(%d)\n", __func__, seq_clock->CNT);
     seq_clock->CR1 |= TIM_CR1_CEN;              // Enable the counter.
 }
 
@@ -805,7 +814,7 @@ bool BSP_scheduleBurst(Burst const *burst)
     // Accept the burst only if there is enough time ('do less sooner').
     // Minimum margin yet to be determined; trying 20 µs.
     BSP_criticalSectionEnter();
-    if ((int32_t)seq_clock->CNT < (int32_t)burst->start_time_µs - 20) {
+    if ((burst->start_time_µs == 0) || (int32_t)seq_clock->CNT < (int32_t)burst->start_time_µs - 20) {
         bsp.next_burst = *burst;                // Copy.
         setConfigAndClock(&bsp);
         BSP_criticalSectionExit();
@@ -836,7 +845,7 @@ bool BSP_startBurst(Burst const *burst)
         pulse_timer->DIER |= TIM_DIER_CC2IE;
     } else return false;                        // We only have one output stage.
 
-    if (pulse_width_µs > 10) pulse_timer->CCR4 = 10;
+    if (pulse_width_µs > ADC_HOLDOFF_µs) pulse_timer->CCR4 = ADC_HOLDOFF_µs;
     EventQueue_postEvent(bsp.delegate, ET_BURST_STARTED, (uint8_t const *)&seq_clock->CNT, sizeof seq_clock->CNT);
     pulse_timer->EGR |= TIM_EGR_UG;             // Force update of the shadow registers.
     // Keep at least one instruction between the shadow register update and clearing the CCRs.

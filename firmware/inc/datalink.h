@@ -7,7 +7,7 @@
  *
  *  Created on: 24 Feb 2024
  *      Author: mark
- *   Copyright  2024, 2025 Neostim™
+ *   Copyright  2024..2026 Neostim™
  */
 
 #ifndef INC_DATALINK_H_
@@ -22,6 +22,9 @@ typedef struct _DataLink DataLink;              // Opaque type.
 
 // Class method.
 DataLink *DataLink_new();
+
+// Instance method specific to the production version of the Epsilon firmware.
+void DataLink_setSendFunc(DataLink *me, bool (*)(void *, uint8_t const *, uint16_t), void *);
 
 // Instance methods.
 bool DataLink_open(DataLink *, EventQueue *);
