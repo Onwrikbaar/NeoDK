@@ -22,7 +22,6 @@ typedef struct {
 } AdcValues;
 
 
-void BSP_initSystemClock(void);
 void BSP_init(void);                            // Get the hardware ready for action.
 void BSP_registerPulseDelegate(EventQueue *);
 void BSP_toggleTheLED(void);

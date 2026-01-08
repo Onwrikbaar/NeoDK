@@ -22,10 +22,10 @@
 // This module implements:
 #include "datalink.h"
 
-#define MAX_PAYLOAD_SIZE    512
+#define FRAME_MAX_PAYLOAD_SIZE      512
 
 typedef struct {
-    uint8_t  frame[FRAME_HEADER_SIZE + MAX_PAYLOAD_SIZE];
+    uint8_t  frame[FRAME_HEADER_SIZE + FRAME_MAX_PAYLOAD_SIZE];
     uint32_t frame_timestamp_µs;
 } TxFrameInfo;
 
@@ -34,8 +34,8 @@ struct _DataLink {
     TxFrameInfo tx_frame_info[NR_OF_FRAME_SEQ_NRS];
     CircBuffer output_buffer;
     uint8_t tx_buf_store[600];
-    uint8_t rx_frame_buffer[FRAME_HEADER_SIZE + MAX_PAYLOAD_SIZE];
-    uint8_t rx_nb;
+    uint8_t rx_frame_buffer[FRAME_HEADER_SIZE + FRAME_MAX_PAYLOAD_SIZE];
+    uint16_t rx_nb;
     DeviceId channel_fd;
     uint16_t rx_payload_size;
     uint8_t tx_seq_nr;
@@ -74,9 +74,9 @@ static FrameType assembleIncomingFrame(DataLink *me, uint8_t ch)
             return FT_NONE;
         }
         // Valid header received, start collecting the payload (if any).
-        if ((me->rx_payload_size = PhysFrame_payloadSize(frame)) > MAX_PAYLOAD_SIZE) {
+        if ((me->rx_payload_size = PhysFrame_payloadSize(frame)) > FRAME_MAX_PAYLOAD_SIZE) {
             // Report and skip this too large frame and search for a new valid header.
-            BSP_logf("Frame payload too big: %hu bytes", me->rx_payload_size);
+            BSP_logf("Frame payload too big: %hu bytes\n", me->rx_payload_size);
             me->rx_nb = 0;
             me->rx_payload_size = 0;
             return FT_NONE;
@@ -103,8 +103,8 @@ static uint32_t writeFrame(DataLink *me, uint8_t const *frame, uint32_t nb)
 static void respondWithAckFrame(DataLink *me, uint8_t ack_nr, NetworkServiceType nst)
 {
     uint8_t ack_frame[FRAME_HEADER_SIZE];
-    // TODO Check whether we have an outbound frame queued that
-    // we can piggyback on instead of sending a separate ACK frame.
+    // TODO Check whether we have an outbound frame queued that we
+    //      can piggyback on instead of sending a separate ACK frame.
     PhysFrame_initHeaderWithAck((PhysFrame *)ack_frame, FT_ACK, 0, ack_nr, nst);
     // BSP_logf("%s(%hhu) to controller\n", __func__, ack_nr);
     writeFrame(me, ack_frame, sizeof ack_frame);

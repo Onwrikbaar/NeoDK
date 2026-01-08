@@ -20,25 +20,10 @@
 #include "attributes.h"
 #include "app_event.h"
 #include "patterns.h"
+#include "network.h"
 
 // This module implements:
 #include "controller.h"
-
-typedef struct {
-    uint8_t  flags;                             // Version, etc.
-    uint8_t  reserved;                          // Hop count, etc.
-    uint16_t src_address;
-    uint16_t dst_address;
-    uint8_t  message[0];
-} PacketHeader;
-
-typedef struct {
-    uint16_t transaction_id;
-    uint8_t  opcode;
-    uint8_t  reserved;
-    uint16_t attribute_id;
-    uint8_t  data[0];
-} AttributeAction;
 
 typedef void *(*StateFunc)(Controller *, AOEvent const *);
 
@@ -90,27 +75,28 @@ static void readPatternNames(Controller *me, AttributeAction const *aa)
 }
 
 
-static void attributeChanged(Controller *me, AttributeId ai, uint16_t trans_id, ElementEncoding enc, uint8_t const *data, uint16_t data_size)
+static void sendPacket(Controller *me, TransactionId trans_id, uint8_t opcode, AttributeId ai, ElementEncoding enc, uint8_t const *data, uint16_t data_size)
 {
-    // BSP_logf("Controller_%s(%hu) size=%hu\n", __func__, ai, data_size);
     uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
     uint8_t packet[nbtw + Matter_encodedDataLength(enc, data_size)];
     initResponsePacket((PacketHeader *)packet);
-    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), trans_id, OC_REPORT_DATA, ai);
+    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), trans_id, opcode, ai);
     nbtw += Matter_encode(packet + nbtw, enc, data, data_size);
     DataLink_sendDatagram(me->datalink, packet, nbtw);
+}
+
+
+static void attributeChanged(Controller *me, AttributeId ai, uint16_t trans_id, ElementEncoding enc, uint8_t const *data, uint16_t data_size)
+{
+    // BSP_logf("Controller_%s(%hu) size=%hu\n", __func__, ai, data_size);
+    sendPacket(me, trans_id, OC_REPORT_DATA, ai, enc, data, data_size);
 }
 
 
 static void sendStatusResponse(Controller *me, AttributeAction const *aa, StatusCode sc)
 {
     if (sc != SC_SUCCESS) BSP_logf("%s %hu for attr id=%hu\n", __func__, sc, aa->attribute_id);
-    uint16_t nbtw = sizeof(PacketHeader) + sizeof(AttributeAction);
-    uint8_t packet[nbtw + Matter_encodedDataLength(EE_UNSIGNED_INT, 1)];
-    initResponsePacket((PacketHeader *)packet);
-    initAttributeAction((AttributeAction *)(packet + sizeof(PacketHeader)), aa->transaction_id, OC_STATUS_RESPONSE, aa->attribute_id);
-    nbtw += Matter_encode(packet + nbtw, EE_UNSIGNED_INT, &sc, 1);
-    DataLink_sendDatagram(me->datalink, packet, nbtw);
+    sendPacket(me, aa->transaction_id, OC_STATUS_RESPONSE, aa->attribute_id, EE_UNSIGNED_INT, &sc, 1);
 }
 
 
@@ -216,7 +202,8 @@ static void handleWriteRequest(Controller *me, AttributeAction const *aa)
             if (aa->data[0] == EE_UNSIGNED_INT_2) {
                 uint16_t interval_secs = aa->data[1] | (aa->data[2] << 8);
                 if (interval_secs > 3600) interval_secs = 3600;
-                BSP_logf("Setting heartbeat interval to %hu seconds\n", interval_secs);
+                BSP_logf("Heartbeat ");
+                BSP_logf(interval_secs ? "%hu seconds\n" : "off\n", interval_secs);
                 me->heartbeat_interval_µs = interval_secs * 1000000UL;
             }
             break;

@@ -637,11 +637,6 @@ void assert_failed(char const *filename, uint32_t line_nr)
  * Below are the functions implementing this module's interface.
  */
 
-void BSP_initSystemClock()
-{
-}
-
-
 void BSP_init()
 {
     RCC->IOPENR = RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN;
@@ -668,7 +663,7 @@ void BSP_init()
 
 char const *BSP_firmwareVersion()
 {
-    return "v0.66-beta";
+    return "v0.67-beta";
 }
 
 

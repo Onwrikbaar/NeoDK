@@ -153,7 +153,6 @@ int main()
 {
     BSP_initDebug();
     BSP_logf("Initialising %s...\n", BSP_firmwareVersion());
-    BSP_initSystemClock();
     BSP_init();                                 // Get the hardware ready.
 
     Boss boss;                                  // The supervisor object.
